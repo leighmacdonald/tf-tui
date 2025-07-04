@@ -1,0 +1,10 @@
+package: main
+output: client.gen.go
+generate:
+  models: true
+  #types: true
+  client: true
+  # chi-server: true
+  # or
+  # gin-server: true
+  # strict-server: true
