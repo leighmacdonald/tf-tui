@@ -18,12 +18,9 @@ var defaultConfig = Config{
 	Password: "test",
 }
 
-const configName = "config.yaml"
+const defaultConfigName = "tf-tui.yaml"
 
 func configPath(name string) string {
-	if err := os.MkdirAll(path.Join(xdg.ConfigHome, "tf-tui"), 0755); err != nil {
-		panic(err)
-	}
 	fullPath, errFullPath := xdg.ConfigFile(path.Join("tf-tui", name))
 	if errFullPath != nil {
 		panic(errFullPath)
@@ -33,7 +30,7 @@ func configPath(name string) string {
 
 func configRead(name string) (Config, bool) {
 	var config Config
-	inFile, errOpen := os.Open(configPath(configName))
+	inFile, errOpen := os.Open(configPath(name))
 	if errOpen != nil {
 		return defaultConfig, false
 	}
@@ -47,7 +44,7 @@ func configRead(name string) (Config, bool) {
 }
 
 func configWrite(name string, config Config) error {
-	outFile, errOpen := os.Open(configPath(configName))
+	outFile, errOpen := os.Create(configPath(defaultConfigName))
 	if errOpen != nil {
 		return errOpen
 	}

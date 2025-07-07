@@ -6,14 +6,15 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"path"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/adrg/xdg"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -50,8 +51,7 @@ type TickMsg struct {
 type appState struct {
 	config         Config
 	api            *ClientWithResponses
-	redTable       table.Model
-	bluTable       table.Model
+	table          *tableModel
 	loadingSpinner spinner.Model
 	keymap         keymap
 	titleState     string
@@ -64,6 +64,7 @@ type appState struct {
 	selectedTeam   Team
 	selectedRow    int
 	inConfig       bool
+	statusMsg      string
 }
 
 func (m appState) Init() tea.Cmd {
@@ -85,8 +86,111 @@ func (m appState) View() string {
 	// Send the UI for rendering
 	return b.String()
 }
+
+func (m appState) handleHelpInputs(msg string) (appState, tea.Cmd) {
+	switch msg {
+	case "ctrl+c", "esc":
+		m.inConfig = false
+		return m, nil
+	case "up":
+		if m.help.focusIndex > 0 && m.help.focusIndex <= 2 {
+			m.help.focusIndex--
+		}
+	case "down":
+		if m.help.focusIndex >= 0 && m.help.focusIndex < 2 {
+			m.help.focusIndex++
+		}
+	case "enter":
+		switch m.help.focusIndex {
+		case 0:
+			m.help.focusIndex++
+		case 1:
+			m.help.focusIndex++
+		case 2:
+			return m, tea.Batch(func() tea.Msg {
+				return m.config
+			})
+		}
+	}
+
+	cmds := make([]tea.Cmd, 2)
+
+	switch m.help.focusIndex {
+	case 0:
+		cmds = append(cmds, m.help.inputAddr.Focus())
+		m.help.inputAddr.PromptStyle = styles.FocusedStyle
+		m.help.inputAddr.TextStyle = styles.FocusedStyle
+
+		m.help.passwordAddr.Blur()
+		m.help.passwordAddr.PromptStyle = styles.NoStyle
+		m.help.passwordAddr.TextStyle = styles.NoStyle
+	case 1:
+		cmds = append(cmds, m.help.passwordAddr.Focus())
+		m.help.passwordAddr.PromptStyle = styles.FocusedStyle
+		m.help.passwordAddr.TextStyle = styles.FocusedStyle
+
+		m.help.inputAddr.Blur()
+		m.help.inputAddr.PromptStyle = styles.NoStyle
+		m.help.inputAddr.TextStyle = styles.NoStyle
+	case 2:
+		m.help.passwordAddr.Blur()
+		m.help.passwordAddr.PromptStyle = styles.NoStyle
+		m.help.passwordAddr.TextStyle = styles.NoStyle
+		m.help.inputAddr.Blur()
+		m.help.inputAddr.PromptStyle = styles.NoStyle
+		m.help.inputAddr.TextStyle = styles.NoStyle
+	}
+
+	return m, tea.Batch(append(cmds, m.updateInputs(msg)...)...)
+}
+func (m appState) handleDefaultInpuits(msg string) (appState, tea.Cmd) {
+	switch msg {
+	// These keys should exit the program.
+	case "ctrl+c", "q", "esc":
+		return m, tea.Quit
+	case "E":
+		m.inConfig = true
+		return m, nil
+	// The "up" and "k" keys move the cursor up
+	case "up", "k":
+		//if m.cursor > 0 {
+		//	m.cursor--
+		//}
+
+	// The "down" and "j" keys move the cursor down
+	case "down", "j":
+		//if m.cursor < len(m.choices)-1 {
+		//	m.cursor++
+		//}
+
+	// The "enter" key and the spacebar (a literal space) toggle
+	// the selected state for the item that the cursor is pointing at.
+	case "enter", " ":
+		//_, ok := m.selected[m.cursor]
+		//if ok {
+		//	delete(m.selected, m.cursor)
+		//} else {
+		//	m.selected[m.cursor] = struct{}{}
+		//}
+	}
+
+	return m, nil
+}
+
 func (m appState) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := inMsg.(type) {
+	case Config:
+		if err := configWrite(defaultConfigName, msg); err != nil {
+			m.err = err
+			return m, nil
+		}
+
+		m.statusMsg = "Saved config"
+		m.config = msg
+		m.inConfig = false
+
+		return m, nil
+
 	case TickMsg:
 		if msg.dump != nil {
 			m.dump = msg.dump
@@ -97,91 +201,19 @@ func (m appState) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = nil
 		}
 
-		return m, tea.Batch(m.tickEvery(), tea.Println("update"))
+		return m, tea.Batch(m.tickEvery())
 
 	case tea.WindowSizeMsg:
 		m.windowSize = msg
 
 	// Is it a key press?
 	case tea.KeyMsg:
+		keyMsg := msg.String()
 		if m.inConfig {
-			switch msg.String() {
-			case "ctrl+c", "esc":
-				m.inConfig = false
-				return m, nil
-			case "up":
-				if m.help.focusIndex > 0 && m.help.focusIndex <= 2 {
-					m.help.focusIndex--
-				}
-			case "down":
-				if m.help.focusIndex >= 0 && m.help.focusIndex < 2 {
-					m.help.focusIndex++
-				}
-			}
-
-			cmds := make([]tea.Cmd, 2)
-
-			switch m.help.focusIndex {
-			case 0:
-				cmds = append(cmds, m.help.inputAddr.Focus())
-				m.help.inputAddr.PromptStyle = styles.FocusedStyle
-				m.help.inputAddr.TextStyle = styles.FocusedStyle
-
-				m.help.passwordAddr.Blur()
-				m.help.passwordAddr.PromptStyle = styles.NoStyle
-				m.help.passwordAddr.TextStyle = styles.NoStyle
-			case 1:
-				cmds = append(cmds, m.help.passwordAddr.Focus())
-				m.help.passwordAddr.PromptStyle = styles.FocusedStyle
-				m.help.passwordAddr.TextStyle = styles.FocusedStyle
-
-				m.help.inputAddr.Blur()
-				m.help.inputAddr.PromptStyle = styles.NoStyle
-				m.help.inputAddr.TextStyle = styles.NoStyle
-			case 2:
-				m.help.passwordAddr.Blur()
-				m.help.passwordAddr.PromptStyle = styles.NoStyle
-				m.help.passwordAddr.TextStyle = styles.NoStyle
-				m.help.inputAddr.Blur()
-				m.help.inputAddr.PromptStyle = styles.NoStyle
-				m.help.inputAddr.TextStyle = styles.NoStyle
-			}
-
-			return m, tea.Batch(append(cmds, m.updateInputs(inMsg)...)...)
+			return m.handleHelpInputs(keyMsg)
 		}
-		// Cool, what was the actual key pressed?
-		switch msg.String() {
+		return m.handleDefaultInpuits(keyMsg)
 
-		// These keys should exit the program.
-		case "ctrl+c", "q", "esc":
-			return m, tea.Quit
-		case "E":
-			m.inConfig = true
-			return m, nil
-		// The "up" and "k" keys move the cursor up
-		case "up", "k":
-			//if m.cursor > 0 {
-			//	m.cursor--
-			//}
-
-		// The "down" and "j" keys move the cursor down
-		case "down", "j":
-			//if m.cursor < len(m.choices)-1 {
-			//	m.cursor++
-			//}
-
-		// The "enter" key and the spacebar (a literal space) toggle
-		// the selected state for the item that the cursor is pointing at.
-		case "enter", " ":
-			//_, ok := m.selected[m.cursor]
-			//if ok {
-			//	delete(m.selected, m.cursor)
-			//} else {
-			//	m.selected[m.cursor] = struct{}{}
-			//}
-		default:
-			return m, nil
-		}
 	case errMsg:
 		m.err = msg
 		return m, nil
@@ -209,14 +241,14 @@ func (m *appState) updateInputs(msg tea.Msg) []tea.Cmd {
 	return cmds
 }
 func (m appState) title() string {
-	return styles.Title.Render("Welcome to tf-tui")
+	return styles.Title.Width(m.windowSize.Width / 2).Render("Welcome to tf-tui")
 }
 
 func (m appState) status() string {
 	if m.err != nil {
 		return styles.Title.Render(m.err.Error())
 	}
-	return styles.Status.Render("")
+	return styles.Status.Width(m.windowSize.Width / 2).Render(m.statusMsg)
 }
 
 func (m appState) renderConfig() string {
@@ -234,39 +266,8 @@ func (m appState) renderHeading() string {
 }
 
 func (m appState) renderPlayerTables() string {
-	var (
-		redRows [][]string
-		bluRows [][]string
-	)
-
-	if m.dump != nil {
-		for nameIdx := range maxDataSize {
-			if !m.dump.SteamID[nameIdx].Valid() {
-				continue
-			}
-
-			row := []string{
-				m.dump.Names[nameIdx],
-				fmt.Sprintf("%d", m.dump.Score[nameIdx]),
-				fmt.Sprintf("%d", m.dump.Deaths[nameIdx]),
-				fmt.Sprintf("%d", m.dump.Ping[nameIdx]),
-			}
-
-			switch m.dump.Team[nameIdx] {
-			case 2:
-				redRows = append(redRows, row)
-			case 3:
-				bluRows = append(bluRows, row)
-			}
-		}
-	}
-
-	srt(redRows)
-	srt(bluRows)
-
-	return "\n" + lipgloss.JoinHorizontal(lipgloss.Top,
-		newPlayerTable(redRows, true, m.selectedRow, m.selectedTeam == RED).Render(),
-		newPlayerTable(bluRows, false, m.selectedRow, m.selectedTeam == BLU).Render())
+	m.table.dump = m.dump
+	return "\n" + m.table.render()
 }
 
 func srt(rows [][]string) {
@@ -284,16 +285,10 @@ func (m appState) tickEvery() tea.Cmd {
 		if errDump != nil {
 			m.messages = append(m.messages, "fatal:", errDump.Error())
 
-			return TickMsg{
-				err: errDump,
-				t:   t,
-			}
+			return TickMsg{err: errDump, t: t}
 		}
 
-		return TickMsg{
-			t:    t,
-			dump: dump,
-		}
+		return TickMsg{t: t, dump: dump}
 	})
 }
 
@@ -301,6 +296,7 @@ func newAppState(client *ClientWithResponses, config Config, doSetup bool) *appS
 	return &appState{
 		api:            client,
 		config:         config,
+		table:          newTableModel(),
 		inConfig:       doSetup,
 		loadingSpinner: newSpinner(),
 		help:           newWidgetConfig(defaultConfig),
@@ -344,9 +340,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	config, exists := configRead("config.yaml")
+	if err := os.MkdirAll(path.Join(xdg.ConfigHome, "tf-tui"), 0755); err != nil {
+		fmt.Println("fatal:", err)
+		os.Exit(1)
+	}
 
-	program := tea.NewProgram(newAppState(client, config, !exists), tea.WithAltScreen())
+	config, exists := configRead(defaultConfigName)
+	program := tea.NewProgram(newAppState(client, config, !exists) /**, tea.WithAltScreen()**/)
 	if _, err := program.Run(); err != nil {
 		fmt.Printf("There's been an error :( %v", err)
 		os.Exit(1)

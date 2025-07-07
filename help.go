@@ -52,9 +52,9 @@ func (w widgetConfig) Render() string {
 	keyMaps := newHelpKeymap()
 	var b strings.Builder
 
-	b.WriteString(styles.HelpStyle.Render("\nRCON Address:  "))
+	b.WriteString(styles.HelpStyle.Render("\n🟥 RCON Address:  "))
 	b.WriteString(w.inputAddr.View() + "\n")
-	b.WriteString(styles.HelpStyle.Render("RCON Password: "))
+	b.WriteString(styles.HelpStyle.Render("🟩 RCON Password: "))
 	b.WriteString(w.passwordAddr.View())
 
 	if w.focusIndex == 2 {
