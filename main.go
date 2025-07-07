@@ -18,6 +18,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/leighmacdonald/tf-tui/shared"
 	"github.com/leighmacdonald/tf-tui/styles"
 
 	"os"
@@ -45,7 +46,7 @@ type errMsg error
 type TickMsg struct {
 	err  error
 	t    time.Time
-	dump *DumpPlayer
+	dump shared.PlayerState
 }
 
 type appState struct {
@@ -57,7 +58,7 @@ type appState struct {
 	titleState     string
 	quitting       bool
 	err            errMsg
-	dump           *DumpPlayer
+	dump           shared.PlayerState
 	messages       []string
 	windowSize     tea.WindowSizeMsg
 	help           widgetConfig
@@ -65,6 +66,7 @@ type appState struct {
 	selectedRow    int
 	inConfig       bool
 	statusMsg      string
+	scripting      *Scripting
 }
 
 func (m appState) Init() tea.Cmd {
@@ -192,9 +194,6 @@ func (m appState) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case TickMsg:
-		if msg.dump != nil {
-			m.dump = msg.dump
-		}
 		if msg.err != nil {
 			m.err = msg.err
 		} else {
@@ -281,7 +280,7 @@ func srt(rows [][]string) {
 func (m appState) tickEvery() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		m.messages = append(m.messages, "updating dump")
-		dump, errDump := fetchDumpPlayer(context.Background(), m.config.Address, m.config.Password)
+		dump, errDump := fetchPlayerState(context.Background(), m.config.Address, m.config.Password)
 		if errDump != nil {
 			m.messages = append(m.messages, "fatal:", errDump.Error())
 
@@ -292,10 +291,11 @@ func (m appState) tickEvery() tea.Cmd {
 	})
 }
 
-func newAppState(client *ClientWithResponses, config Config, doSetup bool) *appState {
+func newAppState(client *ClientWithResponses, config Config, doSetup bool, scripting *Scripting) *appState {
 	return &appState{
 		api:            client,
 		config:         config,
+		scripting:      scripting,
 		table:          newTableModel(),
 		inConfig:       doSetup,
 		loadingSpinner: newSpinner(),
@@ -346,7 +346,19 @@ func main() {
 	}
 
 	config, exists := configRead(defaultConfigName)
-	program := tea.NewProgram(newAppState(client, config, !exists) /**, tea.WithAltScreen()**/)
+
+	scripting, errScripting := NewScripting()
+	if errScripting != nil {
+		fmt.Println("fatal:", errScripting.Error())
+		os.Exit(1)
+	}
+
+	if errScripts := scripting.LoadDir("scripts"); errScripts != nil {
+		fmt.Println("fatal:", errScripts.Error())
+		os.Exit(1)
+	}
+
+	program := tea.NewProgram(newAppState(client, config, !exists, scripting) /**, tea.WithAltScreen()**/)
 	if _, err := program.Run(); err != nil {
 		fmt.Printf("There's been an error :( %v", err)
 		os.Exit(1)

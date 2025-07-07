@@ -4,21 +4,21 @@ import (
 	"context"
 	"errors"
 	"strings"
+
+	"github.com/leighmacdonald/tf-tui/shared"
 )
 
-var parser = newG15Parser()
-
-func fetchDumpPlayer(ctx context.Context, address string, password string) (*DumpPlayer, error) {
+func fetchPlayerState(ctx context.Context, address string, password string) (shared.PlayerState, error) {
 	conn := newRconConnection(address, password)
 	response, errExec := conn.exec(ctx, "g15_dumpplayer", true)
 	if errExec != nil {
-		return nil, errors.Join(errExec, errRCONExec)
+		return shared.PlayerState{}, errors.Join(errExec, errRCONExec)
 	}
 
-	var dump DumpPlayer
-	if err := parser.Parse(strings.NewReader(response), &dump); err != nil {
-		return nil, errors.Join(err, errRCONParse)
+	dump, err := Parse(strings.NewReader(response))
+	if err != nil {
+		return shared.PlayerState{}, errors.Join(err, errRCONParse)
 	}
 
-	return &dump, nil
+	return dump, nil
 }

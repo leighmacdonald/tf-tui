@@ -5,6 +5,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"github.com/leighmacdonald/tf-tui/shared"
 	"github.com/leighmacdonald/tf-tui/styles"
 )
 
@@ -13,7 +14,7 @@ type tableModel struct {
 	selectedTeam Team // red = 3, blu = 4
 	redTable     *table.Table
 	bluTable     *table.Table
-	dump         *DumpPlayer
+	dump         shared.PlayerState
 }
 
 func newTableModel() *tableModel {
@@ -29,25 +30,23 @@ func (m tableModel) render() string {
 		bluRows [][]string
 	)
 
-	if m.dump != nil {
-		for nameIdx := range maxDataSize {
-			if !m.dump.SteamID[nameIdx].Valid() {
-				continue
-			}
+	for nameIdx := range shared.MaxDataSize {
+		if !m.dump.SteamID[nameIdx].Valid() {
+			continue
+		}
 
-			row := []string{
-				m.dump.Names[nameIdx],
-				fmt.Sprintf("%d", m.dump.Score[nameIdx]),
-				fmt.Sprintf("%d", m.dump.Deaths[nameIdx]),
-				fmt.Sprintf("%d", m.dump.Ping[nameIdx]),
-			}
+		row := []string{
+			m.dump.Names[nameIdx],
+			fmt.Sprintf("%d", m.dump.Score[nameIdx]),
+			fmt.Sprintf("%d", m.dump.Deaths[nameIdx]),
+			fmt.Sprintf("%d", m.dump.Ping[nameIdx]),
+		}
 
-			switch m.dump.Team[nameIdx] {
-			case 2:
-				redRows = append(redRows, row)
-			case 3:
-				bluRows = append(bluRows, row)
-			}
+		switch m.dump.Team[nameIdx] {
+		case 2:
+			redRows = append(redRows, row)
+		case 3:
+			bluRows = append(bluRows, row)
 		}
 	}
 
