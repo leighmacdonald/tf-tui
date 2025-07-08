@@ -20,7 +20,7 @@ func fetchPlayerState(ctx context.Context, address string, password string) (sha
 	response, errExec := conn.exec(ctx, "g15_dumpplayer", true)
 	if errExec != nil {
 		var data shared.PlayerState
-		for i := range 24 {
+		for i := range 23 {
 			data.Names[i] = "asdf asdf sdf "
 			data.UserID[i] = i + 1
 			data.Score[i] = i
@@ -29,9 +29,9 @@ func fetchPlayerState(ctx context.Context, address string, password string) (sha
 			data.Score[i] = i
 			data.SteamID[i] = steamid.RandSID64()
 			if i%2 == 0 {
-				data.Team[i] = RED
-			} else {
 				data.Team[i] = BLU
+			} else {
+				data.Team[i] = RED
 			}
 			if i == 0 {
 				data.SteamID[0] = steamid.New(76561197960265730)

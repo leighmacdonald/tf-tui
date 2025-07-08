@@ -20,15 +20,44 @@ type tableModel struct {
 }
 
 func newTableModel() *tableModel {
-	model := &tableModel{
-		selectedRow:  0,
-		selectedTeam: RED,
-	}
+	model := &tableModel{selectedRow: 0, selectedTeam: RED}
 
 	model.redTable = defaultTable(RED, model)
 	model.bluTable = defaultTable(BLU, model)
 
 	return model
+}
+
+type Direction int
+
+const (
+	Up Direction = iota
+	Down
+	Left
+	Right
+)
+
+func (m *tableModel) moveSelection(direction Direction) {
+	switch direction {
+	case Up:
+		if m.selectedRow > 0 {
+			m.selectedRow--
+		}
+	case Down:
+		if m.selectedRow < m.selectedColumnPlayerCount()-1 {
+			m.selectedRow++
+		}
+	case Left:
+		if m.selectedTeam != RED {
+			m.selectedTeam = RED
+			m.selectedRow = min(m.selectedColumnPlayerCount()-1, m.selectedRow)
+		}
+	case Right:
+		if m.selectedTeam != BLU {
+			m.selectedTeam = BLU
+			m.selectedRow = min(m.selectedColumnPlayerCount()-1, m.selectedRow)
+		}
+	}
 }
 
 func (m *tableModel) selectedColumnPlayerCount() int {

@@ -162,6 +162,7 @@ func (m appState) handleHelpInputs(msg string) (appState, tea.Cmd) {
 
 	return m, tea.Batch(append(cmds, m.updateInputs(msg)...)...)
 }
+
 func (m appState) handleDefaultInpuits(msg string) (appState, tea.Cmd) {
 	switch msg {
 	// These keys should exit the program.
@@ -170,25 +171,14 @@ func (m appState) handleDefaultInpuits(msg string) (appState, tea.Cmd) {
 	case "E":
 		m.inConfig = true
 		return m, nil
-	// The "up" and "k" keys move the cursor up
 	case "up", "k":
-		if m.table.selectedRow > 0 {
-			m.table.selectedRow--
-		}
-
-	// The "down" and "j" keys move the cursor down
+		m.table.moveSelection(Up)
 	case "down", "j":
-		if m.table.selectedRow < m.table.selectedColumnPlayerCount()-1 {
-			m.table.selectedRow++
-		}
+		m.table.moveSelection(Down)
 	case "left", "h":
-		if m.table.selectedTeam != RED {
-			m.table.selectedTeam = RED
-		}
+		m.table.moveSelection(Left)
 	case "right", "l":
-		if m.table.selectedTeam != BLU {
-			m.table.selectedTeam = BLU
-		}
+		m.table.moveSelection(Right)
 	// The "enter" key and the spacebar (a literal space) toggle
 	// the selected state for the item that the cursor is pointing at.
 	case "enter", " ":
