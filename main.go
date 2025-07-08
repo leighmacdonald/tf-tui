@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -39,6 +40,10 @@ type keymap struct {
 	reset  key.Binding
 	quit   key.Binding
 	config key.Binding
+	up     key.Binding
+	down   key.Binding
+	left   key.Binding
+	right  key.Binding
 }
 
 type errMsg error
@@ -57,6 +62,7 @@ type appState struct {
 	keymap         keymap
 	titleState     string
 	quitting       bool
+	banTable       *BanTableModel
 	err            errMsg
 	dump           shared.PlayerState
 	messages       []string
@@ -67,6 +73,7 @@ type appState struct {
 	inConfig       bool
 	statusMsg      string
 	scripting      *Scripting
+	helpView       help.Model
 }
 
 func (m appState) Init() tea.Cmd {
@@ -81,6 +88,16 @@ func (m appState) View() string {
 	} else {
 		b.WriteString(m.renderPlayerTables())
 	}
+	b.WriteString("\n")
+
+	b.WriteString(m.helpView.ShortHelpView([]key.Binding{
+		m.keymap.quit,
+		m.keymap.config,
+		m.keymap.up,
+		m.keymap.down,
+		m.keymap.left,
+		m.keymap.right,
+	}))
 
 	// The footer
 	b.WriteString(strings.Join(m.messages, "\n"))
@@ -155,16 +172,23 @@ func (m appState) handleDefaultInpuits(msg string) (appState, tea.Cmd) {
 		return m, nil
 	// The "up" and "k" keys move the cursor up
 	case "up", "k":
-		//if m.cursor > 0 {
-		//	m.cursor--
-		//}
+		if m.table.selectedRow > 0 {
+			m.table.selectedRow--
+		}
 
 	// The "down" and "j" keys move the cursor down
 	case "down", "j":
-		//if m.cursor < len(m.choices)-1 {
-		//	m.cursor++
-		//}
-
+		if m.table.selectedRow < m.table.selectedColumnPlayerCount()-1 {
+			m.table.selectedRow++
+		}
+	case "left", "h":
+		if m.table.selectedTeam != RED {
+			m.table.selectedTeam = RED
+		}
+	case "right", "l":
+		if m.table.selectedTeam != BLU {
+			m.table.selectedTeam = BLU
+		}
 	// The "enter" key and the spacebar (a literal space) toggle
 	// the selected state for the item that the cursor is pointing at.
 	case "enter", " ":
@@ -199,6 +223,8 @@ func (m appState) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.err = nil
 		}
+
+		m.dump = msg.dump
 
 		return m, tea.Batch(m.tickEvery())
 
@@ -240,7 +266,7 @@ func (m *appState) updateInputs(msg tea.Msg) []tea.Cmd {
 	return cmds
 }
 func (m appState) title() string {
-	return styles.Title.Width(m.windowSize.Width / 2).Render("Welcome to tf-tui")
+	return styles.Title.Width(m.windowSize.Width / 2).Render(fmt.Sprintf("c: %d r: %d", m.table.selectedTeam, m.table.selectedRow))
 }
 
 func (m appState) status() string {
@@ -266,7 +292,7 @@ func (m appState) renderHeading() string {
 
 func (m appState) renderPlayerTables() string {
 	m.table.dump = m.dump
-	return "\n" + m.table.render()
+	return "\n" + m.table.View()
 }
 
 func srt(rows [][]string) {
@@ -280,6 +306,7 @@ func srt(rows [][]string) {
 func (m appState) tickEvery() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		m.messages = append(m.messages, "updating dump")
+
 		dump, errDump := fetchPlayerState(context.Background(), m.config.Address, m.config.Password)
 		if errDump != nil {
 			m.messages = append(m.messages, "fatal:", errDump.Error())
@@ -295,6 +322,7 @@ func newAppState(client *ClientWithResponses, config Config, doSetup bool, scrip
 	return &appState{
 		api:            client,
 		config:         config,
+		helpView:       help.New(),
 		scripting:      scripting,
 		table:          newTableModel(),
 		inConfig:       doSetup,
@@ -318,8 +346,24 @@ func newAppState(client *ClientWithResponses, config Config, doSetup bool, scrip
 				key.WithHelp("q", "quit"),
 			),
 			config: key.NewBinding(
-				key.WithKeys("c"),
-				key.WithHelp("c", "confi"),
+				key.WithKeys("E"),
+				key.WithHelp("E", "config"),
+			),
+			up: key.NewBinding(
+				key.WithKeys("up", "k"),
+				key.WithHelp("↑", "up"),
+			),
+			down: key.NewBinding(
+				key.WithKeys("down", "j"),
+				key.WithHelp("↓", "down"),
+			),
+			left: key.NewBinding(
+				key.WithKeys("left", "h"),
+				key.WithHelp("←", "left"),
+			),
+			right: key.NewBinding(
+				key.WithKeys("right", "l"),
+				key.WithHelp("→", "right"),
 			),
 		}}
 }
@@ -331,7 +375,11 @@ func main() {
 			fmt.Println("fatal:", err)
 			os.Exit(1)
 		}
-		defer f.Close()
+		defer func(f *os.File) {
+			if errClose := f.Close(); errClose != nil {
+				fmt.Println("error:", errClose.Error())
+			}
+		}(f)
 	}
 
 	client, errClient := NewClientWithResponses("http://localhost:8888/")
@@ -353,12 +401,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if errScripts := scripting.LoadDir("scripts"); errScripts != nil {
-		fmt.Println("fatal:", errScripts.Error())
-		os.Exit(1)
-	}
+	//if errScripts := scripting.LoadDir("scripts"); errScripts != nil {
+	//	fmt.Println("fatal:", errScripts.Error())
+	//	os.Exit(1)
+	//}
 
-	program := tea.NewProgram(newAppState(client, config, !exists, scripting) /**, tea.WithAltScreen()**/)
+	program := tea.NewProgram(newAppState(client, config, !exists, scripting), tea.WithAltScreen())
 	if _, err := program.Run(); err != nil {
 		fmt.Printf("There's been an error :( %v", err)
 		os.Exit(1)

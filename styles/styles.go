@@ -23,6 +23,7 @@ var (
 	BlurredSubmitButton = fmt.Sprintf("[ %s ]", BlurredStyle.Render("Submit"))
 
 	// Tables
+	Black     = lipgloss.Color("#111111")
 	Gray      = lipgloss.Color("245")
 	LightGray = lipgloss.Color("241")
 
@@ -31,9 +32,15 @@ var (
 
 	HeaderStyleRed  = lipgloss.NewStyle().Foreground(Red).Bold(true).Align(lipgloss.Center)
 	HeaderStyleBlu  = lipgloss.NewStyle().Foreground(Blu).Bold(true).Align(lipgloss.Center)
-	CellStyleName   = lipgloss.NewStyle().Padding(0, 1).Width(30)
+	CellStyleName   = lipgloss.NewStyle().Padding(0, 1).Width(32)
 	CellStyle       = lipgloss.NewStyle().Padding(0, 1).Width(6)
 	OddRowStyleName = CellStyleName.Foreground(Gray)
 	OddRowStyle     = CellStyle.Foreground(Gray)
 	EvenRowStyle    = CellStyle.Foreground(LightGray)
+
+	SelectedCellStyleNameRed = lipgloss.NewStyle().Padding(0, 1).Width(32).Bold(true)
+	SelectedRowStyleNameRed  = SelectedCellStyleNameRed.Background(Red).Foreground(Black)
+
+	SelectedCellStyleNameBlu = lipgloss.NewStyle().Padding(0, 1).Width(32).Bold(true)
+	SelectedRowStyleNameBlu  = SelectedCellStyleNameRed.Background(Blu).Foreground(Black)
 )

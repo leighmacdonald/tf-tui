@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"context"
+	"errors"
 	"io"
 	"regexp"
 	"strconv"
@@ -13,9 +15,43 @@ import (
 
 var g15re = regexp.MustCompile(`^(m_szName|m_iPing|m_iScore|m_iDeaths|m_bConnected|m_iTeam|m_bAlive|m_iHealth|m_iAccountID|m_bValid|m_iUserID)\[(\d+)]\s(integer|bool|string)\s\((.+?)?\)$`)
 
-// Parse provides the ability to parse the output of the `g15_dumpplayer` command into a PlayerState struct.
+func fetchPlayerState(ctx context.Context, address string, password string) (shared.PlayerState, error) {
+	conn := newRconConnection(address, password)
+	response, errExec := conn.exec(ctx, "g15_dumpplayer", true)
+	if errExec != nil {
+		var data shared.PlayerState
+		for i := range 24 {
+			data.Names[i] = "asdf asdf sdf "
+			data.UserID[i] = i + 1
+			data.Score[i] = i
+			data.Ping[i] = i
+			data.Deaths[i] = i
+			data.Score[i] = i
+			data.SteamID[i] = steamid.RandSID64()
+			if i%2 == 0 {
+				data.Team[i] = RED
+			} else {
+				data.Team[i] = BLU
+			}
+			if i == 0 {
+				data.SteamID[0] = steamid.New(76561197960265730)
+			}
+		}
+		return data, nil
+		//return shared.PlayerState{}, errors.Join(errExec, errRCONExec)
+	}
+
+	dump, err := parsePlayerState(strings.NewReader(response))
+	if err != nil {
+		return shared.PlayerState{}, errors.Join(err, errRCONParse)
+	}
+
+	return dump, nil
+}
+
+// parsePlayerState provides the ability to parse the output of the `g15_dumpplayer` command into a PlayerState struct.
 // This functionality requires the `-g15` launch parameter for TF2 to be set.
-func Parse(reader io.Reader) (shared.PlayerState, error) {
+func parsePlayerState(reader io.Reader) (shared.PlayerState, error) {
 	var (
 		data    shared.PlayerState
 		scanner = bufio.NewScanner(reader)

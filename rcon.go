@@ -10,10 +10,6 @@ import (
 	"github.com/leighmacdonald/rcon/rcon"
 )
 
-var (
-	errRCON = errors.New("errors making rcon request")
-)
-
 type rconConnection struct {
 	addr     string
 	password string

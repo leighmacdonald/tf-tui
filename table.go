@@ -14,17 +14,32 @@ type tableModel struct {
 	selectedTeam Team // red = 3, blu = 4
 	redTable     *table.Table
 	bluTable     *table.Table
+	redRows      int
+	bluRows      int
 	dump         shared.PlayerState
 }
 
 func newTableModel() *tableModel {
-	return &tableModel{
-		redTable: defaultTable(RED),
-		bluTable: defaultTable(BLU),
+	model := &tableModel{
+		selectedRow:  0,
+		selectedTeam: RED,
 	}
+
+	model.redTable = defaultTable(RED, model)
+	model.bluTable = defaultTable(BLU, model)
+
+	return model
 }
 
-func (m tableModel) render() string {
+func (m *tableModel) selectedColumnPlayerCount() int {
+	if m.selectedTeam == RED {
+		return m.redRows
+	}
+
+	return m.bluRows
+}
+
+func (m *tableModel) View() string {
 	var (
 		redRows [][]string
 		bluRows [][]string
@@ -55,14 +70,16 @@ func (m tableModel) render() string {
 
 	m.redTable.ClearRows()
 	m.redTable.Rows(redRows...)
+	m.redRows = len(redRows)
 
 	m.bluTable.ClearRows()
 	m.bluTable.Rows(bluRows...)
+	m.bluRows = len(bluRows)
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, m.redTable.Render(), m.bluTable.Render())
 }
 
-func defaultTable(team Team) *table.Table {
+func defaultTable(team Team, parent *tableModel) *table.Table {
 	border := styles.Blu
 	if team == RED {
 		border = styles.Red
@@ -84,6 +101,11 @@ func defaultTable(team Team) *table.Table {
 					return styles.HeaderStyleBlu.Width(30)
 				}
 				return styles.HeaderStyleBlu
+			case col == 0 && row == parent.selectedRow && team == parent.selectedTeam:
+				if parent.selectedTeam == RED {
+					return styles.SelectedRowStyleNameRed
+				}
+				return styles.SelectedRowStyleNameBlu
 			case col == 0:
 				return styles.OddRowStyleName
 			case row%2 == 0:
@@ -94,4 +116,30 @@ func defaultTable(team Team) *table.Table {
 			}
 		}).
 		Headers("Name", "Score", "Deaths", "Ping")
+}
+
+type BanTableModel struct {
+	table *table.Table
+}
+
+func NewBanTableModel() *BanTableModel {
+	return &BanTableModel{table: banTable()}
+}
+
+func banTable() *table.Table {
+	t := table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderStyle(lipgloss.NewStyle().Foreground(styles.Gray)).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			switch {
+			case row == table.HeaderRow:
+				return styles.HeaderStyleRed
+			case row%2 == 0:
+				return styles.EvenRowStyle
+			default:
+				return styles.OddRowStyle
+			}
+		}).
+		Headers("Site", "Date", "Reason", "Perm")
+	return t
 }
