@@ -16,7 +16,6 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/shared"
@@ -44,6 +43,7 @@ type keymap struct {
 	down   key.Binding
 	left   key.Binding
 	right  key.Binding
+	fs     key.Binding
 }
 
 type errMsg error
@@ -57,47 +57,50 @@ type TickMsg struct {
 type appState struct {
 	config         Config
 	api            *ClientWithResponses
+	altScreen      bool
 	table          *tableModel
 	loadingSpinner spinner.Model
 	keymap         keymap
 	titleState     string
 	quitting       bool
-	banTable       *BanTableModel
 	err            errMsg
 	dump           shared.PlayerState
 	messages       []string
 	windowSize     tea.WindowSizeMsg
-	help           widgetConfig
+	configView     widgetConfig
 	selectedTeam   Team
 	selectedRow    int
 	inConfig       bool
 	statusMsg      string
 	scripting      *Scripting
 	helpView       help.Model
+	banTable       *BanTableModel
 }
 
 func (m appState) Init() tea.Cmd {
-	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), textinput.Blink, m.help.inputAddr.Focus())
+	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), m.configView.Init())
 }
 
 func (m appState) View() string {
 	var b strings.Builder
 	b.WriteString(m.renderHeading())
 	if m.inConfig {
-		b.WriteString(m.renderConfig())
+		b.WriteString(m.configView.View())
 	} else {
 		b.WriteString(m.renderPlayerTables())
+		b.WriteString("\n")
+		b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, m.banTable.table.Render()))
+		b.WriteString("\n")
+		b.WriteString(m.helpView.ShortHelpView([]key.Binding{
+			m.keymap.quit,
+			m.keymap.config,
+			m.keymap.fs,
+			m.keymap.up,
+			m.keymap.down,
+			m.keymap.left,
+			m.keymap.right,
+		}))
 	}
-	b.WriteString("\n")
-
-	b.WriteString(m.helpView.ShortHelpView([]key.Binding{
-		m.keymap.quit,
-		m.keymap.config,
-		m.keymap.up,
-		m.keymap.down,
-		m.keymap.left,
-		m.keymap.right,
-	}))
 
 	// The footer
 	b.WriteString(strings.Join(m.messages, "\n"))
@@ -112,19 +115,19 @@ func (m appState) handleHelpInputs(msg string) (appState, tea.Cmd) {
 		m.inConfig = false
 		return m, nil
 	case "up":
-		if m.help.focusIndex > 0 && m.help.focusIndex <= 2 {
-			m.help.focusIndex--
+		if m.configView.focusIndex > 0 && m.configView.focusIndex <= 2 {
+			m.configView.focusIndex--
 		}
 	case "down":
-		if m.help.focusIndex >= 0 && m.help.focusIndex < 2 {
-			m.help.focusIndex++
+		if m.configView.focusIndex >= 0 && m.configView.focusIndex < 2 {
+			m.configView.focusIndex++
 		}
 	case "enter":
-		switch m.help.focusIndex {
+		switch m.configView.focusIndex {
 		case 0:
-			m.help.focusIndex++
+			m.configView.focusIndex++
 		case 1:
-			m.help.focusIndex++
+			m.configView.focusIndex++
 		case 2:
 			return m, tea.Batch(func() tea.Msg {
 				return m.config
@@ -134,30 +137,30 @@ func (m appState) handleHelpInputs(msg string) (appState, tea.Cmd) {
 
 	cmds := make([]tea.Cmd, 2)
 
-	switch m.help.focusIndex {
+	switch m.configView.focusIndex {
 	case 0:
-		cmds = append(cmds, m.help.inputAddr.Focus())
-		m.help.inputAddr.PromptStyle = styles.FocusedStyle
-		m.help.inputAddr.TextStyle = styles.FocusedStyle
+		cmds = append(cmds, m.configView.inputAddr.Focus())
+		m.configView.inputAddr.PromptStyle = styles.FocusedStyle
+		m.configView.inputAddr.TextStyle = styles.FocusedStyle
 
-		m.help.passwordAddr.Blur()
-		m.help.passwordAddr.PromptStyle = styles.NoStyle
-		m.help.passwordAddr.TextStyle = styles.NoStyle
+		m.configView.passwordAddr.Blur()
+		m.configView.passwordAddr.PromptStyle = styles.NoStyle
+		m.configView.passwordAddr.TextStyle = styles.NoStyle
 	case 1:
-		cmds = append(cmds, m.help.passwordAddr.Focus())
-		m.help.passwordAddr.PromptStyle = styles.FocusedStyle
-		m.help.passwordAddr.TextStyle = styles.FocusedStyle
+		cmds = append(cmds, m.configView.passwordAddr.Focus())
+		m.configView.passwordAddr.PromptStyle = styles.FocusedStyle
+		m.configView.passwordAddr.TextStyle = styles.FocusedStyle
 
-		m.help.inputAddr.Blur()
-		m.help.inputAddr.PromptStyle = styles.NoStyle
-		m.help.inputAddr.TextStyle = styles.NoStyle
+		m.configView.inputAddr.Blur()
+		m.configView.inputAddr.PromptStyle = styles.NoStyle
+		m.configView.inputAddr.TextStyle = styles.NoStyle
 	case 2:
-		m.help.passwordAddr.Blur()
-		m.help.passwordAddr.PromptStyle = styles.NoStyle
-		m.help.passwordAddr.TextStyle = styles.NoStyle
-		m.help.inputAddr.Blur()
-		m.help.inputAddr.PromptStyle = styles.NoStyle
-		m.help.inputAddr.TextStyle = styles.NoStyle
+		m.configView.passwordAddr.Blur()
+		m.configView.passwordAddr.PromptStyle = styles.NoStyle
+		m.configView.passwordAddr.TextStyle = styles.NoStyle
+		m.configView.inputAddr.Blur()
+		m.configView.inputAddr.PromptStyle = styles.NoStyle
+		m.configView.inputAddr.TextStyle = styles.NoStyle
 	}
 
 	return m, tea.Batch(append(cmds, m.updateInputs(msg)...)...)
@@ -165,7 +168,6 @@ func (m appState) handleHelpInputs(msg string) (appState, tea.Cmd) {
 
 func (m appState) handleDefaultInpuits(msg string) (appState, tea.Cmd) {
 	switch msg {
-	// These keys should exit the program.
 	case "ctrl+c", "q", "esc":
 		return m, tea.Quit
 	case "E":
@@ -179,15 +181,6 @@ func (m appState) handleDefaultInpuits(msg string) (appState, tea.Cmd) {
 		m.table.moveSelection(Left)
 	case "right", "l":
 		m.table.moveSelection(Right)
-	// The "enter" key and the spacebar (a literal space) toggle
-	// the selected state for the item that the cursor is pointing at.
-	case "enter", " ":
-		//_, ok := m.selected[m.cursor]
-		//if ok {
-		//	delete(m.selected, m.cursor)
-		//} else {
-		//	m.selected[m.cursor] = struct{}{}
-		//}
 	}
 
 	return m, nil
@@ -215,7 +208,9 @@ func (m appState) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.dump = msg.dump
-
+		if m.table.selectedRow > m.table.selectedColumnPlayerCount()-1 {
+			m.table.selectedRow = m.table.selectedColumnPlayerCount() - 1
+		}
 		return m, tea.Batch(m.tickEvery())
 
 	case tea.WindowSizeMsg:
@@ -224,10 +219,22 @@ func (m appState) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	// Is it a key press?
 	case tea.KeyMsg:
 		keyMsg := msg.String()
-		if m.inConfig {
-			return m.handleHelpInputs(keyMsg)
+		switch keyMsg {
+		case "f":
+			var cmd tea.Cmd
+			if m.altScreen {
+				cmd = tea.ExitAltScreen
+			} else {
+				cmd = tea.EnterAltScreen
+			}
+			m.altScreen = !m.altScreen
+			return m, cmd
+		default:
+			if m.inConfig {
+				return m.handleHelpInputs(keyMsg)
+			}
+			return m.handleDefaultInpuits(keyMsg)
 		}
-		return m.handleDefaultInpuits(keyMsg)
 
 	case errMsg:
 		m.err = msg
@@ -240,9 +247,6 @@ func (m appState) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	cmd := m.updateInputs(inMsg)
-
-	// Return the updated model to the Bubble Tea runtime for processing.
-	// Note that we're not returning a command.
 	return m, tea.Batch(cmd...)
 }
 func (m *appState) updateInputs(msg tea.Msg) []tea.Cmd {
@@ -250,8 +254,8 @@ func (m *appState) updateInputs(msg tea.Msg) []tea.Cmd {
 
 	// Only text inputs with Focus() set will respond, so it's safe to simply
 	// update all of them here without any further logic.
-	m.help.inputAddr, cmds[0] = m.help.inputAddr.Update(msg)
-	m.help.passwordAddr, cmds[1] = m.help.passwordAddr.Update(msg)
+	m.configView.inputAddr, cmds[0] = m.configView.inputAddr.Update(msg)
+	m.configView.passwordAddr, cmds[1] = m.configView.passwordAddr.Update(msg)
 
 	return cmds
 }
@@ -264,10 +268,6 @@ func (m appState) status() string {
 		return styles.Title.Render(m.err.Error())
 	}
 	return styles.Status.Width(m.windowSize.Width / 2).Render(m.statusMsg)
-}
-
-func (m appState) renderConfig() string {
-	return m.help.Render()
 }
 
 func (m appState) renderHeading() string {
@@ -311,33 +311,27 @@ func (m appState) tickEvery() tea.Cmd {
 func newAppState(client *ClientWithResponses, config Config, doSetup bool, scripting *Scripting) *appState {
 	return &appState{
 		api:            client,
+		altScreen:      config.FullScreen,
 		config:         config,
 		helpView:       help.New(),
 		scripting:      scripting,
 		table:          newTableModel(),
 		inConfig:       doSetup,
+		banTable:       NewBanTableModel(),
 		loadingSpinner: newSpinner(),
-		help:           newWidgetConfig(defaultConfig),
+		configView:     newWidgetConfig(defaultConfig),
 		keymap: keymap{
-			start: key.NewBinding(
-				key.WithKeys("s"),
-				key.WithHelp("s", "start"),
-			),
-			stop: key.NewBinding(
-				key.WithKeys("s"),
-				key.WithHelp("s", "stop"),
-			),
 			reset: key.NewBinding(
 				key.WithKeys("r"),
 				key.WithHelp("r", "reset"),
 			),
 			quit: key.NewBinding(
 				key.WithKeys("q", "ctrl+c"),
-				key.WithHelp("q", "quit"),
+				key.WithHelp("q", "Quit"),
 			),
 			config: key.NewBinding(
 				key.WithKeys("E"),
-				key.WithHelp("E", "config"),
+				key.WithHelp("E", "Conf"),
 			),
 			up: key.NewBinding(
 				key.WithKeys("up", "k"),
@@ -349,11 +343,15 @@ func newAppState(client *ClientWithResponses, config Config, doSetup bool, scrip
 			),
 			left: key.NewBinding(
 				key.WithKeys("left", "h"),
-				key.WithHelp("←", "left"),
+				key.WithHelp("←", "Red Team"),
 			),
 			right: key.NewBinding(
 				key.WithKeys("right", "l"),
-				key.WithHelp("→", "right"),
+				key.WithHelp("→", "Blu Team"),
+			),
+			fs: key.NewBinding(
+				key.WithKeys("f"),
+				key.WithHelp("f", "Toggle View"),
 			),
 		}}
 }
@@ -396,7 +394,12 @@ func main() {
 	//	os.Exit(1)
 	//}
 
-	program := tea.NewProgram(newAppState(client, config, !exists, scripting), tea.WithAltScreen())
+	var opts []tea.ProgramOption
+	if config.FullScreen {
+		opts = append(opts, tea.WithAltScreen())
+	}
+
+	program := tea.NewProgram(newAppState(client, config, !exists, scripting), opts...)
 	if _, err := program.Run(); err != nil {
 		fmt.Printf("There's been an error :( %v", err)
 		os.Exit(1)
