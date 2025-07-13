@@ -219,7 +219,7 @@ components:
           nullable: true
           type: string
         steam_id:
-          $ref: "#/components/schemas/SteamID"
+          type: string
         updated_on:
           format: date-time
           type: string
@@ -260,8 +260,8 @@ components:
           format: int64
           type: integer
         steam_id:
-          $ref: "#/components/schemas/SteamID"
           description: Owner steam id
+          type: string
       required:
         - steam_id
         - app_id
@@ -272,7 +272,65 @@ components:
         - playtime_two_weeks
         - has_community_visible_stats
       type: object
-    League:
+    LeaguePlayerTeamHistory:
+      additionalProperties: false
+      properties:
+        Alias:
+          type: string
+        CompetitionID:
+          type: string
+        DivisionName:
+          type: string
+        Format:
+          type: string
+        JoinedTeam:
+          format: date-time
+          nullable: true
+          type: string
+        Leader:
+          type: boolean
+        League:
+          type: string
+        LeftTeam:
+          format: date-time
+          nullable: true
+          type: string
+        Rank:
+          format: int64
+          type: integer
+        Region:
+          type: string
+        SeasonName:
+          type: string
+        SteamID:
+          type: string
+        Tag:
+          type: string
+        TeamID:
+          type: string
+        TeamName:
+          type: string
+        Type:
+          type: string
+      required:
+        - CompetitionID
+        - League
+        - Type
+        - SeasonName
+        - Format
+        - Region
+        - TeamID
+        - SteamID
+        - TeamName
+        - DivisionName
+        - Rank
+        - Tag
+        - Alias
+        - Leader
+        - JoinedTeam
+        - LeftTeam
+      type: object
+    LeagueResponse:
       additionalProperties: false
       properties:
         format:
@@ -318,76 +376,33 @@ components:
         - region
         - league_id
       type: object
-    LeaguePlayerTeamHistory:
+    LeagueTeamMemberResponse:
       additionalProperties: false
       properties:
-        alias:
-          description: Player alias on team
-          type: string
-        division_name:
-          description: Division name
-          type: string
-        format:
-          description: The format of games.
-          type: string
-        joined_team:
-          description: Date of joining the team
+        joined:
           format: date-time
           nullable: true
           type: string
         leader:
-          description: Was a team leader
           type: boolean
-        league:
-          description: Unique shorthand name of the league
-          type: string
-        left_team:
-          description: Date of leaving the team
+        league_id:
+          format: int64
+          type: integer
+        left:
           format: date-time
           nullable: true
           type: string
-        rank:
-          description: Final ranking
-          format: int64
-          type: integer
-        region:
-          description: The geographical region
+        name:
           type: string
-        season_name:
-          description: Season/Cup name
-          type: string
-        steamid:
-          $ref: "#/components/schemas/SteamID"
-        tag:
-          description: Short tag for the team
-          type: string
-        team_name:
-          description: Name of the team
-          type: string
-        type:
-          description: Type of the tournament
-          enum:
-            - season
-            - cup
-            - other
+        steam_id:
           type: string
       required:
-        - league
-        - type
-        - season_name
-        - format
-        - region
-        - steamid
-        - team_name
-        - division_name
-        - rank
-        - tag
-        - alias
+        - steam_id
+        - name
         - leader
-        - joined_team
-        - left_team
+        - league_id
       type: object
-    LeagueTeam:
+    LeagueTeamResponse:
       additionalProperties: false
       properties:
         division_name:
@@ -411,7 +426,7 @@ components:
           description: Short team name tag, if available
           type: string
         team_id:
-          description: Uni
+          description: UUIDv4
           type: string
       required:
         - team_id
@@ -422,31 +437,6 @@ components:
         - tag
         - league_id
       type: object
-    LeagueTeamMember:
-      additionalProperties: false
-      properties:
-        joined:
-          format: date-time
-          nullable: true
-          type: string
-        leader:
-          type: boolean
-        left:
-          format: date-time
-          nullable: true
-          type: string
-        name:
-          type: string
-        steam_id:
-          type: string
-        team_id:
-          type: string
-      required:
-        - team_id
-        - steam_id
-        - name
-        - leader
-      type: object
     LogsTFChat:
       additionalProperties: false
       properties:
@@ -455,7 +445,7 @@ components:
         name:
           type: string
         steam_id:
-          $ref: "#/components/schemas/SteamID"
+          type: string
       required:
         - steam_id
         - name
@@ -505,8 +495,8 @@ components:
     LogsTFKillStreak:
       additionalProperties: false
       properties:
-        steam_id:
-          $ref: "#/components/schemas/SteamID"
+        steamid:
+          type: string
         streak:
           format: int64
           type: integer
@@ -514,7 +504,7 @@ components:
           format: int64
           type: integer
       required:
-        - steam_id
+        - steamid
         - streak
         - time
       type: object
@@ -705,7 +695,7 @@ components:
           format: int64
           type: integer
         steam_id:
-          $ref: "#/components/schemas/SteamID"
+          type: string
       required:
         - steam_id
         - healing
@@ -790,7 +780,7 @@ components:
         name:
           type: string
         steam_id:
-          $ref: "#/components/schemas/SteamID"
+          type: string
         team:
           type: string
       required:
@@ -854,6 +844,8 @@ components:
     LogsTFPlayerClassWeapon:
       additionalProperties: false
       properties:
+        SteamID:
+          type: string
         accuracy:
           format: int64
           type: integer
@@ -872,6 +864,7 @@ components:
         weapon:
           type: string
       required:
+        - SteamID
         - weapon
         - kills
         - damage
@@ -1059,8 +1052,8 @@ components:
           format: int64
           type: integer
         steam_id:
-          $ref: "#/components/schemas/SteamID"
           description: Player steam id
+          type: string
       required:
         - steam_id
         - kills
@@ -1117,24 +1110,28 @@ components:
     MetaProfile:
       additionalProperties: false
       properties:
-        $schema:
-          description: A URL to the JSON Schema for this object.
-          example: https://example.com/schemas/MetaProfile.json
-          format: uri
-          readOnly: true
+        avatar_hash:
           type: string
-        ban_state:
-          $ref: "#/components/schemas/SteamBan"
         bans:
           items:
             $ref: "#/components/schemas/Ban"
           nullable: true
           type: array
-        bot_detector:
+        community_banned:
+          type: boolean
+        community_visibility_state:
+          format: int64
+          type: integer
+        competitive_teams:
           items:
-            $ref: "#/components/schemas/BDSearchResult"
+            $ref: "#/components/schemas/LeaguePlayerTeamHistory"
           nullable: true
           type: array
+        days_since_last_ban:
+          format: int64
+          type: integer
+        economy_ban:
+          type: string
         friends:
           items:
             $ref: "#/components/schemas/Friend"
@@ -1143,85 +1140,167 @@ components:
         logs_count:
           format: int64
           type: integer
-        summary:
-          $ref: "#/components/schemas/PlayerSummary"
+        number_of_game_bans:
+          format: int64
+          type: integer
+        number_of_vac_bans:
+          format: int64
+          type: integer
+        persona_name:
+          type: string
+        profile_state:
+          format: int64
+          type: integer
+        real_name:
+          type: string
+        steam_id:
+          type: string
+        time_created:
+          format: int64
+          type: integer
       required:
-        - summary
-        - ban_state
+        - steam_id
+        - community_visibility_state
+        - profile_state
+        - persona_name
+        - avatar_hash
+        - real_name
+        - time_created
+        - community_banned
+        - economy_ban
         - bans
-        - logs_count
-        - bot_detector
         - friends
+        - competitive_teams
       type: object
-    PlayerSummary:
+    PlayerSummaryResponse:
       additionalProperties: false
       properties:
-        avatar:
+        avatar_hash:
           type: string
-        avatarfull:
-          type: string
-        avatarhash:
-          type: string
-        avatarmedium:
-          type: string
-        commentpermission:
+        comment_permission:
           format: int64
           type: integer
-        communityvisibilitystate:
+        last_logoff:
           format: int64
           type: integer
-        lastlogoff:
+        loc_city_id:
           format: int64
           type: integer
-        loccityid:
+        loc_country_code:
+          type: string
+        loc_state_code:
+          type: string
+        persona_name:
+          type: string
+        persona_state:
           format: int64
           type: integer
-        loccountrycode:
-          type: string
-        locstatecode:
-          type: string
-        personaname:
-          type: string
-        personastate:
+        persona_state_flags:
           format: int64
           type: integer
-        personastateflags:
+        primary_clan_id:
+          type: string
+        profile_state:
           format: int64
           type: integer
-        primaryclanid:
+        profile_url:
           type: string
-        profilestate:
+        real_name:
+          type: string
+        steam_id:
+          type: string
+        time_created:
           format: int64
           type: integer
-        profileurl:
-          type: string
-        realname:
-          type: string
-        steamid:
-          $ref: "#/components/schemas/SteamID"
-        timecreated:
+        visibility_state:
           format: int64
           type: integer
       required:
-        - steamid
-        - communityvisibilitystate
-        - profilestate
-        - personaname
-        - profileurl
-        - avatar
-        - avatarmedium
-        - avatarfull
-        - avatarhash
-        - personastate
-        - realname
-        - primaryclanid
-        - timecreated
-        - personastateflags
-        - loccountrycode
-        - locstatecode
-        - loccityid
-        - lastlogoff
-        - commentpermission
+        - steam_id
+        - visibility_state
+        - profile_state
+        - persona_name
+        - profile_url
+        - avatar_hash
+        - persona_state
+        - real_name
+        - primary_clan_id
+        - time_created
+        - persona_state_flags
+        - loc_country_code
+        - loc_state_code
+        - loc_city_id
+        - last_logoff
+        - comment_permission
+      type: object
+    PlayerTeamHistoryResponse:
+      additionalProperties: false
+      properties:
+        alias:
+          description: Player alias on team
+          type: string
+        division_name:
+          description: Division name
+          type: string
+        format:
+          description: The format of games.
+          type: string
+        joined_team:
+          description: Date of joining the team
+          format: date-time
+          nullable: true
+          type: string
+        leader:
+          description: Was a team leader
+          type: boolean
+        league:
+          description: Unique shorthand name of the league
+          type: string
+        left_team:
+          description: Date of leaving the team
+          format: date-time
+          nullable: true
+          type: string
+        rank:
+          description: Final ranking
+          format: int64
+          type: integer
+        region:
+          description: The geographical region
+          type: string
+        season_name:
+          description: Season/Cup name
+          type: string
+        steam_id:
+          type: string
+        tag:
+          description: Short tag for the team
+          type: string
+        team_name:
+          description: Name of the team
+          type: string
+        type:
+          description: Type of the tournament
+          enum:
+            - season
+            - cup
+            - other
+          type: string
+      required:
+        - league
+        - type
+        - season_name
+        - format
+        - region
+        - steam_id
+        - team_name
+        - division_name
+        - rank
+        - tag
+        - alias
+        - leader
+        - joined_team
+        - left_team
       type: object
     ResolvedSteamID:
       additionalProperties: false
@@ -1505,7 +1584,7 @@ components:
           format: int64
           type: integer
         steam_id:
-          $ref: "#/components/schemas/SteamID"
+          type: string
         updated_on:
           format: date-time
           type: string
@@ -1521,28 +1600,6 @@ components:
         - economy_ban
         - updated_on
         - created_on
-      type: object
-    SteamID:
-      additionalProperties: false
-      properties:
-        AccountID:
-          format: int32
-          minimum: 0
-          type: integer
-        AccountType:
-          format: int64
-          type: integer
-        Instance:
-          format: int64
-          type: integer
-        Universe:
-          format: int64
-          type: integer
-      required:
-        - AccountID
-        - Instance
-        - AccountType
-        - Universe
       type: object
     SteamRepEntry:
       additionalProperties: false
@@ -1580,7 +1637,7 @@ info:
   version: master
 openapi: 3.0.3
 paths:
-  /api/bans/search/{steam_id}:
+  /api/bans/search:
     get:
       description: Query a list of all known bans across all data sources.
       operationId: bans-search
@@ -1596,13 +1653,21 @@ paths:
           schema:
             default: false
             type: boolean
-        - example: "76561199574795060"
-          in: path
-          name: steam_id
+        - example:
+            - "76561199574795060"
+          explode: false
+          in: query
+          name: steam_ids
           required: true
           schema:
-            example: "76561199574795060"
-            type: string
+            example:
+              - "76561199574795060"
+            items:
+              type: string
+            maxItems: 100
+            minItems: 1
+            nullable: true
+            type: array
       responses:
         "200":
           content:
@@ -1736,7 +1801,7 @@ paths:
             application/json:
               schema:
                 items:
-                  $ref: "#/components/schemas/League"
+                  $ref: "#/components/schemas/LeagueResponse"
                 nullable: true
                 type: array
           description: OK
@@ -1749,66 +1814,27 @@ paths:
       summary: Competitions
       tags:
         - leagues
-  /api/leagues/members:
-    get:
-      description: Get a teams members
-      operationId: leagues-team-members
-      parameters:
-        - description: League to query
-          explode: false
-          in: query
-          name: league
-          required: true
-          schema:
-            description: League to query
-            enum:
-              - rgl
-              - ozfortress
-              - etf2l
-              - ugc
-            type: string
-        - description: Unique Team ID on the parent site
-          explode: false
-          in: query
-          name: league_id
-          required: true
-          schema:
-            description: Unique Team ID on the parent site
-            format: int64
-            type: integer
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: "#/components/schemas/LeagueTeamMember"
-                nullable: true
-                type: array
-          description: OK
-        default:
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/ErrorModel"
-          description: Error
-      summary: Members
-      tags:
-        - leagues
-  /api/leagues/teamhistory/{steamid}:
+  /api/leagues/history:
     get:
       description: Get Player League History
       operationId: leagues-history
       parameters:
-        - description: SteamID in any standard format
-          example: "76561197970669109"
-          in: path
-          name: steamid
+        - description: SteamIDs in any standard format
+          example:
+            - "76561197970669109"
+          explode: false
+          in: query
+          name: steamids
           required: true
           schema:
-            description: SteamID in any standard format
-            example: "76561197970669109"
-            type: string
+            description: SteamIDs in any standard format
+            example:
+              - "76561197970669109"
+            items:
+              type: string
+            maxItems: 100
+            nullable: true
+            type: array
         - explode: false
           in: query
           name: league
@@ -1851,7 +1877,7 @@ paths:
             application/json:
               schema:
                 items:
-                  $ref: "#/components/schemas/LeaguePlayerTeamHistory"
+                  $ref: "#/components/schemas/PlayerTeamHistoryResponse"
                 nullable: true
                 type: array
           description: OK
@@ -1862,6 +1888,52 @@ paths:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
       summary: History
+      tags:
+        - leagues
+  /api/leagues/members:
+    get:
+      description: Get a teams members
+      operationId: leagues-team-members
+      parameters:
+        - description: League to query
+          explode: false
+          in: query
+          name: league
+          required: true
+          schema:
+            description: League to query
+            enum:
+              - rgl
+              - ozfortress
+              - etf2l
+              - ugc
+            type: string
+        - description: Unique Team ID on the parent site
+          explode: false
+          in: query
+          name: league_id
+          required: true
+          schema:
+            description: Unique Team ID on the parent site
+            format: int64
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/LeagueTeamMemberResponse"
+                nullable: true
+                type: array
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      summary: Members
       tags:
         - leagues
   /api/leagues/teams:
@@ -1896,7 +1968,7 @@ paths:
             application/json:
               schema:
                 items:
-                  $ref: "#/components/schemas/LeagueTeam"
+                  $ref: "#/components/schemas/LeagueTeamResponse"
                 nullable: true
                 type: array
           description: OK
@@ -2042,18 +2114,28 @@ paths:
       description: Fetches the meta profile which merges several different data sources into a single meta profile.
       operationId: meta-profile
       parameters:
-        - explode: false
+        - description: List of steam ids to query
+          explode: false
           in: query
-          name: steamid
+          name: steamids
           required: true
           schema:
-            $ref: "#/components/schemas/SteamID"
+            description: List of steam ids to query
+            items:
+              type: string
+            maxItems: 100
+            minItems: 1
+            nullable: true
+            type: array
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MetaProfile"
+                items:
+                  $ref: "#/components/schemas/MetaProfile"
+                nullable: true
+                type: array
           description: OK
         default:
           content:
@@ -2064,6 +2146,56 @@ paths:
       summary: Profile
       tags:
         - meta
+  /api/openapi/schema-3.0.json:
+    get:
+      description: Returns the OpenAPI 3.0 specs in JSON format.
+      operationId: openapi-json-3.0
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                format: base64
+                type: string
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      summary: json (3.0)
+      tags:
+        - openapi
+  /api/openapi/schema-3.0.yaml:
+    get:
+      description: Returns the OpenAPI 3.0 specs in YAML format.
+      operationId: openapi-yaml-3.0
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                format: base64
+                type: string
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      summary: yaml (3.0)
+      tags:
+        - openapi
   /api/openapi/schema.json:
     get:
       description: Returns the OpenAPI 3.1 specs in JSON format.
@@ -2086,7 +2218,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
-      summary: json
+      summary: json (3.1)
       tags:
         - openapi
   /api/openapi/schema.yaml:
@@ -2111,7 +2243,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorModel"
           description: Error
-      summary: yaml
+      summary: yaml (3.1)
       tags:
         - openapi
   /api/stats/overall:
@@ -2139,12 +2271,17 @@ paths:
       description: Returns the ban/probation status of the players account. See [steam api](https://wiki.teamfortress.com/wiki/WebAPI/GetPlayerBans).
       operationId: steam-bans
       parameters:
-        - explode: false
+        - description: List of steam ids to query
+          explode: false
           in: query
           name: steamids
+          required: true
           schema:
+            description: List of steam ids to query
             items:
-              $ref: "#/components/schemas/SteamID"
+              type: string
+            maxItems: 100
+            minItems: 1
             nullable: true
             type: array
       responses:
@@ -2176,7 +2313,7 @@ paths:
           name: steamid
           required: true
           schema:
-            $ref: "#/components/schemas/SteamID"
+            type: string
       responses:
         "200":
           content:
@@ -2201,12 +2338,17 @@ paths:
       description: Return a list of a users owned games. This will only work if their games are set to public. See [steam api](https://wiki.teamfortress.com/wiki/WebAPI/GetOwnedGames).
       operationId: steam-games
       parameters:
-        - explode: false
+        - description: List of steam ids to query
+          explode: false
           in: query
           name: steamids
+          required: true
           schema:
+            description: List of steam ids to query
             items:
-              $ref: "#/components/schemas/SteamID"
+              type: string
+            maxItems: 100
+            minItems: 1
             nullable: true
             type: array
       responses:
@@ -2266,7 +2408,7 @@ paths:
             application/json:
               schema:
                 items:
-                  $ref: "#/components/schemas/SteamID"
+                  type: string
                 nullable: true
                 type: array
           description: OK
@@ -2307,12 +2449,17 @@ paths:
       description: Returns the summary provided by the [steam api](https://wiki.teamfortress.com/wiki/WebAPI/GetPlayerSummaries).
       operationId: steam-summaries
       parameters:
-        - explode: false
+        - description: List of steam ids to query
+          explode: false
           in: query
           name: steamids
+          required: true
           schema:
+            description: List of steam ids to query
             items:
-              $ref: "#/components/schemas/SteamID"
+              type: string
+            maxItems: 100
+            minItems: 1
             nullable: true
             type: array
       responses:
@@ -2321,7 +2468,7 @@ paths:
             application/json:
               schema:
                 items:
-                  $ref: "#/components/schemas/PlayerSummary"
+                  $ref: "#/components/schemas/PlayerSummaryResponse"
                 nullable: true
                 type: array
           description: OK

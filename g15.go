@@ -15,10 +15,15 @@ import (
 
 var g15re = regexp.MustCompile(`^(m_szName|m_iPing|m_iScore|m_iDeaths|m_bConnected|m_iTeam|m_bAlive|m_iHealth|m_iAccountID|m_bValid|m_iUserID)\[(\d+)]\s(integer|bool|string)\s\((.+?)?\)$`)
 
+var lastUpdate shared.PlayerState
+
 func fetchPlayerState(ctx context.Context, address string, password string) (shared.PlayerState, error) {
 	conn := newRconConnection(address, password)
 	response, errExec := conn.exec(ctx, "g15_dumpplayer", true)
 	if errExec != nil {
+		if lastUpdate.SteamID[0].Valid() {
+			return lastUpdate, nil
+		}
 		var data shared.PlayerState
 		for i := range 23 {
 			data.Names[i] = "asdf asdf sdf "
@@ -45,6 +50,8 @@ func fetchPlayerState(ctx context.Context, address string, password string) (sha
 	if err != nil {
 		return shared.PlayerState{}, errors.Join(err, errRCONParse)
 	}
+
+	lastUpdate = dump
 
 	return dump, nil
 }

@@ -158,6 +158,7 @@ func NewBanTableModel() *BanTableModel {
 func banTable() *table.Table {
 	t := table.New().
 		Border(lipgloss.NormalBorder()).
+		Height(20).
 		BorderStyle(lipgloss.NewStyle().Foreground(styles.Gray)).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			switch {
