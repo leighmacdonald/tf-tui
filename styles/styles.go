@@ -38,9 +38,9 @@ var (
 	OddRowStyle     = CellStyle.Foreground(Gray)
 	EvenRowStyle    = CellStyle.Foreground(LightGray)
 
-	SelectedCellStyleNameRed = lipgloss.NewStyle().Padding(0, 1).Width(32).Bold(true)
-	SelectedRowStyleNameRed  = SelectedCellStyleNameRed.Background(Red).Foreground(Black)
+	SelectedCellStyleRed     = lipgloss.NewStyle().Padding(0, 1).Bold(true).Background(Red).Foreground(Black)
+	SelectedCellStyleNameRed = lipgloss.NewStyle().Padding(0, 1).Bold(true).Width(32).Background(Red).Foreground(Black)
 
-	SelectedCellStyleNameBlu = lipgloss.NewStyle().Padding(0, 1).Width(32).Bold(true)
-	SelectedRowStyleNameBlu  = SelectedCellStyleNameRed.Background(Blu).Foreground(Black)
+	SelectedCellStyleBlu     = lipgloss.NewStyle().Padding(0, 1).Bold(true).Background(Blu).Foreground(Black)
+	SelectedCellStyleNameBlu = SelectedCellStyleBlu.Width(32).Background(Blu).Foreground(Black)
 )

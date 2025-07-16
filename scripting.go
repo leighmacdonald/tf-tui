@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/leighmacdonald/tf-tui/shared"
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
 )
@@ -15,20 +14,20 @@ import (
 type FnNames string
 
 const (
-	Add         FnNames = "Add"
-	PlayerState FnNames = "PlayerState"
+	onAdd         FnNames = "Add"
+	onPlayerState FnNames = "PlayerState"
 )
 
 var (
 	CallbackNames = []FnNames{
-		Add,
-		PlayerState,
+		onAdd,
+		onPlayerState,
 	}
 )
 
 type OnAdd func(a int, b int) int
 
-type OnPlayerState func(state shared.PlayerState) shared.PlayerState
+type OnPlayerState func(state G15PlayerState) G15PlayerState
 
 type Scripting struct {
 	interpreter   *interp.Interpreter
@@ -45,8 +44,8 @@ func NewScripting() (*Scripting, error) {
 
 	custom := make(map[string]map[string]reflect.Value)
 	custom["tftui/tftui"] = make(map[string]reflect.Value)
-	custom["tftui/tftui"]["PlayerState"] = reflect.ValueOf((*shared.PlayerState)(nil))
-	custom["tftui/tftui"]["MaxDataSize"] = reflect.ValueOf(shared.MaxDataSize)
+	custom["tftui/tftui"]["PlayerState"] = reflect.ValueOf((*G15PlayerState)(nil))
+	custom["tftui/tftui"]["MaxDataSize"] = reflect.ValueOf(MaxDataSize)
 
 	if err := interpreter.Use(custom); err != nil {
 		return nil, err
@@ -74,15 +73,15 @@ func (s *Scripting) LoadDir(scriptDir string) error {
 			}
 
 			switch name {
-			case Add:
+			case onAdd:
 				call, ok := fn.Interface().(func(int, int) int)
 				if !ok {
 					continue
 				}
 
 				s.onAdd = append(s.onAdd, call)
-			case PlayerState:
-				call, ok := fn.Interface().(func(shared.PlayerState) shared.PlayerState)
+			case onPlayerState:
+				call, ok := fn.Interface().(func(G15PlayerState) G15PlayerState)
 				if !ok {
 					continue
 				}

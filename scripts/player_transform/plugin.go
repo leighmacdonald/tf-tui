@@ -1,10 +1,10 @@
 package player_transform
 
 import (
-	"github.com/leighmacdonald/tf-tui/shared"
+	"tftui/tftui"
 )
 
-func OnPlayerState(state shared.PlayerState) shared.PlayerState {
+func OnPlayerState(state tftui.PlayerState) tftui.PlayerState {
 	state.Score[0] = 100
 
 	return state

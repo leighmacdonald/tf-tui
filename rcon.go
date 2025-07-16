@@ -10,6 +10,11 @@ import (
 	"github.com/leighmacdonald/rcon/rcon"
 )
 
+var (
+	errRCONParse = errors.New("RCON parse error")
+	errRCON      = errors.New("errors making rcon request")
+)
+
 type rconConnection struct {
 	addr     string
 	password string
@@ -20,7 +25,7 @@ func newRconConnection(addr string, password string) rconConnection {
 	return rconConnection{
 		addr:     addr,
 		password: password,
-		timeout:  time.Second * 5,
+		timeout:  time.Second,
 	}
 }
 

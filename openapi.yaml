@@ -275,60 +275,66 @@ components:
     LeaguePlayerTeamHistory:
       additionalProperties: false
       properties:
-        Alias:
+        alias:
+          description: Short team name alias, if available
           type: string
-        CompetitionID:
+        division_name:
+          description: Name of the division/ranking
           type: string
-        DivisionName:
+        format:
+          description: Game format
           type: string
-        Format:
-          type: string
-        JoinedTeam:
+        joined_team:
+          description: When they joined the team
           format: date-time
           nullable: true
           type: string
-        Leader:
+        leader:
+          description: Leader for the team
           type: boolean
-        League:
+        league:
+          description: League name
           type: string
-        LeftTeam:
+        left_team:
+          description: When they left the team
           format: date-time
           nullable: true
           type: string
-        Rank:
+        rank:
+          description: End of season rank
           format: int64
           type: integer
-        Region:
+        region:
+          description: Region
           type: string
-        SeasonName:
+        season_name:
+          description: Season/Event name
           type: string
-        SteamID:
+        steam_id:
+          description: 64bit steam ID as a string
           type: string
-        Tag:
+        tag:
+          description: Short team name tag, if available
           type: string
-        TeamID:
+        team_name:
+          description: Name of the team
           type: string
-        TeamName:
-          type: string
-        Type:
+        type:
+          description: Tournament type
           type: string
       required:
-        - CompetitionID
-        - League
-        - Type
-        - SeasonName
-        - Format
-        - Region
-        - TeamID
-        - SteamID
-        - TeamName
-        - DivisionName
-        - Rank
-        - Tag
-        - Alias
-        - Leader
-        - JoinedTeam
-        - LeftTeam
+        - league
+        - type
+        - season_name
+        - format
+        - region
+        - steam_id
+        - team_name
+        - division_name
+        - rank
+        - tag
+        - alias
+        - leader
       type: object
     LeagueResponse:
       additionalProperties: false
@@ -1111,18 +1117,27 @@ components:
       additionalProperties: false
       properties:
         avatar_hash:
+          description: The avatar hash of the user
           type: string
         bans:
+          description: Number of 3rd party bans. Includes leagues and pubs.
           items:
             $ref: "#/components/schemas/Ban"
           nullable: true
           type: array
         community_banned:
+          description: Is the user steam community banned
           type: boolean
         community_visibility_state:
+          description: Represents whether the profile is visible or not and why.
+          enum:
+            - 1
+            - 2
+            - 3
           format: int64
           type: integer
         competitive_teams:
+          description: Competitive league team history
           items:
             $ref: "#/components/schemas/LeaguePlayerTeamHistory"
           nullable: true
@@ -1131,31 +1146,44 @@ components:
           format: int64
           type: integer
         economy_ban:
+          description: Is the user trade banned
           type: string
         friends:
+          description: Last known list of friends
           items:
             $ref: "#/components/schemas/Friend"
           nullable: true
           type: array
         logs_count:
+          description: Number of logs the user has on logs.tf
           format: int64
           type: integer
         number_of_game_bans:
+          description: How many game bans the user has
           format: int64
           type: integer
         number_of_vac_bans:
+          description: How many vac bans does the user have
           format: int64
           type: integer
         persona_name:
+          description: The current alias of the user
           type: string
         profile_state:
+          description: Has the profile been setup
+          enum:
+            - 0
+            - 1
           format: int64
           type: integer
         real_name:
+          description: Real name of the user
           type: string
         steam_id:
+          description: 64bit Steam ID
           type: string
         time_created:
+          description: When the account was created. This may be estimated if not available.
           format: int64
           type: integer
       required:
@@ -1167,7 +1195,11 @@ components:
         - real_name
         - time_created
         - community_banned
+        - number_of_vac_bans
+        - days_since_last_ban
+        - number_of_game_bans
         - economy_ban
+        - logs_count
         - bans
         - friends
         - competitive_teams
@@ -1835,29 +1867,35 @@ paths:
             maxItems: 100
             nullable: true
             type: array
-        - explode: false
+        - description: Name of the league
+          explode: false
           in: query
           name: league
           schema:
+            description: Name of the league
             enum:
               - rgl
               - ozfortress
               - etf2l
               - ugc
             type: string
-        - explode: false
+        - description: Type of event ran
+          explode: false
           in: query
           name: type
           schema:
+            description: Type of event ran
             enum:
               - season
               - cup
               - other
             type: string
-        - explode: false
+        - description: Game format
+          explode: false
           in: query
           name: format
           schema:
+            description: Game format
             enum:
               - 6v6
               - nr6v6
@@ -1941,26 +1979,32 @@ paths:
       description: Search through the teams
       operationId: leagues-teams
       parameters:
-        - explode: false
+        - description: Name of the league
+          explode: false
           in: query
           name: league
           schema:
+            description: Name of the league
             enum:
               - rgl
               - ozfortress
               - etf2l
               - ugc
             type: string
-        - explode: false
+        - description: The unique, to the provided league, id of the team
+          explode: false
           in: query
           name: league_id
           schema:
+            description: The unique, to the provided league, id of the team
             format: int64
             type: integer
-        - explode: false
+        - description: Query the name
+          explode: false
           in: query
           name: name
           schema:
+            description: Query the name
             type: string
       responses:
         "200":

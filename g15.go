@@ -10,29 +10,43 @@ import (
 	"strings"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"github.com/leighmacdonald/tf-tui/shared"
 )
 
 var g15re = regexp.MustCompile(`^(m_szName|m_iPing|m_iScore|m_iDeaths|m_bConnected|m_iTeam|m_bAlive|m_iHealth|m_iAccountID|m_bValid|m_iUserID)\[(\d+)]\s(integer|bool|string)\s\((.+?)?\)$`)
 
-var lastUpdate shared.PlayerState
+const MaxDataSize = 102
 
-func fetchPlayerState(ctx context.Context, address string, password string) (shared.PlayerState, error) {
+type G15PlayerState struct {
+	Names     [MaxDataSize]string
+	Ping      [MaxDataSize]int
+	Score     [MaxDataSize]int
+	Deaths    [MaxDataSize]int
+	Connected [MaxDataSize]bool
+	Team      [MaxDataSize]int
+	Alive     [MaxDataSize]bool
+	Health    [MaxDataSize]int
+	SteamID   [MaxDataSize]steamid.SteamID
+	Valid     [MaxDataSize]bool
+	UserID    [MaxDataSize]int
+}
+
+var lastUpdate G15PlayerState
+
+func fetchPlayerState(ctx context.Context, address string, password string) (G15PlayerState, error) {
 	conn := newRconConnection(address, password)
 	response, errExec := conn.exec(ctx, "g15_dumpplayer", true)
 	if errExec != nil {
 		if lastUpdate.SteamID[0].Valid() {
 			return lastUpdate, nil
 		}
-		var data shared.PlayerState
+		var data G15PlayerState
 		for i := range 23 {
-			data.Names[i] = "asdf asdf sdf "
+			data.SteamID[i] = steamid.New(76561197960265730 + i)
+			data.Names[i] = data.SteamID[i].String()
 			data.UserID[i] = i + 1
 			data.Score[i] = i
 			data.Ping[i] = i
 			data.Deaths[i] = i
-			data.Score[i] = i
-			data.SteamID[i] = steamid.RandSID64()
 			if i%2 == 0 {
 				data.Team[i] = BLU
 			} else {
@@ -48,7 +62,7 @@ func fetchPlayerState(ctx context.Context, address string, password string) (sha
 
 	dump, err := parsePlayerState(strings.NewReader(response))
 	if err != nil {
-		return shared.PlayerState{}, errors.Join(err, errRCONParse)
+		return G15PlayerState{}, errors.Join(err, errRCONParse)
 	}
 
 	lastUpdate = dump
@@ -58,9 +72,9 @@ func fetchPlayerState(ctx context.Context, address string, password string) (sha
 
 // parsePlayerState provides the ability to parse the output of the `g15_dumpplayer` command into a PlayerState struct.
 // This functionality requires the `-g15` launch parameter for TF2 to be set.
-func parsePlayerState(reader io.Reader) (shared.PlayerState, error) {
+func parsePlayerState(reader io.Reader) (G15PlayerState, error) {
 	var (
-		data    shared.PlayerState
+		data    G15PlayerState
 		scanner = bufio.NewScanner(reader)
 	)
 

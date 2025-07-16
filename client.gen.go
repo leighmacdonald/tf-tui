@@ -52,6 +52,19 @@ const (
 	LogsTFMatchInfoVersionN3 LogsTFMatchInfoVersion = 3
 )
 
+// Defines values for MetaProfileCommunityVisibilityState.
+const (
+	MetaProfileCommunityVisibilityStateN1 MetaProfileCommunityVisibilityState = 1
+	MetaProfileCommunityVisibilityStateN2 MetaProfileCommunityVisibilityState = 2
+	MetaProfileCommunityVisibilityStateN3 MetaProfileCommunityVisibilityState = 3
+)
+
+// Defines values for MetaProfileProfileState.
+const (
+	MetaProfileProfileStateN0 MetaProfileProfileState = 0
+	MetaProfileProfileStateN1 MetaProfileProfileState = 1
+)
+
 // Defines values for PlayerTeamHistoryResponseType.
 const (
 	PlayerTeamHistoryResponseTypeCup    PlayerTeamHistoryResponseType = "cup"
@@ -302,22 +315,47 @@ type GameOwnedPlayer struct {
 
 // LeaguePlayerTeamHistory defines model for LeaguePlayerTeamHistory.
 type LeaguePlayerTeamHistory struct {
-	Alias         string     `json:"Alias"`
-	CompetitionID string     `json:"CompetitionID"`
-	DivisionName  string     `json:"DivisionName"`
-	Format        string     `json:"Format"`
-	JoinedTeam    *time.Time `json:"JoinedTeam"`
-	Leader        bool       `json:"Leader"`
-	League        string     `json:"League"`
-	LeftTeam      *time.Time `json:"LeftTeam"`
-	Rank          int64      `json:"Rank"`
-	Region        string     `json:"Region"`
-	SeasonName    string     `json:"SeasonName"`
-	SteamID       string     `json:"SteamID"`
-	Tag           string     `json:"Tag"`
-	TeamID        string     `json:"TeamID"`
-	TeamName      string     `json:"TeamName"`
-	Type          string     `json:"Type"`
+	// Alias Short team name alias, if available
+	Alias string `json:"alias"`
+
+	// DivisionName Name of the division/ranking
+	DivisionName string `json:"division_name"`
+
+	// Format Game format
+	Format string `json:"format"`
+
+	// JoinedTeam When they joined the team
+	JoinedTeam *time.Time `json:"joined_team"`
+
+	// Leader Leader for the team
+	Leader bool `json:"leader"`
+
+	// League League name
+	League string `json:"league"`
+
+	// LeftTeam When they left the team
+	LeftTeam *time.Time `json:"left_team"`
+
+	// Rank End of season rank
+	Rank int64 `json:"rank"`
+
+	// Region Region
+	Region string `json:"region"`
+
+	// SeasonName Season/Event name
+	SeasonName string `json:"season_name"`
+
+	// SteamId 64bit steam ID as a string
+	SteamId string `json:"steam_id"`
+
+	// Tag Short team name tag, if available
+	Tag string `json:"tag"`
+
+	// TeamName Name of the team
+	TeamName string `json:"team_name"`
+
+	// Type Tournament type
+	Type string `json:"type"`
 }
 
 // LeagueResponse defines model for LeagueResponse.
@@ -655,23 +693,58 @@ type LogsTFTeams struct {
 
 // MetaProfile defines model for MetaProfile.
 type MetaProfile struct {
-	AvatarHash               string                     `json:"avatar_hash"`
-	Bans                     *[]Ban                     `json:"bans"`
-	CommunityBanned          bool                       `json:"community_banned"`
-	CommunityVisibilityState int64                      `json:"community_visibility_state"`
-	CompetitiveTeams         *[]LeaguePlayerTeamHistory `json:"competitive_teams"`
-	DaysSinceLastBan         *int64                     `json:"days_since_last_ban,omitempty"`
-	EconomyBan               string                     `json:"economy_ban"`
-	Friends                  *[]Friend                  `json:"friends"`
-	LogsCount                *int64                     `json:"logs_count,omitempty"`
-	NumberOfGameBans         *int64                     `json:"number_of_game_bans,omitempty"`
-	NumberOfVacBans          *int64                     `json:"number_of_vac_bans,omitempty"`
-	PersonaName              string                     `json:"persona_name"`
-	ProfileState             int64                      `json:"profile_state"`
-	RealName                 string                     `json:"real_name"`
-	SteamId                  string                     `json:"steam_id"`
-	TimeCreated              int64                      `json:"time_created"`
+	// AvatarHash The avatar hash of the user
+	AvatarHash string `json:"avatar_hash"`
+
+	// Bans Number of 3rd party bans. Includes leagues and pubs.
+	Bans *[]Ban `json:"bans"`
+
+	// CommunityBanned Is the user steam community banned
+	CommunityBanned bool `json:"community_banned"`
+
+	// CommunityVisibilityState Represents whether the profile is visible or not and why.
+	CommunityVisibilityState MetaProfileCommunityVisibilityState `json:"community_visibility_state"`
+
+	// CompetitiveTeams Competitive league team history
+	CompetitiveTeams *[]LeaguePlayerTeamHistory `json:"competitive_teams"`
+	DaysSinceLastBan int64                      `json:"days_since_last_ban"`
+
+	// EconomyBan Is the user trade banned
+	EconomyBan string `json:"economy_ban"`
+
+	// Friends Last known list of friends
+	Friends *[]Friend `json:"friends"`
+
+	// LogsCount Number of logs the user has on logs.tf
+	LogsCount int64 `json:"logs_count"`
+
+	// NumberOfGameBans How many game bans the user has
+	NumberOfGameBans int64 `json:"number_of_game_bans"`
+
+	// NumberOfVacBans How many vac bans does the user have
+	NumberOfVacBans int64 `json:"number_of_vac_bans"`
+
+	// PersonaName The current alias of the user
+	PersonaName string `json:"persona_name"`
+
+	// ProfileState Has the profile been setup
+	ProfileState MetaProfileProfileState `json:"profile_state"`
+
+	// RealName Real name of the user
+	RealName string `json:"real_name"`
+
+	// SteamId 64bit Steam ID
+	SteamId string `json:"steam_id"`
+
+	// TimeCreated When the account was created. This may be estimated if not available.
+	TimeCreated int64 `json:"time_created"`
 }
+
+// MetaProfileCommunityVisibilityState Represents whether the profile is visible or not and why.
+type MetaProfileCommunityVisibilityState int64
+
+// MetaProfileProfileState Has the profile been setup
+type MetaProfileProfileState int64
 
 // PlayerSummaryResponse defines model for PlayerSummaryResponse.
 type PlayerSummaryResponse struct {
@@ -915,10 +988,16 @@ type LeaguesCompetitionsParamsType string
 // LeaguesHistoryParams defines parameters for LeaguesHistory.
 type LeaguesHistoryParams struct {
 	// Steamids SteamIDs in any standard format
-	Steamids []string                    `form:"steamids" json:"steamids"`
-	League   *LeaguesHistoryParamsLeague `form:"league,omitempty" json:"league,omitempty"`
-	Type     *LeaguesHistoryParamsType   `form:"type,omitempty" json:"type,omitempty"`
-	Format   *LeaguesHistoryParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+	Steamids []string `form:"steamids" json:"steamids"`
+
+	// League Name of the league
+	League *LeaguesHistoryParamsLeague `form:"league,omitempty" json:"league,omitempty"`
+
+	// Type Type of event ran
+	Type *LeaguesHistoryParamsType `form:"type,omitempty" json:"type,omitempty"`
+
+	// Format Game format
+	Format *LeaguesHistoryParamsFormat `form:"format,omitempty" json:"format,omitempty"`
 }
 
 // LeaguesHistoryParamsLeague defines parameters for LeaguesHistory.
@@ -944,9 +1023,14 @@ type LeaguesTeamMembersParamsLeague string
 
 // LeaguesTeamsParams defines parameters for LeaguesTeams.
 type LeaguesTeamsParams struct {
-	League   *LeaguesTeamsParamsLeague `form:"league,omitempty" json:"league,omitempty"`
-	LeagueId *int64                    `form:"league_id,omitempty" json:"league_id,omitempty"`
-	Name     *string                   `form:"name,omitempty" json:"name,omitempty"`
+	// League Name of the league
+	League *LeaguesTeamsParamsLeague `form:"league,omitempty" json:"league,omitempty"`
+
+	// LeagueId The unique, to the provided league, id of the team
+	LeagueId *int64 `form:"league_id,omitempty" json:"league_id,omitempty"`
+
+	// Name Query the name
+	Name *string `form:"name,omitempty" json:"name,omitempty"`
 }
 
 // LeaguesTeamsParamsLeague defines parameters for LeaguesTeams.
