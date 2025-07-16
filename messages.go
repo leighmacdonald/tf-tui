@@ -6,9 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type errMsg error
-
-type PlayerStateMsg struct {
+type G15Msg struct {
 	err  error
 	t    time.Time
 	dump G15PlayerState
@@ -24,10 +22,25 @@ type SelectedTableRowMsg struct {
 	selectedUID  int
 }
 
-type clearErrorMsg struct{}
+type clearStatusMessageMsg struct{}
 
 func clearErrorAfter(t time.Duration) tea.Cmd {
 	return tea.Tick(t, func(_ time.Time) tea.Msg {
-		return clearErrorMsg{}
+		return clearStatusMessageMsg{}
 	})
+}
+
+type FullStateUpdateMsg struct {
+	players     []Player
+	selectedUID int
+}
+
+type StatusMsg struct {
+	message string
+	error   bool
+}
+
+// SetViewMsg will Switch the currently displayed center content view.
+type SetViewMsg struct {
+	view contentView
 }

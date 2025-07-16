@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -15,6 +16,14 @@ import (
 )
 
 var DefaultKeyMap = keymap{
+	accept: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "Select"),
+	),
+	back: key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "Back"),
+	),
 	reset: key.NewBinding(
 		key.WithKeys("r"),
 		key.WithHelp("r", "reset"),
@@ -65,7 +74,6 @@ type AppModel struct {
 	currentView  contentView
 	titleState   string
 	quitting     bool
-	err          errMsg
 	messages     []string
 	height       int
 	width        int
@@ -73,6 +81,7 @@ type AppModel struct {
 	selectedRow  int
 	selectedUID  int
 	statusMsg    string
+	statusError  bool
 	scripting    *Scripting
 	helpView     help.Model
 	banTable     tea.Model
@@ -107,6 +116,7 @@ func newAppModel(config Config, doSetup bool, scripting *Scripting, cache *Playe
 func (m AppModel) isInitialized() bool {
 	return m.height != 0 && m.width != 0
 }
+
 func (m AppModel) Init() tea.Cmd {
 	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), m.configModel.Init(), textinput.Blink)
 }
@@ -128,10 +138,27 @@ func (m AppModel) View() string {
 	case viewPlayerTables:
 		b.WriteString("\n" + m.playerTable.View())
 		b.WriteString("\n")
-
 		b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, m.banTable.View()))
+	}
 
-		b.WriteString("\n")
+	b.WriteString(m.renderHelp())
+
+	// Send the UI for rendering
+	return b.String()
+}
+
+func (m AppModel) renderHelp() string {
+	helpView := help.New()
+	var b strings.Builder
+	b.WriteString("\n")
+
+	switch m.currentView {
+	case viewConfig:
+		b.WriteString("\n\n" + helpView.ShortHelpView([]key.Binding{
+			DefaultKeyMap.quit,
+			DefaultKeyMap.accept,
+		}))
+	case viewPlayerTables:
 		b.WriteString(m.helpView.ShortHelpView([]key.Binding{
 			DefaultKeyMap.quit,
 			DefaultKeyMap.config,
@@ -141,12 +168,13 @@ func (m AppModel) View() string {
 			DefaultKeyMap.left,
 			DefaultKeyMap.right,
 		}))
+	case viewConfigFiles:
+		k := filepicker.DefaultKeyMap()
+		b.WriteString("\n\n" + helpView.ShortHelpView([]key.Binding{
+			k.Down, k.Up, k.Open, k.Select, k.Back, k.GoToLast, k.GoToTop, k.PageDown, k.PageUp,
+		}))
 	}
 
-	// The footer
-	b.WriteString(strings.Join(m.messages, "\n"))
-
-	// Send the UI for rendering
 	return b.String()
 }
 
@@ -154,21 +182,22 @@ func (m AppModel) tickEvery() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		dump, errDump := fetchPlayerState(context.Background(), m.config.Address, m.config.Password)
 		if errDump != nil {
-			return PlayerStateMsg{err: errDump, t: t}
+			return G15Msg{err: errDump, t: t}
 		}
 
-		return PlayerStateMsg{t: t, dump: dump}
+		return G15Msg{t: t, dump: dump}
 	})
 }
 
-type FullStateUpdateMsg struct {
-	players     []Player
-	selectedUID int
-}
-
-func (m AppModel) onPlayerStateMsg(msg PlayerStateMsg) (tea.Model, tea.Cmd) {
+func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
 	if msg.err != nil {
-		m.err = msg.err
+		cmds = append(cmds, func() tea.Msg {
+			return StatusMsg{
+				message: msg.err.Error(),
+				error:   true,
+			}
+		})
 	}
 
 	//if m.selectedRow > m.playerTable.selectedColumnPlayerCount()-1 {
@@ -182,27 +211,26 @@ func (m AppModel) onPlayerStateMsg(msg PlayerStateMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(m.tickEvery())
 	}
 
-	return m, tea.Batch(m.tickEvery(), func() tea.Msg {
+	cmds = append(cmds, m.tickEvery(), func() tea.Msg {
 		return FullStateUpdateMsg{
 			players:     players,
 			selectedUID: 0,
 		}
 	})
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Propagate to all children.
 	//m.tabs, _ = m.tabs.Update(msg)
-	if m.currentView == viewConfig {
-		m.configModel, _ = m.configModel.Update(msg)
-	}
+	cmds := make([]tea.Cmd, 4)
+	m.configModel, cmds[0] = m.configModel.Update(msg)
+	m.playerTable, cmds[1] = m.playerTable.Update(msg)
+	m.banTable, cmds[2] = m.banTable.Update(msg)
+	m.helpView, cmds[3] = m.helpView.Update(msg)
 
-	var cmd tea.Cmd
-	m.playerTable, cmd = m.playerTable.Update(msg)
-	m.banTable, _ = m.banTable.Update(msg)
-	m.helpView, _ = m.helpView.Update(msg)
-
-	return m, cmd
+	return m, tea.Batch(cmds...)
 }
 func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	if !m.isInitialized() {
@@ -214,7 +242,12 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := inMsg.(type) {
 	case Config:
 		m.config = msg
-	case PlayerStateMsg:
+	case StatusMsg:
+		m.statusMsg = msg.message
+		m.statusError = msg.error
+
+		return m, clearErrorAfter(time.Second * 5)
+	case G15Msg:
 		return m.onPlayerStateMsg(msg)
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
@@ -246,12 +279,13 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m.propagate(inMsg)
-	case clearErrorMsg:
-		m.err = nil
+	case clearStatusMessageMsg:
+		m.statusError = false
+		m.statusMsg = ""
+
 		return m, nil
-	case errMsg:
-		m.err = msg
-		return m, nil
+	case SetViewMsg:
+		m.currentView = msg.view
 	}
 
 	return m.propagate(inMsg)
@@ -265,8 +299,8 @@ func (m AppModel) title() string {
 }
 
 func (m AppModel) status() string {
-	if m.err != nil {
-		return styles.Status.Width(m.width / 2).Render(m.err.Error())
+	if m.statusError {
+		return styles.Status.Foreground(styles.Red).Width(m.width / 2).Render(m.statusMsg)
 	}
 	return styles.Status.Width(m.width / 2).Render(m.statusMsg)
 }

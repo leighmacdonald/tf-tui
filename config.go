@@ -47,6 +47,8 @@ type keymap struct {
 	left   key.Binding
 	right  key.Binding
 	fs     key.Binding
+	accept key.Binding
+	back   key.Binding
 }
 
 func configPath(name string) string {
@@ -87,6 +89,7 @@ func newPicker() filepicker.Model {
 	fp := filepicker.New()
 	fp.AllowedTypes = []string{}
 	fp.CurrentDirectory, _ = os.UserHomeDir()
+	fp.CurrentDirectory = "."
 	fp.ShowPermissions = true
 	fp.ShowHidden = true
 	fp.ShowSize = true
@@ -94,30 +97,28 @@ func newPicker() filepicker.Model {
 	return fp
 }
 
-type configModal struct {
+type configModel struct {
 	filepicker   filepicker.Model
 	selectedFile string
 	inputAddr    textinput.Model
 	passwordAddr textinput.Model
-	pickerActive bool
 	focusIndex   configIdx
 	config       Config
-	err          error
-	statusMsg    string
+	activeView   contentView
 }
 
 func newConfigModal(config Config) tea.Model {
-	return configModal{
-		pickerActive: true,
+	return &configModel{
 		config:       config,
 		inputAddr:    newTextInputModel(config.Address, "127.0.0.1:27015"),
 		passwordAddr: newTextInputPasswordModel(config.Password, ""),
 		filepicker:   newPicker(),
+		selectedFile: config.ConsoleLogPath,
 	}
 }
 
-func (m configModal) Init() tea.Cmd {
-	return tea.Batch(textinput.Blink, m.inputAddr.Focus())
+func (m configModel) Init() tea.Cmd {
+	return tea.Batch(textinput.Blink, m.inputAddr.Focus(), m.filepicker.Init())
 }
 
 type configIdx int
@@ -125,135 +126,136 @@ type configIdx int
 const (
 	fieldAddress configIdx = iota
 	fieldPassword
+	fieldConsoleLogPath
 	fieldSave
 )
 
-func (m configModal) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg {
-	case "up":
-		if m.focusIndex > 0 && m.focusIndex <= 2 {
-			m.focusIndex--
-		}
-	case "down":
-		if m.focusIndex >= 0 && m.focusIndex < 2 {
-			m.focusIndex++
-		}
-	case "enter":
-		switch m.focusIndex {
-		case fieldAddress:
-			m.focusIndex++
-		case fieldPassword:
-			m.focusIndex++
-		case fieldSave:
-			cfg := m.config
-			cfg.Address = m.inputAddr.Value()
-			cfg.Password = m.passwordAddr.Value()
+func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 3)
 
-			if err := configWrite(defaultConfigName, cfg); err != nil {
-				m.err = err
-				return m, nil
-			}
-
-			m.statusMsg = "Saved config"
-			m.config = cfg
-			return m, tea.Batch(func() tea.Msg {
-				return cfg
-			})
-		}
-	}
-
-	cmds := make([]tea.Cmd, 2)
-
-	// Only text inputs with Focus() set will respond, so it's safe to simply
-	// update all of them here without any further logic.
 	m.inputAddr, cmds[0] = m.inputAddr.Update(msg)
 	m.passwordAddr, cmds[1] = m.passwordAddr.Update(msg)
-
-	switch m.focusIndex {
-	case 0:
-		cmds = append(cmds, m.inputAddr.Focus())
-		m.inputAddr.PromptStyle = styles.FocusedStyle
-		m.inputAddr.TextStyle = styles.FocusedStyle
-
-		m.passwordAddr.Blur()
-		m.passwordAddr.PromptStyle = styles.NoStyle
-		m.passwordAddr.TextStyle = styles.NoStyle
-	case 1:
-		cmds = append(cmds, m.passwordAddr.Focus())
-		m.passwordAddr.PromptStyle = styles.FocusedStyle
-		m.passwordAddr.TextStyle = styles.FocusedStyle
-
-		m.inputAddr.Blur()
-		m.inputAddr.PromptStyle = styles.NoStyle
-		m.inputAddr.TextStyle = styles.NoStyle
-	case 2:
-		m.passwordAddr.Blur()
-		m.passwordAddr.PromptStyle = styles.NoStyle
-		m.passwordAddr.TextStyle = styles.NoStyle
-		m.inputAddr.Blur()
-		m.inputAddr.PromptStyle = styles.NoStyle
-		m.inputAddr.TextStyle = styles.NoStyle
-	}
-
-	var cmd tea.Cmd
-	m.filepicker, cmd = m.filepicker.Update(msg)
-	cmds = append(cmds, cmd)
+	m.filepicker, cmds[2] = m.filepicker.Update(msg)
 
 	// Did the user select a file?
 	if didSelect, selectedPath := m.filepicker.DidSelectFile(msg); didSelect {
 		// Get the selectedPath of the selected file.
 		m.selectedFile = selectedPath
+		m.config.ConsoleLogPath = selectedPath
 	}
 
 	// Did the user select a disabled file?
 	// This is only necessary to display an error to the user.
 	if didSelect, selectedPath := m.filepicker.DidSelectDisabledFile(msg); didSelect {
 		// Let's clear the selectedFile and display an error.
-		m.err = errors.New(selectedPath + " is not valid.")
 		//m.selectedFile = ""
-		cmds = append(cmds, clearErrorAfter(10*time.Second))
+		cmds = append(cmds, clearErrorAfter(10*time.Second), func() tea.Msg {
+			return StatusMsg{
+				message: errors.New(selectedPath + " is not valid.").Error(),
+				error:   true,
+			}
+		})
+	}
+
+	switch msg := msg.(type) {
+	case SetViewMsg:
+		m.activeView = msg.view
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, DefaultKeyMap.up):
+			if m.focusIndex > 0 && m.focusIndex <= 2 {
+				m.focusIndex--
+			}
+		case key.Matches(msg, DefaultKeyMap.down):
+			if m.focusIndex >= 0 && m.focusIndex < 2 {
+				m.focusIndex++
+			}
+		case key.Matches(msg, DefaultKeyMap.accept):
+			switch m.focusIndex {
+			case fieldAddress:
+				m.focusIndex++
+			case fieldPassword:
+				m.focusIndex++
+			case fieldConsoleLogPath:
+				return m, func() tea.Msg {
+					return SetViewMsg{view: viewConfigFiles}
+				}
+			case fieldSave:
+				cfg := m.config
+				cfg.Address = m.inputAddr.Value()
+				cfg.Password = m.passwordAddr.Value()
+
+				if err := configWrite(defaultConfigName, cfg); err != nil {
+					return m, func() tea.Msg { return StatusMsg{message: err.Error(), error: true} }
+				}
+
+				m.config = cfg
+				return m, tea.Batch(
+					func() tea.Msg { return cfg },
+					func() tea.Msg { return StatusMsg{message: "Saved config"} })
+			}
+		}
+		switch m.focusIndex {
+		case fieldAddress:
+			cmds = append(cmds, m.inputAddr.Focus())
+			m.inputAddr.PromptStyle = styles.FocusedStyle
+			m.inputAddr.TextStyle = styles.FocusedStyle
+
+			m.passwordAddr.Blur()
+			m.passwordAddr.PromptStyle = styles.NoStyle
+			m.passwordAddr.TextStyle = styles.NoStyle
+
+		case fieldPassword:
+			cmds = append(cmds, m.passwordAddr.Focus())
+			m.passwordAddr.PromptStyle = styles.FocusedStyle
+			m.passwordAddr.TextStyle = styles.FocusedStyle
+
+			m.inputAddr.Blur()
+			m.inputAddr.PromptStyle = styles.NoStyle
+			m.inputAddr.TextStyle = styles.NoStyle
+		case fieldConsoleLogPath:
+
+		case fieldSave:
+			m.passwordAddr.Blur()
+			m.passwordAddr.PromptStyle = styles.NoStyle
+			m.passwordAddr.TextStyle = styles.NoStyle
+			m.inputAddr.Blur()
+			m.inputAddr.PromptStyle = styles.NoStyle
+			m.inputAddr.TextStyle = styles.NoStyle
+		}
+
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m configModal) View() string {
+func (m configModel) View() string {
 	var b strings.Builder
-	if m.pickerActive {
-		b.WriteString(m.renderFilePicker())
+	if m.activeView == viewConfigFiles {
+		b.WriteString(fmt.Sprintf("\n  Dir: %s \n ", m.filepicker.CurrentDirectory))
+		if m.selectedFile == "" {
+			b.WriteString("Pick a file:")
+		} else {
+			b.WriteString("Selected file: " + m.filepicker.Styles.Selected.Render(m.selectedFile))
+		}
+		b.WriteString("\n\n" + m.filepicker.View() + "\n")
 	} else {
 		b.WriteString(styles.HelpStyle.Render("\n🟥 RCON Address:  "))
-		b.WriteString(m.inputAddr.View() + "\n")
-		b.WriteString(styles.HelpStyle.Render("🟩 RCON Password: "))
+		b.WriteString(m.inputAddr.View())
+		b.WriteString(styles.HelpStyle.Render("\n🟩 RCON Password: "))
 		b.WriteString(m.passwordAddr.View())
+		b.WriteString(styles.HelpStyle.Render("\n🟩 console.log: "))
+		if m.focusIndex == fieldConsoleLogPath {
+			b.WriteString(styles.FocusedStyle.Render(m.selectedFile))
+		} else {
+			b.WriteString(m.selectedFile)
+		}
 	}
-	if m.focusIndex == 2 {
+	if m.focusIndex == fieldSave {
 		b.WriteString("\n\n" + styles.FocusedSubmitButton)
 	} else {
 		b.WriteString("\n\n" + styles.BlurredSubmitButton)
 	}
 
-	//helpView := help.New()
-
-	//b.WriteString("\n\n" + helpView.ShortHelpView([]key.Binding{
-	//	m.keymap.up,
-	//	m.keymap.down,
-	//	m.keymap.quit,
-	//}))
-
 	return b.String()
-}
-
-func (m configModal) renderFilePicker() string {
-	var s strings.Builder
-	s.WriteString(fmt.Sprintf("\n  Dir: %s \n ", m.filepicker.CurrentDirectory))
-	if m.err != nil {
-		s.WriteString(m.filepicker.Styles.DisabledFile.Render(m.err.Error()))
-	} else if m.selectedFile == "" {
-		s.WriteString("Pick a file:")
-	} else {
-		s.WriteString("Selected file: " + m.filepicker.Styles.Selected.Render(m.selectedFile))
-	}
-	s.WriteString("\n\n" + m.filepicker.View() + "\n")
-	return s.String()
 }

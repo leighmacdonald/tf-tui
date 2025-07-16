@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"errors"
 	"io"
 	"regexp"
 	"strconv"
@@ -57,12 +56,12 @@ func fetchPlayerState(ctx context.Context, address string, password string) (G15
 			}
 		}
 		return data, nil
-		//return shared.PlayerState{}, errors.Join(errExec, errRCONExec)
+		//return G15PlayerState{}, errExec
 	}
 
 	dump, err := parsePlayerState(strings.NewReader(response))
 	if err != nil {
-		return G15PlayerState{}, errors.Join(err, errRCONParse)
+		return G15PlayerState{}, err
 	}
 
 	lastUpdate = dump
