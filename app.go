@@ -15,49 +15,6 @@ import (
 	"github.com/leighmacdonald/tf-tui/styles"
 )
 
-var DefaultKeyMap = keymap{
-	accept: key.NewBinding(
-		key.WithKeys("enter"),
-		key.WithHelp("enter", "Select"),
-	),
-	back: key.NewBinding(
-		key.WithKeys("esc"),
-		key.WithHelp("esc", "Back"),
-	),
-	reset: key.NewBinding(
-		key.WithKeys("r"),
-		key.WithHelp("r", "reset"),
-	),
-	quit: key.NewBinding(
-		key.WithKeys("q", "ctrl+c"),
-		key.WithHelp("q", "Quit"),
-	),
-	config: key.NewBinding(
-		key.WithKeys("E"),
-		key.WithHelp("E", "Conf"),
-	),
-	up: key.NewBinding(
-		key.WithKeys("up", "k"),
-		key.WithHelp("↑", "Up"),
-	),
-	down: key.NewBinding(
-		key.WithKeys("down", "j"),
-		key.WithHelp("↓", "Down"),
-	),
-	left: key.NewBinding(
-		key.WithKeys("left", "h"),
-		key.WithHelp("←", "RED"),
-	),
-	right: key.NewBinding(
-		key.WithKeys("right", "l"),
-		key.WithHelp("→", "BLU"),
-	),
-	fs: key.NewBinding(
-		key.WithKeys("f"),
-		key.WithHelp("f", "Toggle View"),
-	),
-}
-
 type contentView int
 
 const (
@@ -74,7 +31,6 @@ type AppModel struct {
 	currentView  contentView
 	titleState   string
 	quitting     bool
-	messages     []string
 	height       int
 	width        int
 	selectedTeam Team
@@ -82,8 +38,10 @@ type AppModel struct {
 	selectedUID  int
 	statusMsg    string
 	statusError  bool
+	activeTab    tabView
 	scripting    *Scripting
 	helpView     help.Model
+	detailPanel  tea.Model
 	banTable     tea.Model
 	playerTable  tea.Model
 	configModel  tea.Model
@@ -102,8 +60,10 @@ func newAppModel(config Config, doSetup bool, scripting *Scripting, cache *Playe
 		helpView:    help.New(),
 		scripting:   scripting,
 		playerTable: newTableModel(),
-		banTable:    NewTableDetailModel(),
+		banTable:    newTableDetailModel(),
 		configModel: newConfigModal(config),
+		tabs:        newTabsModel(),
+		detailPanel: DetailPanel{},
 	}
 
 	if doSetup {
@@ -111,14 +71,98 @@ func newAppModel(config Config, doSetup bool, scripting *Scripting, cache *Playe
 	}
 
 	return app
-
-}
-func (m AppModel) isInitialized() bool {
-	return m.height != 0 && m.width != 0
 }
 
 func (m AppModel) Init() tea.Cmd {
-	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), m.configModel.Init(), textinput.Blink)
+	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), m.configModel.Init(), textinput.Blink, m.tabs.Init())
+}
+
+func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
+	if !m.isInitialized() {
+		if _, ok := inMsg.(tea.WindowSizeMsg); !ok {
+			return m, nil
+		}
+	}
+
+	switch msg := inMsg.(type) {
+	case Config:
+		m.config = msg
+	case StatusMsg:
+		m.statusMsg = msg.message
+		m.statusError = msg.error
+
+		return m, clearErrorAfter(time.Second * 5)
+	case G15Msg:
+		return m.onPlayerStateMsg(msg)
+	case tea.WindowSizeMsg:
+		m.height = msg.Height
+		m.width = msg.Width
+		return m.propagate(inMsg)
+	case SelectedTableRowMsg:
+		m.selectedUID = msg.selectedUID
+		m.selectedRow = msg.selectedRow
+		m.selectedTeam = msg.selectedTeam
+	case TabChangeMsg:
+		m.activeTab = tabView(msg)
+	// Is it a key press?
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, DefaultKeyMap.fs):
+			var cmd tea.Cmd
+			if m.altScreen {
+				cmd = tea.ExitAltScreen
+			} else {
+				cmd = tea.EnterAltScreen
+			}
+			m.altScreen = !m.altScreen
+			return m, cmd
+		case key.Matches(msg, DefaultKeyMap.quit):
+			return m, tea.Quit
+		case key.Matches(msg, DefaultKeyMap.config):
+			if m.currentView == viewConfig {
+				m.currentView = viewPlayerTables
+			} else {
+				m.currentView = viewConfig
+			}
+		}
+		return m.propagate(inMsg)
+	case clearStatusMessageMsg:
+		m.statusError = false
+		m.statusMsg = ""
+
+		return m, nil
+	case SetViewMsg:
+		m.currentView = msg.view
+	}
+
+	return m.propagate(inMsg)
+}
+
+func (m AppModel) View() string {
+	var b strings.Builder
+
+	switch m.currentView {
+	case viewConfig:
+		b.WriteString(m.configModel.View())
+	case viewPlayerTables:
+		b.WriteString(m.playerTable.View())
+		b.WriteString(m.tabs.View())
+		b.WriteString("\n")
+		switch m.activeTab {
+		case TabOverview:
+			b.WriteString(m.detailPanel.View())
+		case TabBans:
+			b.WriteString(m.banTable.View())
+		}
+	}
+
+	b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, m.renderHelp(), m.renderHeading()))
+	// Send the UI for rendering
+	return b.String()
+}
+
+func (m AppModel) isInitialized() bool {
+	return m.height != 0 && m.width != 0
 }
 
 func (m AppModel) SelectedPlayer() (Player, bool) {
@@ -129,24 +173,6 @@ func (m AppModel) SelectedPlayer() (Player, bool) {
 	return m.cache.ByUID(m.selectedUID)
 }
 
-func (m AppModel) View() string {
-	var b strings.Builder
-	b.WriteString(m.renderHeading())
-	switch m.currentView {
-	case viewConfig:
-		b.WriteString(m.configModel.View())
-	case viewPlayerTables:
-		b.WriteString("\n" + m.playerTable.View())
-		b.WriteString("\n")
-		b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, m.banTable.View()))
-	}
-
-	b.WriteString(m.renderHelp())
-
-	// Send the UI for rendering
-	return b.String()
-}
-
 func (m AppModel) renderHelp() string {
 	helpView := help.New()
 	var b strings.Builder
@@ -154,7 +180,7 @@ func (m AppModel) renderHelp() string {
 
 	switch m.currentView {
 	case viewConfig:
-		b.WriteString("\n\n" + helpView.ShortHelpView([]key.Binding{
+		b.WriteString(helpView.ShortHelpView([]key.Binding{
 			DefaultKeyMap.quit,
 			DefaultKeyMap.accept,
 		}))
@@ -167,10 +193,11 @@ func (m AppModel) renderHelp() string {
 			DefaultKeyMap.down,
 			DefaultKeyMap.left,
 			DefaultKeyMap.right,
+			DefaultKeyMap.nextTab,
 		}))
 	case viewConfigFiles:
 		k := filepicker.DefaultKeyMap()
-		b.WriteString("\n\n" + helpView.ShortHelpView([]key.Binding{
+		b.WriteString(helpView.ShortHelpView([]key.Binding{
 			k.Down, k.Up, k.Open, k.Select, k.Back, k.GoToLast, k.GoToTop, k.PageDown, k.PageUp,
 		}))
 	}
@@ -224,71 +251,15 @@ func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
 func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Propagate to all children.
 	//m.tabs, _ = m.tabs.Update(msg)
-	cmds := make([]tea.Cmd, 4)
+	cmds := make([]tea.Cmd, 6)
 	m.configModel, cmds[0] = m.configModel.Update(msg)
 	m.playerTable, cmds[1] = m.playerTable.Update(msg)
 	m.banTable, cmds[2] = m.banTable.Update(msg)
 	m.helpView, cmds[3] = m.helpView.Update(msg)
+	m.detailPanel, cmds[4] = m.detailPanel.Update(msg)
+	m.tabs, cmds[5] = m.tabs.Update(msg)
 
 	return m, tea.Batch(cmds...)
-}
-func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
-	if !m.isInitialized() {
-		if _, ok := inMsg.(tea.WindowSizeMsg); !ok {
-			return m, nil
-		}
-	}
-
-	switch msg := inMsg.(type) {
-	case Config:
-		m.config = msg
-	case StatusMsg:
-		m.statusMsg = msg.message
-		m.statusError = msg.error
-
-		return m, clearErrorAfter(time.Second * 5)
-	case G15Msg:
-		return m.onPlayerStateMsg(msg)
-	case tea.WindowSizeMsg:
-		m.height = msg.Height
-		m.width = msg.Width
-		return m.propagate(inMsg)
-	case SelectedTableRowMsg:
-		m.selectedUID = msg.selectedUID
-		m.selectedRow = msg.selectedRow
-		m.selectedTeam = msg.selectedTeam
-	// Is it a key press?
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, DefaultKeyMap.fs):
-			var cmd tea.Cmd
-			if m.altScreen {
-				cmd = tea.ExitAltScreen
-			} else {
-				cmd = tea.EnterAltScreen
-			}
-			m.altScreen = !m.altScreen
-			return m, cmd
-		case key.Matches(msg, DefaultKeyMap.quit):
-			return m, tea.Quit
-		case key.Matches(msg, DefaultKeyMap.config):
-			if m.currentView == viewConfig {
-				m.currentView = viewPlayerTables
-			} else {
-				m.currentView = viewConfig
-			}
-		}
-		return m.propagate(inMsg)
-	case clearStatusMessageMsg:
-		m.statusError = false
-		m.statusMsg = ""
-
-		return m, nil
-	case SetViewMsg:
-		m.currentView = msg.view
-	}
-
-	return m.propagate(inMsg)
 }
 
 func (m AppModel) title() string {

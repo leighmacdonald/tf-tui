@@ -44,3 +44,5 @@ type StatusMsg struct {
 type SetViewMsg struct {
 	view contentView
 }
+
+type TabChangeMsg tabView

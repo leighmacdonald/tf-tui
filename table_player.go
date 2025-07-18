@@ -34,13 +34,13 @@ func newTableModel() *playerTablesModel {
 	model := &playerTablesModel{selectedRow: 0, selectedTeam: RED}
 
 	model.redTable = PlayerTableModel{team: RED, table: table.New().
-		Border(lipgloss.NormalBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(styles.Red)).
-		Headers("UID", "Name", "Score", "Deaths", "Ping", "Meta")}
+		Headers("UID", "Name", "Score", "Deaths", "Ping", "Meta").
+		BorderHeader(false)}
 	model.bluTable = PlayerTableModel{team: BLU, table: table.New().
-		Border(lipgloss.NormalBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(styles.Blu)).
-		Headers("UID", "Name", "Score", "Deaths", "Ping", "Meta")}
+		Headers("UID", "Name", "Score", "Deaths", "Ping", "Meta").
+		BorderHeader(false)}
 
 	return model
 }

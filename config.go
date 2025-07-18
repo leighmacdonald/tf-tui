@@ -37,18 +37,86 @@ const (
 )
 
 type keymap struct {
-	start  key.Binding
-	stop   key.Binding
-	reset  key.Binding
-	quit   key.Binding
-	config key.Binding
-	up     key.Binding
-	down   key.Binding
-	left   key.Binding
-	right  key.Binding
-	fs     key.Binding
-	accept key.Binding
-	back   key.Binding
+	start    key.Binding
+	stop     key.Binding
+	reset    key.Binding
+	quit     key.Binding
+	config   key.Binding
+	up       key.Binding
+	down     key.Binding
+	left     key.Binding
+	right    key.Binding
+	fs       key.Binding
+	accept   key.Binding
+	back     key.Binding
+	nextTab  key.Binding
+	overview key.Binding
+	bans     key.Binding
+	comp     key.Binding
+	notes    key.Binding
+}
+
+var DefaultKeyMap = keymap{
+	accept: key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "Select"),
+	),
+	back: key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "Back"),
+	),
+	reset: key.NewBinding(
+		key.WithKeys("r"),
+		key.WithHelp("r", "reset"),
+	),
+	quit: key.NewBinding(
+		key.WithKeys("q", "ctrl+c"),
+		key.WithHelp("q", "Quit"),
+	),
+	config: key.NewBinding(
+		key.WithKeys("E"),
+		key.WithHelp("E", "Conf"),
+	),
+	up: key.NewBinding(
+		key.WithKeys("up", "k"),
+		key.WithHelp("↑", "Up"),
+	),
+	down: key.NewBinding(
+		key.WithKeys("down", "j"),
+		key.WithHelp("↓", "Down"),
+	),
+	left: key.NewBinding(
+		key.WithKeys("left", "h"),
+		key.WithHelp("←", "RED"),
+	),
+	right: key.NewBinding(
+		key.WithKeys("right", "l"),
+		key.WithHelp("→", "BLU"),
+	),
+	fs: key.NewBinding(
+		key.WithKeys("f"),
+		key.WithHelp("f", "Toggle View"),
+	),
+	nextTab: key.NewBinding(
+		key.WithKeys("tab"),
+		key.WithHelp("tab", "Next Tab"),
+	),
+	overview: key.NewBinding(
+		key.WithKeys("o"),
+		key.WithHelp("o", "Overview"),
+	),
+	bans: key.NewBinding(
+		key.WithKeys("b"),
+		key.WithHelp("b", "Bans"),
+	),
+	comp: key.NewBinding(
+		key.WithKeys("c"),
+		key.WithHelp("c", "Comp"),
+	),
+	notes: key.NewBinding(
+		key.WithKeys("n"),
+		key.WithHelp("n", "Notes"),
+	),
 }
 
 func configPath(name string) string {

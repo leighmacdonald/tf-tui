@@ -74,24 +74,24 @@ func (m TableDetailModel) View() string {
 		case 2:
 			return styles.CellStyle.Width(4)
 		default:
-			return styles.CellStyle.Width(60)
+			return styles.CellStyle.Width(40)
 		}
 	}).Render()
 }
 
-func NewTableDetailModel() tea.Model {
+func newTableDetailModel() tea.Model {
 	return &TableDetailModel{table: newTableDetails()}
 }
 
 func newTableDetails() *table.Table {
 	t := table.New().
-		Border(lipgloss.NormalBorder()).
+		//Border(lipgloss.NormalBorder()).
 		Height(20).
 		BorderStyle(lipgloss.NewStyle().Foreground(styles.Gray)).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			switch {
 			case row == table.HeaderRow:
-				return styles.HeaderStyleRed
+				return styles.HeaderStyleRed.Padding(0)
 			case row%2 == 0:
 				return styles.EvenRowStyle
 			default:

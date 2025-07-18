@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	Accent = lipgloss.Color("205")
 	Status = lipgloss.NewStyle().Bold(true).Foreground(Red).
 		Border(lipgloss.NormalBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(Blu).GetBorderStyle()).Padding(1)
@@ -43,4 +44,22 @@ var (
 
 	SelectedCellStyleBlu     = lipgloss.NewStyle().Padding(0, 1).Bold(true).Background(Blu).Foreground(Black)
 	SelectedCellStyleNameBlu = SelectedCellStyleBlu.Width(32).Background(Blu).Foreground(Black)
+
+	PanelBorder = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(Red).
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(Gray).
+		//BorderBackground(Gray).
+		//BorderTop(true).
+		//BorderLeft(true).
+		Padding(0)
+
+	PanelLabel   = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	PanelValue   = lipgloss.NewStyle().Width(60)
+	TabWidth     = 12
+	TabsInactive = lipgloss.NewStyle().Inline(true).Bold(true).
+			Border(lipgloss.NormalBorder()).BorderStyle(lipgloss.InnerHalfBlockBorder()).Padding(1).Width(TabWidth)
+	TabsActive = lipgloss.NewStyle().Inline(true).Bold(true).
+			Border(lipgloss.NormalBorder()).Padding(1).Width(TabWidth).Foreground(Blu)
 )

@@ -57,7 +57,8 @@ func newPlayerStates(apis APIs) *PlayerData {
 		mu:          &sync.RWMutex{},
 		players:     make(map[steamid.SteamID]*Player),
 		updateQueue: make(chan steamid.SteamID, maxQueueSize),
-		apis:        apis}
+		apis:        apis,
+	}
 }
 
 func (m *PlayerData) Start(ctx context.Context) {
@@ -171,7 +172,6 @@ func (m *PlayerData) All() ([]Player, error) {
 			continue
 		}
 		profiles = append(profiles, *player)
-
 	}
 
 	return profiles, nil
