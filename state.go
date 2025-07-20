@@ -20,9 +20,7 @@ const (
 	maxQueueSize     = 100
 )
 
-var (
-	errPlayerNotFound = errors.New("player not found")
-)
+var errPlayerNotFound = errors.New("player not found")
 
 type Player struct {
 	SteamID       steamid.SteamID
@@ -163,7 +161,7 @@ func (m *PlayerData) All() ([]Player, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	var profiles []Player
+	var profiles []Player //nolint:prealloc
 	for _, player := range m.players {
 		// Remove the expired player entries from the active player list
 		if player.Expired() {

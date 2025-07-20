@@ -33,44 +33,44 @@ func (m DetailPanel) View() string {
 		return ""
 	}
 
-	var b strings.Builder
+	var builder strings.Builder
 
-	b.WriteString(styles.PanelLabel.Render("SteamID: "))
-	b.WriteString(styles.PanelValue.Render(m.player.SteamID.String()))
+	builder.WriteString(styles.PanelLabel.Render("SteamID: "))
+	builder.WriteString(styles.PanelValue.Render(m.player.SteamID.String()))
 
-	b.WriteString(styles.PanelValue.Render(fmt.Sprintf("\nhttps://steamcommunity.com/profiles/%s", m.player.SteamID.String())))
+	builder.WriteString(styles.PanelValue.Render(fmt.Sprintf("\nhttps://steamcommunity.com/profiles/%s", m.player.SteamID.String())))
 
 	if m.player.meta.TimeCreated > 0 {
 		diff := humanize.RelTime(time.Unix(m.player.meta.TimeCreated, 0), time.Now(), "", "")
-		//age := time.Since(time.Unix(m.player.meta.TimeCreated, 0))
-		b.WriteString(styles.PanelLabel.Render("\nAcct. Age: "))
-		b.WriteString(styles.PanelValue.Render(diff))
+		// age := time.Since(time.Unix(m.player.meta.TimeCreated, 0))
+		builder.WriteString(styles.PanelLabel.Render("\nAcct. Age: "))
+		builder.WriteString(styles.PanelValue.Render(diff))
 	}
 
 	if m.player.meta.EconomyBan != "none" {
-		b.WriteString(styles.PanelLabel.Render("\nEcon Ban: "))
-		b.WriteString(styles.PanelValue.Render(m.player.meta.EconomyBan))
+		builder.WriteString(styles.PanelLabel.Render("\nEcon Ban: "))
+		builder.WriteString(styles.PanelValue.Render(m.player.meta.EconomyBan))
 	}
 
 	if m.player.meta.CommunityBanned {
-		b.WriteString(styles.PanelLabel.Render("\nComm Ban: "))
-		b.WriteString(styles.PanelValue.Render("true"))
+		builder.WriteString(styles.PanelLabel.Render("\nComm Ban: "))
+		builder.WriteString(styles.PanelValue.Render("true"))
 	}
 
 	if m.player.meta.NumberOfVacBans > 0 {
-		b.WriteString(styles.PanelLabel.Render("\nVac Bans: "))
-		b.WriteString(styles.PanelValue.Render(fmt.Sprintf("%d (%d days)", m.player.meta.NumberOfVacBans, m.player.meta.DaysSinceLastBan)))
+		builder.WriteString(styles.PanelLabel.Render("\nVac Bans: "))
+		builder.WriteString(styles.PanelValue.Render(fmt.Sprintf("%d (%d days)", m.player.meta.NumberOfVacBans, m.player.meta.DaysSinceLastBan)))
 	}
 
 	if m.player.meta.NumberOfGameBans > 0 {
-		b.WriteString(styles.BlurredStyle.Render("\nGame Bans: "))
-		b.WriteString(styles.NoStyle.Render(strconv.Itoa(int(m.player.meta.NumberOfGameBans))))
+		builder.WriteString(styles.BlurredStyle.Render("\nGame Bans: "))
+		builder.WriteString(styles.NoStyle.Render(strconv.Itoa(int(m.player.meta.NumberOfGameBans))))
 	}
 
 	if m.player.meta.LogsCount > 0 {
-		b.WriteString(styles.BlurredStyle.Render("\nLogs.tf #: "))
-		b.WriteString(styles.NoStyle.Render(strconv.Itoa(int(m.player.meta.LogsCount))))
+		builder.WriteString(styles.BlurredStyle.Render("\nLogs.tf #: "))
+		builder.WriteString(styles.NoStyle.Render(strconv.Itoa(int(m.player.meta.LogsCount))))
 	}
 
-	return styles.PanelBorder.Width(50).Render(b.String())
+	return styles.PanelBorder.Width(50).Render(builder.String())
 }

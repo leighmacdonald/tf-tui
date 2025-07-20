@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"io"
 	"strings"
 
 	"github.com/nxadm/tail"
 )
+
+var errConsoleLog = errors.New("failed to read console.log")
 
 type ConsoleLog struct {
 	tail *tail.Tail
@@ -14,6 +17,7 @@ type ConsoleLog struct {
 
 func (l *ConsoleLog) ReadFile(filePath string) error {
 	tailConfig := tail.Config{
+		// Start at the end of the file, only watch for new lines.
 		Location: &tail.SeekInfo{
 			Offset: 0,
 			Whence: io.SeekEnd,
@@ -26,13 +30,12 @@ func (l *ConsoleLog) ReadFile(filePath string) error {
 
 	tailFile, errTail := tail.TailFile(filePath, tailConfig)
 	if errTail != nil {
-		return errTail
+		return errors.Join(errTail, errConsoleLog)
 	}
 
 	l.tail = tailFile
 
 	return nil
-
 }
 
 func (l *ConsoleLog) lineEmitter(ctx context.Context, incoming chan string) {
@@ -63,7 +66,7 @@ func (l *ConsoleLog) start(ctx context.Context) {
 
 	go l.lineEmitter(ctx, incomingLogLines)
 
-	//for {
+	// for {
 	//	select {
 	//	case line := <-incomingLogLines:
 	//		var logEvent LogEvent
@@ -86,6 +89,5 @@ func (l *ConsoleLog) start(ctx context.Context) {
 }
 
 func newConsoleLog() *ConsoleLog {
-
 	return &ConsoleLog{tail: nil}
 }

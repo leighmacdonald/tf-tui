@@ -23,7 +23,7 @@ var (
 	FocusedSubmitButton = FocusedStyle.Render("[ Submit ]")
 	BlurredSubmitButton = fmt.Sprintf("[ %s ]", BlurredStyle.Render("Submit"))
 
-	// Tables
+	// Tables.
 	Black     = lipgloss.Color("#111111")
 	Gray      = lipgloss.Color("245")
 	LightGray = lipgloss.Color("241")
@@ -50,9 +50,9 @@ var (
 			Foreground(Red).
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderForeground(Gray).
-		//BorderBackground(Gray).
-		//BorderTop(true).
-		//BorderLeft(true).
+		// BorderBackground(Gray).
+		// BorderTop(true).
+		// BorderLeft(true).
 		Padding(0)
 
 	PanelLabel   = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))

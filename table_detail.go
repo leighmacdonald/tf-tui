@@ -17,7 +17,8 @@ func findCurrentUID(selected int, rows [][]string) int {
 		if idx == selected {
 			uid, errUID := strconv.ParseInt(row[0], 10, 32)
 			if errUID != nil {
-				tea.Printf(errUID.Error())
+				tea.Printf("%s", errUID.Error())
+
 				continue
 			}
 
@@ -61,11 +62,12 @@ func (m TableDetailModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.table.Rows(rows...)
 	}
+
 	return m, nil
 }
 
 func (m TableDetailModel) View() string {
-	return m.table.StyleFunc(func(row, col int) lipgloss.Style {
+	return m.table.StyleFunc(func(_, col int) lipgloss.Style {
 		switch col {
 		case 0:
 			return styles.CellStyle.Width(20)
@@ -84,11 +86,11 @@ func newTableDetailModel() tea.Model {
 }
 
 func newTableDetails() *table.Table {
-	t := table.New().
-		//Border(lipgloss.NormalBorder()).
+	return table.New().
+		// Border(lipgloss.NormalBorder()).
 		Height(20).
 		BorderStyle(lipgloss.NewStyle().Foreground(styles.Gray)).
-		StyleFunc(func(row, col int) lipgloss.Style {
+		StyleFunc(func(row, _ int) lipgloss.Style {
 			switch {
 			case row == table.HeaderRow:
 				return styles.HeaderStyleRed.Padding(0)
@@ -99,13 +101,13 @@ func newTableDetails() *table.Table {
 			}
 		}).
 		Headers("Site", "Date", "Perm", "Reason")
-	return t
 }
 
 func sortTableRows(rows [][]string, col int) {
 	slices.SortStableFunc(rows, func(a, b []string) int {
 		av, _ := strconv.Atoi(a[col])
 		bv, _ := strconv.Atoi(b[col])
+
 		return cmp.Compare(bv, av)
 	})
 }

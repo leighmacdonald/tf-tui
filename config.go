@@ -17,11 +17,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var (
+	errConfigWrite = errors.New("failed to write config file")
+	errInvalidPath = errors.New("invalid path")
+)
+
 type Config struct {
 	Address        string `yaml:"address"`
 	Password       string `yaml:"password"`
 	ConsoleLogPath string `yaml:"console_log_path"`
 	FullScreen     bool   `yaml:"full_screen"`
+	APIBaseURL     string `yaml:"api_base_url,omitempty"`
 }
 
 var defaultConfig = Config{
@@ -124,6 +130,7 @@ func configPath(name string) string {
 	if errFullPath != nil {
 		panic(errFullPath)
 	}
+
 	return fullPath
 }
 
@@ -139,30 +146,38 @@ func configRead(name string) (Config, bool) {
 		return Config{}, false
 	}
 
+	if config.APIBaseURL == "" {
+		config.APIBaseURL = "http://localhost:8888/"
+	}
+
 	return config, true
 }
 
 func configWrite(name string, config Config) error {
-	outFile, errOpen := os.Create(configPath(defaultConfigName))
+	outFile, errOpen := os.Create(configPath(name))
 	if errOpen != nil {
-		return errOpen
+		return errors.Join(errOpen, errConfigWrite)
 	}
 
 	defer outFile.Close()
 
-	return yaml.NewEncoder(outFile).Encode(&config)
+	if err := yaml.NewEncoder(outFile).Encode(&config); err != nil {
+		return errors.Join(err, errConfigWrite)
+	}
+
+	return nil
 }
 
 func newPicker() filepicker.Model {
-	fp := filepicker.New()
-	fp.AllowedTypes = []string{}
-	fp.CurrentDirectory, _ = os.UserHomeDir()
-	fp.CurrentDirectory = "."
-	fp.ShowPermissions = true
-	fp.ShowHidden = true
-	fp.ShowSize = true
+	picker := filepicker.New()
+	picker.AllowedTypes = []string{}
+	picker.CurrentDirectory, _ = os.UserHomeDir()
+	picker.CurrentDirectory = "."
+	picker.ShowPermissions = true
+	picker.ShowHidden = true
+	picker.ShowSize = true
 
-	return fp
+	return picker
 }
 
 type configModel struct {
@@ -216,10 +231,10 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// This is only necessary to display an error to the user.
 	if didSelect, selectedPath := m.filepicker.DidSelectDisabledFile(msg); didSelect {
 		// Let's clear the selectedFile and display an error.
-		//m.selectedFile = ""
+		// m.selectedFile = ""
 		cmds = append(cmds, clearErrorAfter(10*time.Second), func() tea.Msg {
 			return StatusMsg{
-				message: errors.New(selectedPath + " is not valid.").Error(),
+				message: fmt.Errorf("%w: Invalid selected file: %s", errInvalidPath, selectedPath).Error(),
 				error:   true,
 			}
 		})
@@ -258,6 +273,7 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				m.config = cfg
+
 				return m, tea.Batch(
 					func() tea.Msg { return cfg },
 					func() tea.Msg { return StatusMsg{message: "Saved config"} })
@@ -291,39 +307,38 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.inputAddr.PromptStyle = styles.NoStyle
 			m.inputAddr.TextStyle = styles.NoStyle
 		}
-
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m configModel) View() string {
-	var b strings.Builder
+	var builder strings.Builder
 	if m.activeView == viewConfigFiles {
-		b.WriteString(fmt.Sprintf("\n  Dir: %s \n ", m.filepicker.CurrentDirectory))
+		builder.WriteString(fmt.Sprintf("\n  Dir: %s \n ", m.filepicker.CurrentDirectory))
 		if m.selectedFile == "" {
-			b.WriteString("Pick a file:")
+			builder.WriteString("Pick a file:")
 		} else {
-			b.WriteString("Selected file: " + m.filepicker.Styles.Selected.Render(m.selectedFile))
+			builder.WriteString("Selected file: " + m.filepicker.Styles.Selected.Render(m.selectedFile))
 		}
-		b.WriteString("\n\n" + m.filepicker.View() + "\n")
+		builder.WriteString("\n\n" + m.filepicker.View() + "\n")
 	} else {
-		b.WriteString(styles.HelpStyle.Render("\n🟥 RCON Address:  "))
-		b.WriteString(m.inputAddr.View())
-		b.WriteString(styles.HelpStyle.Render("\n🟩 RCON Password: "))
-		b.WriteString(m.passwordAddr.View())
-		b.WriteString(styles.HelpStyle.Render("\n🟩 console.log: "))
+		builder.WriteString(styles.HelpStyle.Render("\n🟥 RCON Address:  "))
+		builder.WriteString(m.inputAddr.View())
+		builder.WriteString(styles.HelpStyle.Render("\n🟩 RCON Password: "))
+		builder.WriteString(m.passwordAddr.View())
+		builder.WriteString(styles.HelpStyle.Render("\n🟩 console.log: "))
 		if m.focusIndex == fieldConsoleLogPath {
-			b.WriteString(styles.FocusedStyle.Render(m.selectedFile))
+			builder.WriteString(styles.FocusedStyle.Render(m.selectedFile))
 		} else {
-			b.WriteString(m.selectedFile)
+			builder.WriteString(m.selectedFile)
 		}
 	}
 	if m.focusIndex == fieldSave {
-		b.WriteString("\n\n" + styles.FocusedSubmitButton)
+		builder.WriteString("\n\n" + styles.FocusedSubmitButton)
 	} else {
-		b.WriteString("\n\n" + styles.BlurredSubmitButton)
+		builder.WriteString("\n\n" + styles.BlurredSubmitButton)
 	}
 
-	return b.String()
+	return builder.String()
 }

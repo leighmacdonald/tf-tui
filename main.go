@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -23,44 +22,45 @@ const (
 )
 
 func main() {
+	if err := run(); err != nil {
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	ctx := context.Background()
 	if len(os.Getenv("DEBUG")) > 0 {
-		f, err := tea.LogToFile("debug.log", "debug")
+		logFile, err := tea.LogToFile("debug.log", "debug")
 		if err != nil {
-			fmt.Println("fatal:", err)
-			os.Exit(1)
+			return err
 		}
+
 		defer func(f *os.File) {
-			if errClose := f.Close(); errClose != nil {
-				fmt.Println("error:", errClose.Error())
-			}
-		}(f)
-	}
-
-	client, errClient := NewClientWithResponses("http://localhost:8888/", WithHTTPClient(&http.Client{
-		Timeout: defaultHTTPTimeout,
-	}))
-	if errClient != nil {
-		fmt.Println("fatal:", errClient)
-		os.Exit(1)
-	}
-
-	apis := NewAPIs(client)
-
-	if err := os.MkdirAll(path.Join(xdg.ConfigHome, "tf-tui"), 0755); err != nil {
-		fmt.Println("fatal:", err)
-		os.Exit(1)
+			_ = f.Close()
+		}(logFile)
 	}
 
 	config, configFound := configRead(defaultConfigName)
 
-	scripting, errScripting := NewScripting()
-	if errScripting != nil {
-		fmt.Println("fatal:", errScripting.Error())
-		os.Exit(1)
+	client, errClient := NewClientWithResponses(config.APIBaseURL, WithHTTPClient(&http.Client{
+		Timeout: defaultHTTPTimeout,
+	}))
+	if errClient != nil {
+		return errClient
 	}
 
-	//if errScripts := scripting.LoadDir("scripts"); errScripts != nil {
+	apis := NewAPIs(client)
+
+	if err := os.MkdirAll(path.Join(xdg.ConfigHome, "tf-tui"), 0o755); err != nil {
+		return err
+	}
+
+	scripting, errScripting := NewScripting()
+	if errScripting != nil {
+		return errScripting
+	}
+
+	// if errScripts := scripting.LoadDir("scripts"); errScripts != nil {
 	//	fmt.Println("fatal:", errScripts.Error())
 	//	os.Exit(1)
 	//}
@@ -76,7 +76,8 @@ func main() {
 	model := newAppModel(config, !configFound, scripting, players)
 	program := tea.NewProgram(model, opts...)
 	if _, err := program.Run(); err != nil {
-		fmt.Printf("There's been an error :( %v", err)
-		os.Exit(1)
+		return err
 	}
+
+	return nil
 }

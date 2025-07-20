@@ -114,6 +114,7 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				for _, p := range m.players {
 					if p.UserID == m.selectedUID {
 						cmd = func() tea.Msg { return SelectedPlayerMsg{player: p} }
+
 						break
 					}
 				}
@@ -135,7 +136,7 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedUID = msg.selectedUID
 	case FullStateUpdateMsg:
 		m.players = msg.players
-		//m.selectedUID = msg.selectedUID
+		// m.selectedUID = msg.selectedUID
 		var (
 			rows [][]string
 		)
@@ -202,22 +203,26 @@ func (m PlayerTableModel) View() string {
 				if col == 1 {
 					return styles.HeaderStyleRed.Width(30)
 				}
+
 				return styles.HeaderStyleRed
 			}
 			if col == 1 {
 				return styles.HeaderStyleBlu.Width(30)
 			}
+
 			return styles.HeaderStyleBlu
 		case col != 5 && row == m.selectedRow && m.team == m.selectedTeam:
 			if m.team == RED {
 				if col == 1 {
 					return styles.SelectedCellStyleNameRed
 				}
+
 				return styles.SelectedCellStyleRed
 			}
 			if col == 1 {
 				return styles.SelectedCellStyleNameBlu
 			}
+
 			return styles.SelectedCellStyleBlu
 		case col == 1:
 			return styles.OddRowStyleName

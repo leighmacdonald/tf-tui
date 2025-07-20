@@ -80,23 +80,25 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			changed = true
 		}
 	}
+
 	if changed {
 		return m, func() tea.Msg { return TabChangeMsg(m.selectedTab) }
 	}
+
 	return m, nil
 }
 
 func (m TabsModel) View() string {
-	var b strings.Builder
-	b.WriteString("\n")
+	var builder strings.Builder
+	builder.WriteString("\n")
 
 	for _, tab := range m.tabs {
 		if tab.tab == m.selectedTab {
-			b.WriteString(styles.TabsActive.Render(tab.label))
+			builder.WriteString(styles.TabsActive.Render(tab.label))
 		} else {
-			b.WriteString(styles.TabsInactive.Render(tab.label))
+			builder.WriteString(styles.TabsInactive.Render(tab.label))
 		}
 	}
 
-	return b.String()
+	return builder.String()
 }

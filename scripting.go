@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -18,16 +19,21 @@ const (
 	onPlayerState FnNames = "PlayerState"
 )
 
-var (
-	CallbackNames = []FnNames{
-		onAdd,
-		onPlayerState,
-	}
-)
+var CallbackNames = []FnNames{
+	onAdd,
+	onPlayerState,
+}
 
 type OnAdd func(a int, b int) int
 
 type OnPlayerState func(state G15PlayerState) G15PlayerState
+
+var (
+	errInvalidScriptInterpreter = errors.New("invalid interpreter")
+	errInvalidScriptDir         = errors.New("invalid script directory")
+	errInvalidScriptFile        = errors.New("invalid script file")
+	errInvalidScriptNamespace   = errors.New("invalid script namespace")
+)
 
 type Scripting struct {
 	interpreter   *interp.Interpreter
@@ -39,7 +45,7 @@ type Scripting struct {
 func NewScripting() (*Scripting, error) {
 	interpreter := interp.New(interp.Options{Unrestricted: true})
 	if err := interpreter.Use(stdlib.Symbols); err != nil {
-		return nil, err
+		return nil, errors.Join(err, errInvalidScriptInterpreter)
 	}
 
 	custom := make(map[string]map[string]reflect.Value)
@@ -48,7 +54,7 @@ func NewScripting() (*Scripting, error) {
 	custom["tftui/tftui"]["MaxDataSize"] = reflect.ValueOf(MaxDataSize)
 
 	if err := interpreter.Use(custom); err != nil {
-		return nil, err
+		return nil, errors.Join(err, errInvalidScriptNamespace)
 	}
 
 	return &Scripting{interpreter: interpreter}, nil
@@ -63,25 +69,25 @@ func (s *Scripting) LoadDir(scriptDir string) error {
 	for _, scriptMeta := range scripts {
 		_, err := s.interpreter.EvalPath(path.Join(scriptDir, scriptMeta.pkg, scriptMeta.filename))
 		if err != nil {
-			return err
+			return errors.Join(err, errInvalidScriptFile)
 		}
 
 		for _, name := range CallbackNames {
-			fn, errEval := s.interpreter.Eval(fmt.Sprintf("%s.%s", scriptMeta.pkg, name))
+			evaluatedFunc, errEval := s.interpreter.Eval(fmt.Sprintf("%s.%s", scriptMeta.pkg, name))
 			if errEval != nil {
 				continue
 			}
 
 			switch name {
 			case onAdd:
-				call, ok := fn.Interface().(func(int, int) int)
+				call, ok := evaluatedFunc.Interface().(func(int, int) int)
 				if !ok {
 					continue
 				}
 
 				s.onAdd = append(s.onAdd, call)
 			case onPlayerState:
-				call, ok := fn.Interface().(func(G15PlayerState) G15PlayerState)
+				call, ok := evaluatedFunc.Interface().(func(G15PlayerState) G15PlayerState)
 				if !ok {
 					continue
 				}
@@ -102,7 +108,7 @@ type scriptEntry struct {
 func findScripts(rootPath string) ([]scriptEntry, error) {
 	dirList, err := os.ReadDir(rootPath)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, errInvalidScriptDir)
 	}
 
 	var scripts []scriptEntry
@@ -113,21 +119,20 @@ func findScripts(rootPath string) ([]scriptEntry, error) {
 
 		fileList, errFiles := os.ReadDir(path.Join(rootPath, dir.Name()))
 		if errFiles != nil {
-			return nil, errFiles
+			return nil, errors.Join(errFiles, errInvalidScriptDir)
 		}
 
-		for _, e := range fileList {
-			if e.IsDir() {
+		for _, entry := range fileList {
+			if entry.IsDir() {
 				continue
 			}
 
-			if !strings.HasSuffix(e.Name(), ".go") {
+			if !strings.HasSuffix(entry.Name(), ".go") {
 				continue
 			}
 
-			scripts = append(scripts, scriptEntry{pkg: dir.Name(), filename: e.Name()})
+			scripts = append(scripts, scriptEntry{pkg: dir.Name(), filename: entry.Name()})
 		}
-
 	}
 
 	return scripts, nil

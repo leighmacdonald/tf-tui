@@ -49,10 +49,6 @@ type AppModel struct {
 }
 
 func newAppModel(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *AppModel {
-	address := config.Address
-	if address == "" {
-		address = "127.0.0.1:27015"
-	}
 	app := &AppModel{
 		cache:       cache,
 		altScreen:   config.FullScreen,
@@ -97,6 +93,7 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
+
 		return m.propagate(inMsg)
 	case SelectedTableRowMsg:
 		m.selectedUID = msg.selectedUID
@@ -115,6 +112,7 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 				cmd = tea.EnterAltScreen
 			}
 			m.altScreen = !m.altScreen
+
 			return m, cmd
 		case key.Matches(msg, DefaultKeyMap.quit):
 			return m, tea.Quit
@@ -125,6 +123,7 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 				m.currentView = viewConfig
 			}
 		}
+
 		return m.propagate(inMsg)
 	case clearStatusMessageMsg:
 		m.statusError = false
@@ -139,26 +138,26 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m AppModel) View() string {
-	var b strings.Builder
+	var builder strings.Builder
 
 	switch m.currentView {
 	case viewConfig:
-		b.WriteString(m.configModel.View())
+		builder.WriteString(m.configModel.View())
 	case viewPlayerTables:
-		b.WriteString(m.playerTable.View())
-		b.WriteString(m.tabs.View())
-		b.WriteString("\n")
+		builder.WriteString(m.playerTable.View())
+		builder.WriteString(m.tabs.View())
+		builder.WriteString("\n")
 		switch m.activeTab {
 		case TabOverview:
-			b.WriteString(m.detailPanel.View())
+			builder.WriteString(m.detailPanel.View())
 		case TabBans:
-			b.WriteString(m.banTable.View())
+			builder.WriteString(m.banTable.View())
 		}
 	}
 
-	b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, m.renderHelp(), m.renderHeading()))
+	builder.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, m.renderHelp(), m.renderHeading()))
 	// Send the UI for rendering
-	return b.String()
+	return builder.String()
 }
 
 func (m AppModel) isInitialized() bool {
@@ -175,17 +174,17 @@ func (m AppModel) SelectedPlayer() (Player, bool) {
 
 func (m AppModel) renderHelp() string {
 	helpView := help.New()
-	var b strings.Builder
-	b.WriteString("\n")
+	var builder strings.Builder
+	builder.WriteString("\n")
 
 	switch m.currentView {
 	case viewConfig:
-		b.WriteString(helpView.ShortHelpView([]key.Binding{
+		builder.WriteString(helpView.ShortHelpView([]key.Binding{
 			DefaultKeyMap.quit,
 			DefaultKeyMap.accept,
 		}))
 	case viewPlayerTables:
-		b.WriteString(m.helpView.ShortHelpView([]key.Binding{
+		builder.WriteString(m.helpView.ShortHelpView([]key.Binding{
 			DefaultKeyMap.quit,
 			DefaultKeyMap.config,
 			DefaultKeyMap.fs,
@@ -197,22 +196,22 @@ func (m AppModel) renderHelp() string {
 		}))
 	case viewConfigFiles:
 		k := filepicker.DefaultKeyMap()
-		b.WriteString(helpView.ShortHelpView([]key.Binding{
+		builder.WriteString(helpView.ShortHelpView([]key.Binding{
 			k.Down, k.Up, k.Open, k.Select, k.Back, k.GoToLast, k.GoToTop, k.PageDown, k.PageUp,
 		}))
 	}
 
-	return b.String()
+	return builder.String()
 }
 
 func (m AppModel) tickEvery() tea.Cmd {
-	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
+	return tea.Tick(time.Second, func(lastTime time.Time) tea.Msg {
 		dump, errDump := fetchPlayerState(context.Background(), m.config.Address, m.config.Password)
 		if errDump != nil {
-			return G15Msg{err: errDump, t: t}
+			return G15Msg{err: errDump, t: lastTime}
 		}
 
-		return G15Msg{t: t, dump: dump}
+		return G15Msg{t: lastTime, dump: dump}
 	})
 }
 
@@ -227,7 +226,7 @@ func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
 		})
 	}
 
-	//if m.selectedRow > m.playerTable.selectedColumnPlayerCount()-1 {
+	// if m.selectedRow > m.playerTable.selectedColumnPlayerCount()-1 {
 	//	m.selectedRow = max(m.playerTable.selectedColumnPlayerCount()-1, 0)
 	//}
 
@@ -250,7 +249,7 @@ func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
 
 func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Propagate to all children.
-	//m.tabs, _ = m.tabs.Update(msg)
+	// m.tabs, _ = m.tabs.Update(msg)
 	cmds := make([]tea.Cmd, 6)
 	m.configModel, cmds[0] = m.configModel.Update(msg)
 	m.playerTable, cmds[1] = m.playerTable.Update(msg)
@@ -273,6 +272,7 @@ func (m AppModel) status() string {
 	if m.statusError {
 		return styles.Status.Foreground(styles.Red).Width(m.width / 2).Render(m.statusMsg)
 	}
+
 	return styles.Status.Width(m.width / 2).Render(m.statusMsg)
 }
 
