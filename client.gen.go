@@ -151,7 +151,7 @@ const (
 // BDFileInfo defines model for BDFileInfo.
 type BDFileInfo struct {
 	// Authors A list of authors of the list
-	Authors *[]string `json:"authors"`
+	Authors []string `json:"authors"`
 
 	// Description Description of the list
 	Description string `json:"description"`
@@ -166,20 +166,20 @@ type BDFileInfo struct {
 // BDLastSeen defines model for BDLastSeen.
 type BDLastSeen struct {
 	// PlayerName Name of the player when last seen
-	PlayerName *string `json:"player_name,omitempty"`
+	PlayerName string `json:"player_name,omitempty"`
 
 	// Time Time the player was last seen. Unix timestamp format.
-	Time *int64 `json:"time,omitempty"`
+	Time int64 `json:"time,omitempty"`
 }
 
 // BDPlayer defines model for BDPlayer.
 type BDPlayer struct {
 	// Attributes A list of attributes associated with the player
-	Attributes *[]string   `json:"attributes"`
-	LastSeen   *BDLastSeen `json:"last_seen,omitempty"`
+	Attributes []string   `json:"attributes"`
+	LastSeen   BDLastSeen `json:"last_seen,omitempty"`
 
 	// Proof Some sort of proof. Please note this is easily manipulatable.
-	Proof *[]string `json:"proof"`
+	Proof []string `json:"proof"`
 
 	// Steamid SteamID of the player
 	Steamid interface{} `json:"steamid"`
@@ -192,7 +192,7 @@ type BDSchema struct {
 	FileInfo BDFileInfo `json:"file_info"`
 
 	// Players List of player entries
-	Players *[]BDPlayer `json:"players"`
+	Players []BDPlayer `json:"players"`
 }
 
 // BDSearchResult defines model for BDSearchResult.
@@ -208,7 +208,7 @@ type Ban struct {
 	CreatedOn time.Time `json:"created_on"`
 
 	// ExpiresOn When the ban expires. Null generally means permanent.
-	ExpiresOn *time.Time `json:"expires_on"`
+	ExpiresOn time.Time `json:"expires_on"`
 
 	// Name Name of the user
 	Name string `json:"name"`
@@ -238,10 +238,10 @@ type Duration = map[string]interface{}
 // ErrorDetail defines model for ErrorDetail.
 type ErrorDetail struct {
 	// Location Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'
-	Location *string `json:"location,omitempty"`
+	Location string `json:"location,omitempty"`
 
 	// Message Error message text
-	Message *string `json:"message,omitempty"`
+	Message string `json:"message,omitempty"`
 
 	// Value The value at the given location
 	Value interface{} `json:"value,omitempty"`
@@ -250,25 +250,25 @@ type ErrorDetail struct {
 // ErrorModel defines model for ErrorModel.
 type ErrorModel struct {
 	// Schema A URL to the JSON Schema for this object.
-	Schema *string `json:"$schema,omitempty"`
+	Schema string `json:"$schema,omitempty"`
 
 	// Detail A human-readable explanation specific to this occurrence of the problem.
-	Detail *string `json:"detail,omitempty"`
+	Detail string `json:"detail,omitempty"`
 
 	// Errors Optional list of individual error details
-	Errors *[]ErrorDetail `json:"errors"`
+	Errors []ErrorDetail `json:"errors"`
 
 	// Instance A URI reference that identifies the specific occurrence of the problem.
-	Instance *string `json:"instance,omitempty"`
+	Instance string `json:"instance,omitempty"`
 
 	// Status HTTP status code
-	Status *int64 `json:"status,omitempty"`
+	Status int64 `json:"status,omitempty"`
 
 	// Title A short, human-readable summary of the problem type. This value should not change between occurrences of the error.
-	Title *string `json:"title,omitempty"`
+	Title string `json:"title,omitempty"`
 
 	// Type A URI reference to human-readable documentation for the error.
-	Type *string `json:"type,omitempty"`
+	Type string `json:"type,omitempty"`
 }
 
 // Float32 defines model for Float32.
@@ -278,12 +278,12 @@ type Float32 struct {
 
 // Friend defines model for Friend.
 type Friend struct {
-	CreatedOn    time.Time  `json:"created_on"`
-	FriendSince  time.Time  `json:"friend_since"`
-	Relationship string     `json:"relationship"`
-	RemovedOn    *time.Time `json:"removed_on"`
-	SteamId      string     `json:"steam_id"`
-	UpdatedOn    time.Time  `json:"updated_on"`
+	CreatedOn    time.Time `json:"created_on"`
+	FriendSince  time.Time `json:"friend_since"`
+	Relationship string    `json:"relationship"`
+	RemovedOn    time.Time `json:"removed_on"`
+	SteamId      string    `json:"steam_id"`
+	UpdatedOn    time.Time `json:"updated_on"`
 }
 
 // GameOwnedPlayer defines model for GameOwnedPlayer.
@@ -325,7 +325,7 @@ type LeaguePlayerTeamHistory struct {
 	Format string `json:"format"`
 
 	// JoinedTeam When they joined the team
-	JoinedTeam *time.Time `json:"joined_team"`
+	JoinedTeam time.Time `json:"joined_team"`
 
 	// Leader Leader for the team
 	Leader bool `json:"leader"`
@@ -334,7 +334,7 @@ type LeaguePlayerTeamHistory struct {
 	League string `json:"league"`
 
 	// LeftTeam When they left the team
-	LeftTeam *time.Time `json:"left_team"`
+	LeftTeam time.Time `json:"left_team"`
 
 	// Rank End of season rank
 	Rank int64 `json:"rank"`
@@ -387,12 +387,12 @@ type LeagueResponseType string
 
 // LeagueTeamMemberResponse defines model for LeagueTeamMemberResponse.
 type LeagueTeamMemberResponse struct {
-	Joined   *time.Time `json:"joined"`
-	Leader   bool       `json:"leader"`
-	LeagueId int64      `json:"league_id"`
-	Left     *time.Time `json:"left"`
-	Name     string     `json:"name"`
-	SteamId  string     `json:"steam_id"`
+	Joined   time.Time `json:"joined"`
+	Leader   bool      `json:"leader"`
+	LeagueId int64     `json:"league_id"`
+	Left     time.Time `json:"left"`
+	Name     string    `json:"name"`
+	SteamId  string    `json:"steam_id"`
 }
 
 // LeagueTeamResponse defines model for LeagueTeamResponse.
@@ -449,17 +449,17 @@ type LogsTFKillStreak struct {
 // LogsTFMatch defines model for LogsTFMatch.
 type LogsTFMatch struct {
 	// Schema A URL to the JSON Schema for this object.
-	Schema *string `json:"$schema,omitempty"`
+	Schema string `json:"$schema,omitempty"`
 
 	// Chat A log of the chat messages
-	Chat *[]LogsTFChat `json:"chat"`
+	Chat []LogsTFChat `json:"chat"`
 
 	// CreatedOn When the match occurred
 	CreatedOn time.Time `json:"created_on"`
 	Duration  Duration  `json:"duration"`
 
 	// Killstreaks Any killstreaks recorded
-	Killstreaks *[]LogsTFKillStreak `json:"killstreaks"`
+	Killstreaks []LogsTFKillStreak `json:"killstreaks"`
 
 	// LogId The log id as provided by logs.tf
 	LogId int64 `json:"log_id"`
@@ -468,13 +468,13 @@ type LogsTFMatch struct {
 	Map string `json:"map"`
 
 	// Medics Summary of medic stats
-	Medics *[]LogsTFMedicOverall `json:"medics"`
+	Medics []LogsTFMedicOverall `json:"medics"`
 
 	// Players Summary of player stats
-	Players *[]LogsTFPlayerAlt `json:"players"`
+	Players []LogsTFPlayerAlt `json:"players"`
 
 	// Rounds Details about each round. May not be present in old logs
-	Rounds *[]LogsTFRound `json:"rounds"`
+	Rounds []LogsTFRound `json:"rounds"`
 
 	// ScoreBlu Final score for BLU team.
 	ScoreBlu int64 `json:"score_blu"`
@@ -544,40 +544,40 @@ type LogsTFMedicOverall struct {
 
 // LogsTFPlayerAlt defines model for LogsTFPlayerAlt.
 type LogsTFPlayerAlt struct {
-	Airshots           int64                     `json:"airshots"`
-	Assists            int64                     `json:"assists"`
-	Backstabs          int64                     `json:"backstabs"`
-	Caps               int64                     `json:"caps"`
-	ClassAssists       LogsTFClassCountMap       `json:"class_assists"`
-	ClassDeaths        LogsTFClassCountMap       `json:"class_deaths"`
-	ClassKills         LogsTFClassCountMap       `json:"class_kills"`
-	Classes            *[]LogsTFPlayerClassStats `json:"classes"`
-	Damage             int64                     `json:"damage"`
-	DamageTaken        int64                     `json:"damage_taken"`
-	Deaths             int64                     `json:"deaths"`
-	Dpm                int64                     `json:"dpm"`
-	Dtm                float64                   `json:"dtm"`
-	Headshots          int64                     `json:"headshots"`
-	HealingTaken       int64                     `json:"healing_taken"`
-	HealthPacks        int64                     `json:"health_packs"`
-	HealthPacksHealing int64                     `json:"health_packs_healing"`
-	Kad                float64                   `json:"kad"`
-	Kd                 float64                   `json:"kd"`
-	Kills              int64                     `json:"kills"`
-	Name               string                    `json:"name"`
-	SteamId            string                    `json:"steam_id"`
-	Team               string                    `json:"team"`
+	Airshots           int64                    `json:"airshots"`
+	Assists            int64                    `json:"assists"`
+	Backstabs          int64                    `json:"backstabs"`
+	Caps               int64                    `json:"caps"`
+	ClassAssists       LogsTFClassCountMap      `json:"class_assists"`
+	ClassDeaths        LogsTFClassCountMap      `json:"class_deaths"`
+	ClassKills         LogsTFClassCountMap      `json:"class_kills"`
+	Classes            []LogsTFPlayerClassStats `json:"classes"`
+	Damage             int64                    `json:"damage"`
+	DamageTaken        int64                    `json:"damage_taken"`
+	Deaths             int64                    `json:"deaths"`
+	Dpm                int64                    `json:"dpm"`
+	Dtm                float64                  `json:"dtm"`
+	Headshots          int64                    `json:"headshots"`
+	HealingTaken       int64                    `json:"healing_taken"`
+	HealthPacks        int64                    `json:"health_packs"`
+	HealthPacksHealing int64                    `json:"health_packs_healing"`
+	Kad                float64                  `json:"kad"`
+	Kd                 float64                  `json:"kd"`
+	Kills              int64                    `json:"kills"`
+	Name               string                   `json:"name"`
+	SteamId            string                   `json:"steam_id"`
+	Team               string                   `json:"team"`
 }
 
 // LogsTFPlayerClassStats defines model for LogsTFPlayerClassStats.
 type LogsTFPlayerClassStats struct {
-	Assists int64                      `json:"assists"`
-	Class   string                     `json:"class"`
-	Damage  int64                      `json:"damage"`
-	Deaths  int64                      `json:"deaths"`
-	Kills   int64                      `json:"kills"`
-	Played  Duration                   `json:"played"`
-	Weapons *[]LogsTFPlayerClassWeapon `json:"weapons"`
+	Assists int64                     `json:"assists"`
+	Class   string                    `json:"class"`
+	Damage  int64                     `json:"damage"`
+	Deaths  int64                     `json:"deaths"`
+	Kills   int64                     `json:"kills"`
+	Played  Duration                  `json:"played"`
+	Weapons []LogsTFPlayerClassWeapon `json:"weapons"`
 }
 
 // LogsTFPlayerClassWeapon defines model for LogsTFPlayerClassWeapon.
@@ -594,7 +594,7 @@ type LogsTFPlayerClassWeapon struct {
 // LogsTFPlayerSummary defines model for LogsTFPlayerSummary.
 type LogsTFPlayerSummary struct {
 	// Schema A URL to the JSON Schema for this object.
-	Schema          *string `json:"$schema,omitempty"`
+	Schema          string  `json:"$schema,omitempty"`
 	AirshotsAvg     Float32 `json:"airshots_avg"`
 	AirshotsSum     int64   `json:"airshots_sum"`
 	AssistsAvg      Float32 `json:"assists_avg"`
@@ -640,10 +640,10 @@ type LogsTFRound struct {
 	Length   Duration `json:"length"`
 
 	// MidFight Who won the midfight
-	MidFight *string `json:"mid_fight,omitempty"`
+	MidFight string `json:"mid_fight,omitempty"`
 
 	// Players Stats for the players during the round
-	Players *[]LogsTFRoundPlayerAlt `json:"players"`
+	Players []LogsTFRoundPlayerAlt `json:"players"`
 
 	// Round Round number
 	Round int64 `json:"round"`
@@ -697,7 +697,7 @@ type MetaProfile struct {
 	AvatarHash string `json:"avatar_hash"`
 
 	// Bans Number of 3rd party bans. Includes leagues and pubs.
-	Bans *[]Ban `json:"bans"`
+	Bans []Ban `json:"bans"`
 
 	// CommunityBanned Is the user steam community banned
 	CommunityBanned bool `json:"community_banned"`
@@ -706,14 +706,14 @@ type MetaProfile struct {
 	CommunityVisibilityState MetaProfileCommunityVisibilityState `json:"community_visibility_state"`
 
 	// CompetitiveTeams Competitive league team history
-	CompetitiveTeams *[]LeaguePlayerTeamHistory `json:"competitive_teams"`
-	DaysSinceLastBan int64                      `json:"days_since_last_ban"`
+	CompetitiveTeams []LeaguePlayerTeamHistory `json:"competitive_teams"`
+	DaysSinceLastBan int64                     `json:"days_since_last_ban"`
 
 	// EconomyBan Is the user trade banned
 	EconomyBan string `json:"economy_ban"`
 
 	// Friends Last known list of friends
-	Friends *[]Friend `json:"friends"`
+	Friends []Friend `json:"friends"`
 
 	// LogsCount Number of logs the user has on logs.tf
 	LogsCount int64 `json:"logs_count"`
@@ -778,7 +778,7 @@ type PlayerTeamHistoryResponse struct {
 	Format string `json:"format"`
 
 	// JoinedTeam Date of joining the team
-	JoinedTeam *time.Time `json:"joined_team"`
+	JoinedTeam time.Time `json:"joined_team"`
 
 	// Leader Was a team leader
 	Leader bool `json:"leader"`
@@ -787,7 +787,7 @@ type PlayerTeamHistoryResponse struct {
 	League string `json:"league"`
 
 	// LeftTeam Date of leaving the team
-	LeftTeam *time.Time `json:"left_team"`
+	LeftTeam time.Time `json:"left_team"`
 
 	// Rank Final ranking
 	Rank int64 `json:"rank"`
@@ -815,12 +815,12 @@ type PlayerTeamHistoryResponseType string
 // ResolvedSteamID defines model for ResolvedSteamID.
 type ResolvedSteamID struct {
 	// Schema A URL to the JSON Schema for this object.
-	Schema  *string `json:"$schema,omitempty"`
-	Profile string  `json:"profile"`
-	Steam   string  `json:"steam"`
-	Steam3  string  `json:"steam3"`
-	Steam32 int32   `json:"steam32"`
-	Steam64 string  `json:"steam64"`
+	Schema  string `json:"$schema,omitempty"`
+	Profile string `json:"profile"`
+	Steam   string `json:"steam"`
+	Steam3  string `json:"steam3"`
+	Steam32 int32  `json:"steam32"`
+	Steam64 string `json:"steam64"`
 }
 
 // SchemaAttributes defines model for SchemaAttributes.
@@ -832,28 +832,28 @@ type SchemaAttributes struct {
 
 // SchemaItem defines model for SchemaItem.
 type SchemaItem struct {
-	Attributes        *[]SchemaAttributes     `json:"attributes"`
-	Capabilities      *SchemaItemCapabilities `json:"capabilities,omitempty"`
-	CraftClass        string                  `json:"craft_class"`
-	CraftMaterialType string                  `json:"craft_material_type"`
-	Defindex          int64                   `json:"defindex"`
-	DropType          *string                 `json:"drop_type,omitempty"`
-	ImageInventory    string                  `json:"image_inventory"`
-	ImageUrl          string                  `json:"image_url"`
-	ImageUrlLarge     string                  `json:"image_url_large"`
-	ItemClass         string                  `json:"item_class"`
-	ItemDescription   *string                 `json:"item_description,omitempty"`
-	ItemName          string                  `json:"item_name"`
-	ItemQuality       int64                   `json:"item_quality"`
-	ItemSlot          string                  `json:"item_slot"`
-	ItemTypeName      string                  `json:"item_type_name"`
-	MaxIlevel         int64                   `json:"max_ilevel"`
-	MinIlevel         int64                   `json:"min_ilevel"`
-	ModelPlayer       string                  `json:"model_player"`
-	Name              string                  `json:"name"`
-	ProperName        bool                    `json:"proper_name"`
-	Styles            *[]SchemaItemStyles     `json:"styles"`
-	UsedByClasses     *[]string               `json:"used_by_classes"`
+	Attributes        []SchemaAttributes     `json:"attributes"`
+	Capabilities      SchemaItemCapabilities `json:"capabilities,omitempty"`
+	CraftClass        string                 `json:"craft_class"`
+	CraftMaterialType string                 `json:"craft_material_type"`
+	Defindex          int64                  `json:"defindex"`
+	DropType          string                 `json:"drop_type,omitempty"`
+	ImageInventory    string                 `json:"image_inventory"`
+	ImageUrl          string                 `json:"image_url"`
+	ImageUrlLarge     string                 `json:"image_url_large"`
+	ItemClass         string                 `json:"item_class"`
+	ItemDescription   string                 `json:"item_description,omitempty"`
+	ItemName          string                 `json:"item_name"`
+	ItemQuality       int64                  `json:"item_quality"`
+	ItemSlot          string                 `json:"item_slot"`
+	ItemTypeName      string                 `json:"item_type_name"`
+	MaxIlevel         int64                  `json:"max_ilevel"`
+	MinIlevel         int64                  `json:"min_ilevel"`
+	ModelPlayer       string                 `json:"model_player"`
+	Name              string                 `json:"name"`
+	ProperName        bool                   `json:"proper_name"`
+	Styles            []SchemaItemStyles     `json:"styles"`
+	UsedByClasses     []string               `json:"used_by_classes"`
 }
 
 // SchemaItemCapabilities defines model for SchemaItemCapabilities.
@@ -880,7 +880,7 @@ type SchemaItemStyles struct {
 // SiteStats defines model for SiteStats.
 type SiteStats struct {
 	// Schema A URL to the JSON Schema for this object.
-	Schema *string `json:"$schema,omitempty"`
+	Schema string `json:"$schema,omitempty"`
 
 	// AvatarCount Number of avatars tracked.
 	AvatarCount int64 `json:"avatar_count"`
@@ -950,7 +950,7 @@ type SteamRepEntry struct {
 	Banned bool `json:"banned"`
 
 	// Reputations Comma separated list of reputation sources
-	Reputations *[]string `json:"reputations"`
+	Reputations []string `json:"reputations"`
 
 	// SteamId Steam ID of the player
 	SteamId string `json:"steam_id"`
@@ -958,22 +958,22 @@ type SteamRepEntry struct {
 
 // BansSearchParams defines parameters for BansSearch.
 type BansSearchParams struct {
-	SiteName     *string  `form:"site_name,omitempty" json:"site_name,omitempty"`
-	HideUnbanned *bool    `form:"hide_unbanned,omitempty" json:"hide_unbanned,omitempty"`
+	SiteName     string   `form:"site_name,omitempty" json:"site_name,omitempty"`
+	HideUnbanned bool     `form:"hide_unbanned,omitempty" json:"hide_unbanned,omitempty"`
 	SteamIds     []string `form:"steam_ids" json:"steam_ids"`
 }
 
 // BdSearchParams defines parameters for BdSearch.
 type BdSearchParams struct {
-	Steamids []string  `form:"steamids" json:"steamids"`
-	Attrs    *[]string `form:"attrs,omitempty" json:"attrs,omitempty"`
+	Steamids []string `form:"steamids" json:"steamids"`
+	Attrs    []string `form:"attrs,omitempty" json:"attrs,omitempty"`
 }
 
 // LeaguesCompetitionsParams defines parameters for LeaguesCompetitions.
 type LeaguesCompetitionsParams struct {
-	League *LeaguesCompetitionsParamsLeague `form:"league,omitempty" json:"league,omitempty"`
-	Format *LeaguesCompetitionsParamsFormat `form:"format,omitempty" json:"format,omitempty"`
-	Type   *LeaguesCompetitionsParamsType   `form:"type,omitempty" json:"type,omitempty"`
+	League LeaguesCompetitionsParamsLeague `form:"league,omitempty" json:"league,omitempty"`
+	Format LeaguesCompetitionsParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+	Type   LeaguesCompetitionsParamsType   `form:"type,omitempty" json:"type,omitempty"`
 }
 
 // LeaguesCompetitionsParamsLeague defines parameters for LeaguesCompetitions.
@@ -991,13 +991,13 @@ type LeaguesHistoryParams struct {
 	Steamids []string `form:"steamids" json:"steamids"`
 
 	// League Name of the league
-	League *LeaguesHistoryParamsLeague `form:"league,omitempty" json:"league,omitempty"`
+	League LeaguesHistoryParamsLeague `form:"league,omitempty" json:"league,omitempty"`
 
 	// Type Type of event ran
-	Type *LeaguesHistoryParamsType `form:"type,omitempty" json:"type,omitempty"`
+	Type LeaguesHistoryParamsType `form:"type,omitempty" json:"type,omitempty"`
 
 	// Format Game format
-	Format *LeaguesHistoryParamsFormat `form:"format,omitempty" json:"format,omitempty"`
+	Format LeaguesHistoryParamsFormat `form:"format,omitempty" json:"format,omitempty"`
 }
 
 // LeaguesHistoryParamsLeague defines parameters for LeaguesHistory.
@@ -1024,13 +1024,13 @@ type LeaguesTeamMembersParamsLeague string
 // LeaguesTeamsParams defines parameters for LeaguesTeams.
 type LeaguesTeamsParams struct {
 	// League Name of the league
-	League *LeaguesTeamsParamsLeague `form:"league,omitempty" json:"league,omitempty"`
+	League LeaguesTeamsParamsLeague `form:"league,omitempty" json:"league,omitempty"`
 
 	// LeagueId The unique, to the provided league, id of the team
-	LeagueId *int64 `form:"league_id,omitempty" json:"league_id,omitempty"`
+	LeagueId int64 `form:"league_id,omitempty" json:"league_id,omitempty"`
 
 	// Name Query the name
-	Name *string `form:"name,omitempty" json:"name,omitempty"`
+	Name string `form:"name,omitempty" json:"name,omitempty"`
 }
 
 // LeaguesTeamsParamsLeague defines parameters for LeaguesTeams.
@@ -1066,7 +1066,7 @@ type SteamGamesParams struct {
 
 // SteamIdParams defines parameters for SteamId.
 type SteamIdParams struct {
-	Steamid *string `form:"steamid,omitempty" json:"steamid,omitempty"`
+	Steamid string `form:"steamid,omitempty" json:"steamid,omitempty"`
 }
 
 // SteamSummariesParams defines parameters for SteamSummaries.
@@ -1551,36 +1551,28 @@ func NewBansSearchRequest(server string, params *BansSearchParams) (*http.Reques
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.SiteName != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "site_name", runtime.ParamLocationQuery, *params.SiteName); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "site_name", runtime.ParamLocationQuery, params.SiteName); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
-		if params.HideUnbanned != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "hide_unbanned", runtime.ParamLocationQuery, *params.HideUnbanned); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "hide_unbanned", runtime.ParamLocationQuery, params.HideUnbanned); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steam_ids", runtime.ParamLocationQuery, params.SteamIds); err != nil {
@@ -1674,20 +1666,16 @@ func NewBdSearchRequest(server string, params *BdSearchParams) (*http.Request, e
 			}
 		}
 
-		if params.Attrs != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "attrs", runtime.ParamLocationQuery, *params.Attrs); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "attrs", runtime.ParamLocationQuery, params.Attrs); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
@@ -1723,52 +1711,40 @@ func NewLeaguesCompetitionsRequest(server string, params *LeaguesCompetitionsPar
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.League != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "league", runtime.ParamLocationQuery, *params.League); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "league", runtime.ParamLocationQuery, params.League); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
-		if params.Format != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "format", runtime.ParamLocationQuery, *params.Format); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "format", runtime.ParamLocationQuery, params.Format); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
-		if params.Type != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "type", runtime.ParamLocationQuery, *params.Type); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "type", runtime.ParamLocationQuery, params.Type); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
@@ -1816,52 +1792,40 @@ func NewLeaguesHistoryRequest(server string, params *LeaguesHistoryParams) (*htt
 			}
 		}
 
-		if params.League != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "league", runtime.ParamLocationQuery, *params.League); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "league", runtime.ParamLocationQuery, params.League); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
-		if params.Type != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "type", runtime.ParamLocationQuery, *params.Type); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "type", runtime.ParamLocationQuery, params.Type); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
-		if params.Format != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "format", runtime.ParamLocationQuery, *params.Format); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "format", runtime.ParamLocationQuery, params.Format); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
@@ -1954,52 +1918,40 @@ func NewLeaguesTeamsRequest(server string, params *LeaguesTeamsParams) (*http.Re
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.League != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "league", runtime.ParamLocationQuery, *params.League); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "league", runtime.ParamLocationQuery, params.League); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
-		if params.LeagueId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "league_id", runtime.ParamLocationQuery, *params.LeagueId); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "league_id", runtime.ParamLocationQuery, params.LeagueId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
-		if params.Name != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "name", runtime.ParamLocationQuery, params.Name); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
@@ -2504,20 +2456,16 @@ func NewSteamIdRequest(server string, params *SteamIdParams) (*http.Request, err
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.Steamid != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steamid", runtime.ParamLocationQuery, *params.Steamid); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steamid", runtime.ParamLocationQuery, params.Steamid); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
 				}
 			}
-
 		}
 
 		queryURL.RawQuery = queryValues.Encode()

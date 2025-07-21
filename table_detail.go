@@ -52,7 +52,7 @@ func (m TableBansModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		var rows [][]string
 		if m.player.meta.Bans != nil {
-			for _, ban := range *m.player.meta.Bans {
+			for _, ban := range m.player.meta.Bans {
 				perm := styles.IconCheck
 				if !ban.Permanent {
 					perm = ""
@@ -73,7 +73,7 @@ func (m TableBansModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m TableBansModel) View() string {
-	if m.player.meta.Bans == nil || len(*m.player.meta.Bans) == 0 {
+	if m.player.meta.Bans == nil || len(m.player.meta.Bans) == 0 {
 		return "No bans found " + styles.IconDrCool
 	}
 	return m.table.StyleFunc(func(_, col int) lipgloss.Style {

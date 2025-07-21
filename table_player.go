@@ -102,19 +102,30 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.table.Width((msg.Width / 2) - 1)
+		m.table.Width(msg.Width / 2)
 		return m, nil
 	case tea.MouseMsg:
 		// FIXME
 		switch msg.Button {
-		case tea.MouseButtonWheelDown:
+		case tea.MouseButtonWheelRight:
+			if m.selectedTeam != BLU {
+				m.selectedTeam = BLU
+				m.selectedRow = min(len(m.rows)-1, m.selectedRow)
+			}
+		case tea.MouseButtonWheelLeft:
+			if m.selectedTeam != RED {
+				m.selectedTeam = RED
+				m.selectedRow = min(len(m.rows)-1, m.selectedRow)
+			}
+		case tea.MouseButtonWheelUp:
 			if m.selectedRow > 0 {
 				m.selectedRow--
 			}
-		case tea.MouseButtonWheelUp:
+		case tea.MouseButtonWheelDown:
 			if m.selectedRow < len(m.rows)-1 {
 				m.selectedRow++
 			}
+		default:
 		}
 		return m, nil
 	case tea.KeyMsg:
@@ -172,10 +183,7 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedUID = msg.selectedUID
 	case FullStateUpdateMsg:
 		m.players = msg.players
-		// m.selectedUID = msg.selectedUID
-		var (
-			rows [][]string
-		)
+		var rows [][]string
 
 		for _, player := range m.players {
 			if !player.SteamID.Valid() {
@@ -183,7 +191,7 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			var afflictions []string
-			if len(*player.meta.Bans) > 0 {
+			if len(player.meta.Bans) > 0 {
 				afflictions = append(afflictions, styles.IconBans)
 			}
 
@@ -237,41 +245,67 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+type playerTableCol int
+
+const (
+	colUid playerTableCol = iota
+	colName
+	colScore
+	colDeaths
+	colPing
+	colMeta
+)
+
 func (m PlayerTableModel) View() string {
 	return m.table.StyleFunc(func(row, col int) lipgloss.Style {
+		width := 10
+		switch playerTableCol(col) {
+		case colUid:
+			width = 6
+		case colName:
+			width = 0
+		case colScore:
+			width = 5
+		case colDeaths:
+			width = 5
+		case colPing:
+			width = 5
+		case colMeta:
+			width = 10
+		}
 		switch {
 		case row == table.HeaderRow:
 			if m.team == RED {
-				if col == 1 {
-					return styles.HeaderStyleRed.Width(30)
+				if playerTableCol(col) == colName {
+					return styles.HeaderStyleRed.Width(width)
 				}
 
-				return styles.HeaderStyleRed
+				return styles.HeaderStyleRed.Width(width)
 			}
 			if col == 1 {
-				return styles.HeaderStyleBlu.Width(30)
+				return styles.HeaderStyleBlu.Width(width)
 			}
 
 			return styles.HeaderStyleBlu
 		case col != 5 && row == m.selectedRow && m.team == m.selectedTeam:
 			if m.team == RED {
-				if col == 1 {
-					return styles.SelectedCellStyleNameRed
+				if playerTableCol(col) == colName {
+					return styles.SelectedCellStyleNameRed.Width(width)
 				}
 
-				return styles.SelectedCellStyleRed
+				return styles.SelectedCellStyleRed.Width(width)
 			}
-			if col == 1 {
-				return styles.SelectedCellStyleNameBlu
+			if playerTableCol(col) == colName {
+				return styles.SelectedCellStyleNameBlu.Width(width)
 			}
 
-			return styles.SelectedCellStyleBlu
+			return styles.SelectedCellStyleBlu.Width(width)
 		case col == 1:
-			return styles.EvenRowStyle
+			return styles.EvenRowStyle.Width(width)
 		case row%2 == 0:
-			return styles.EvenRowStyle
+			return styles.EvenRowStyle.Width(width)
 		default:
-			return styles.OddRowStyle
+			return styles.OddRowStyle.Width(width)
 		}
 	}).String()
 }

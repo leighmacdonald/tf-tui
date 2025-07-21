@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/styles"
 	"gopkg.in/yaml.v3"
 )
@@ -23,10 +24,16 @@ var (
 )
 
 type Config struct {
-	Address        string `yaml:"address"`
-	Password       string `yaml:"password"`
-	ConsoleLogPath string `yaml:"console_log_path"`
-	APIBaseURL     string `yaml:"api_base_url,omitempty"`
+	Address        string     `yaml:"address"`
+	Password       string     `yaml:"password"`
+	ConsoleLogPath string     `yaml:"console_log_path"`
+	APIBaseURL     string     `yaml:"api_base_url,omitempty"`
+	BDLists        []UserList `yaml:"bd_lists"`
+}
+
+type UserList struct {
+	URL  string `yaml:"url"`
+	Name string `yaml:"name"`
 }
 
 var defaultConfig = Config{
@@ -163,9 +170,9 @@ func configWrite(name string, config Config) error {
 
 func newPicker() filepicker.Model {
 	picker := filepicker.New()
-	picker.AllowedTypes = []string{}
+	picker.AllowedTypes = []string{"console.log"}
 	picker.CurrentDirectory, _ = os.UserHomeDir()
-	picker.CurrentDirectory = "."
+	//picker.CurrentDirectory = "."
 	picker.ShowPermissions = true
 	picker.ShowHidden = true
 	picker.ShowSize = true
@@ -218,6 +225,7 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Get the selectedPath of the selected file.
 		m.selectedFile = selectedPath
 		m.config.ConsoleLogPath = selectedPath
+		m.activeView = viewConfig
 	}
 
 	// Did the user select a disabled file?
@@ -260,6 +268,7 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cfg := m.config
 				cfg.Address = m.inputAddr.Value()
 				cfg.Password = m.passwordAddr.Value()
+				cfg.ConsoleLogPath = m.selectedFile
 
 				if err := configWrite(defaultConfigName, cfg); err != nil {
 					return m, func() tea.Msg { return StatusMsg{message: err.Error(), error: true} }
@@ -272,6 +281,7 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					func() tea.Msg { return StatusMsg{message: "Saved config"} })
 			}
 		}
+
 		switch m.focusIndex {
 		case fieldAddress:
 			cmds = append(cmds, m.inputAddr.Focus())
@@ -291,6 +301,12 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.inputAddr.PromptStyle = styles.NoStyle
 			m.inputAddr.TextStyle = styles.NoStyle
 		case fieldConsoleLogPath:
+			m.passwordAddr.Blur()
+			m.passwordAddr.PromptStyle = styles.NoStyle
+			m.passwordAddr.TextStyle = styles.NoStyle
+			m.inputAddr.Blur()
+			m.inputAddr.PromptStyle = styles.NoStyle
+			m.inputAddr.TextStyle = styles.NoStyle
 
 		case fieldSave:
 			m.passwordAddr.Blur()
@@ -306,32 +322,44 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m configModel) View() string {
-	var builder strings.Builder
 	if m.activeView == viewConfigFiles {
-		builder.WriteString(fmt.Sprintf("\n  Dir: %s \n ", m.filepicker.CurrentDirectory))
-		if m.selectedFile == "" {
-			builder.WriteString("Pick a file:")
-		} else {
-			builder.WriteString("Selected file: " + m.filepicker.Styles.Selected.Render(m.selectedFile))
-		}
-		builder.WriteString("\n\n" + m.filepicker.View() + "\n")
+		return m.renderConsoleLogField()
 	} else {
-		builder.WriteString(styles.HelpStyle.Render("\n🟥 RCON Address:  "))
-		builder.WriteString(m.inputAddr.View())
-		builder.WriteString(styles.HelpStyle.Render("\n🟩 RCON Password: "))
-		builder.WriteString(m.passwordAddr.View())
-		builder.WriteString(styles.HelpStyle.Render("\n🟩 console.log: "))
-		if m.focusIndex == fieldConsoleLogPath {
-			builder.WriteString(styles.FocusedStyle.Render(m.selectedFile))
-		} else {
-			builder.WriteString(m.selectedFile)
-		}
+		return m.renderConfig()
 	}
-	if m.focusIndex == fieldSave {
-		builder.WriteString("\n\n" + styles.FocusedSubmitButton)
+}
+
+func (m configModel) renderConfig() string {
+	var fields []string
+	fields = append(fields,
+		lipgloss.JoinHorizontal(lipgloss.Top,
+			styles.HelpStyle.Render("RCON Address:  "), m.inputAddr.View()))
+
+	fields = append(fields, lipgloss.JoinHorizontal(lipgloss.Top, styles.HelpStyle.Render("RCON Password: "), m.passwordAddr.View()))
+
+	if m.focusIndex == fieldConsoleLogPath {
+		fields = append(fields, lipgloss.JoinHorizontal(lipgloss.Top, styles.HelpStyle.Render("console.log: "), styles.FocusedStyle.Render(m.selectedFile)))
 	} else {
-		builder.WriteString("\n\n" + styles.BlurredSubmitButton)
+		fields = append(fields, lipgloss.JoinHorizontal(lipgloss.Top, styles.HelpStyle.Render("console.log: "), m.selectedFile))
 	}
 
+	if m.focusIndex == fieldSave {
+		fields = append(fields, "\n"+styles.FocusedSubmitButton)
+	} else {
+		fields = append(fields, "\n"+styles.BlurredSubmitButton)
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Top, fields...)
+}
+
+func (m configModel) renderConsoleLogField() string {
+	var builder strings.Builder
+	builder.WriteString(fmt.Sprintf("\n  Dir: %s \n ", m.filepicker.CurrentDirectory))
+	if m.selectedFile == "" {
+		builder.WriteString("Pick a file:")
+	} else {
+		builder.WriteString("Selected file: " + m.filepicker.Styles.Selected.Render(m.selectedFile))
+	}
+	builder.WriteString("\n\n" + m.filepicker.View() + "\n")
 	return builder.String()
 }

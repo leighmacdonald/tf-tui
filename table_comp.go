@@ -10,6 +10,8 @@ import (
 type TableComp struct {
 	player Player
 	table  *table.Table
+	width  int
+	height int
 }
 
 func NewTableCompModel() tea.Model {
@@ -48,13 +50,16 @@ func (m TableComp) Init() tea.Cmd {
 
 func (m TableComp) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.height = msg.Height
+		m.width = msg.Width
 	case SelectedPlayerMsg:
 		m.player = msg.player
 		m.table.ClearRows()
 
 		var rows [][]string
 		if m.player.meta.CompetitiveTeams != nil {
-			for _, team := range *m.player.meta.CompetitiveTeams {
+			for _, team := range m.player.meta.CompetitiveTeams {
 				rows = append(rows, []string{
 					team.League,
 					team.SeasonName,
@@ -72,9 +77,9 @@ func (m TableComp) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m TableComp) View() string {
-	if m.player.meta.CompetitiveTeams == nil || len(*m.player.meta.CompetitiveTeams) == 0 {
+	if m.player.meta.CompetitiveTeams == nil || len(m.player.meta.CompetitiveTeams) == 0 {
 		return "No league history found"
 	}
 
-	return m.table.Render()
+	return m.table.Width(m.width).Render()
 }
