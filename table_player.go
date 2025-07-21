@@ -9,9 +9,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/leighmacdonald/tf-tui/styles"
+	zone "github.com/lrstanley/bubblezone"
 )
 
-type playerTablesModel struct {
+type PlayerTablesModel struct {
+	id           string
 	selectedRow  int
 	selectedTeam Team // red = 3, blu = 4
 	redTable     tea.Model
@@ -19,9 +21,11 @@ type playerTablesModel struct {
 	redRows      [][]string
 	bluRows      [][]string
 	selectedUID  int
+	height       int
+	width        int
 }
 
-func (m playerTablesModel) Init() tea.Cmd {
+func (m PlayerTablesModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.redTable.Init(),
 		m.bluTable.Init(),
@@ -30,22 +34,19 @@ func (m playerTablesModel) Init() tea.Cmd {
 		})
 }
 
-func newTableModel() *playerTablesModel {
-	model := &playerTablesModel{selectedRow: 0, selectedTeam: RED}
-
-	model.redTable = PlayerTableModel{team: RED, table: table.New().
-		BorderStyle(lipgloss.NewStyle().Foreground(styles.Red)).
-		Headers("UID", "Name", "Score", "Deaths", "Ping", "Meta").
-		BorderHeader(false)}
-	model.bluTable = PlayerTableModel{team: BLU, table: table.New().
-		BorderStyle(lipgloss.NewStyle().Foreground(styles.Blu)).
-		Headers("UID", "Name", "Score", "Deaths", "Ping", "Meta").
-		BorderHeader(false)}
+func NewTablePlayersModel() *PlayerTablesModel {
+	model := &PlayerTablesModel{
+		selectedRow:  0,
+		selectedTeam: RED,
+		id:           zone.NewPrefix(),
+		redTable:     NewPlayerTableModel(RED),
+		bluTable:     NewPlayerTableModel(BLU),
+	}
 
 	return model
 }
 
-func (m playerTablesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m PlayerTablesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 2)
 	m.redTable, cmds[0] = m.redTable.Update(msg)
 	m.bluTable, cmds[1] = m.bluTable.Update(msg)
@@ -53,7 +54,7 @@ func (m playerTablesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m playerTablesModel) selectedColumnPlayerCount() int {
+func (m PlayerTablesModel) selectedColumnPlayerCount() int {
 	if m.selectedTeam == RED {
 		return len(m.redRows)
 	}
@@ -61,11 +62,26 @@ func (m playerTablesModel) selectedColumnPlayerCount() int {
 	return len(m.bluRows)
 }
 
-func (m playerTablesModel) View() string {
+func (m PlayerTablesModel) View() string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, m.redTable.View(), m.bluTable.View())
 }
 
+func NewPlayerTableModel(team Team) *PlayerTableModel {
+	foreground := styles.Red
+	if team == BLU {
+		foreground = styles.Blu
+	}
+	return &PlayerTableModel{
+		id:   zone.NewPrefix(),
+		team: team,
+		table: table.New().
+			BorderStyle(lipgloss.NewStyle().Foreground(foreground)).
+			Headers("UID", "Name", "Score", "Deaths", "Ping", "Meta").
+			BorderHeader(false)}
+}
+
 type PlayerTableModel struct {
+	id           string
 	table        *table.Table
 	players      []Player
 	team         Team
@@ -73,6 +89,8 @@ type PlayerTableModel struct {
 	selectedTeam Team
 	selectedRow  int
 	selectedUID  int
+	height       int
+	width        int
 }
 
 func (m PlayerTableModel) Init() tea.Cmd {
@@ -81,6 +99,24 @@ func (m PlayerTableModel) Init() tea.Cmd {
 
 func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		m.table.Width((msg.Width / 2) - 1)
+		return m, nil
+	case tea.MouseMsg:
+		// FIXME
+		switch msg.Button {
+		case tea.MouseButtonWheelDown:
+			if m.selectedRow > 0 {
+				m.selectedRow--
+			}
+		case tea.MouseButtonWheelUp:
+			if m.selectedRow < len(m.rows)-1 {
+				m.selectedRow++
+			}
+		}
+		return m, nil
 	case tea.KeyMsg:
 		updated := false
 		switch {
@@ -145,22 +181,28 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !player.SteamID.Valid() {
 				continue
 			}
-			// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️
+
 			var afflictions []string
 			if len(*player.meta.Bans) > 0 {
-				afflictions = append(afflictions, "🛑")
+				afflictions = append(afflictions, styles.IconBans)
 			}
 
 			if player.meta.NumberOfVacBans > 0 {
-				afflictions = append(afflictions, "👮")
+				afflictions = append(afflictions, styles.IconVac)
 			}
 
 			if len(afflictions) == 0 {
-				afflictions = append(afflictions, "✅")
+				afflictions = append(afflictions, styles.IconCheck)
 			}
+
+			name := player.Name
+			if name == "" {
+				name = player.SteamID.String()
+			}
+
 			row := []string{
 				fmt.Sprintf("%d", player.UserID),
-				player.meta.PersonaName,
+				name,
 				fmt.Sprintf("%d", player.Score),
 				fmt.Sprintf("%d", player.Deaths),
 				fmt.Sprintf("%d", player.Ping),
@@ -225,13 +267,11 @@ func (m PlayerTableModel) View() string {
 
 			return styles.SelectedCellStyleBlu
 		case col == 1:
-			return styles.OddRowStyleName
+			return styles.EvenRowStyle
 		case row%2 == 0:
 			return styles.EvenRowStyle
-
 		default:
 			return styles.OddRowStyle
 		}
-	},
-	).String()
+	}).String()
 }

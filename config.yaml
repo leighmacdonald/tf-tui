@@ -4,7 +4,3 @@ generate:
   models: true
   #types: true
   client: true
-  # chi-server: true
-  # or
-  # gin-server: true
-  # strict-server: true

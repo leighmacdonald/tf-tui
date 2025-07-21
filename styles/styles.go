@@ -7,14 +7,18 @@ import (
 )
 
 var (
-	Accent = lipgloss.Color("205")
+	Accent = lipgloss.Color("#f4722b")
 	Status = lipgloss.NewStyle().Bold(true).Foreground(Red).
 		Border(lipgloss.NormalBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(Blu).GetBorderStyle()).Padding(1)
 	Title = lipgloss.NewStyle().Bold(true).Foreground(Blu).Padding(1)
 
+	HeaderContainerStyle  = lipgloss.NewStyle().Align(lipgloss.Center)
+	ContentContainerStyle = lipgloss.NewStyle().Align(lipgloss.Center)
+	FooterContainerStyle  = lipgloss.NewStyle().Align(lipgloss.Center)
+
 	FocusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	BlurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	BlurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Background(Black)
 	CursorStyle         = FocusedStyle
 	NoStyle             = lipgloss.NewStyle()
 	HelpStyle           = BlurredStyle
@@ -25,11 +29,17 @@ var (
 
 	// Tables.
 	Black     = lipgloss.Color("#111111")
-	Gray      = lipgloss.Color("245")
-	LightGray = lipgloss.Color("241")
+	Gray      = lipgloss.Color("#3e3e3e")
+	LightGray = lipgloss.Color("#9a9280")
 
 	Red = lipgloss.Color("#B8383B")
 	Blu = lipgloss.Color("#5885A2")
+
+	ColourStrange = lipgloss.Color("#cf6a32")
+	ColourLimited = lipgloss.Color("#ffd700")
+	ColourGenuine = lipgloss.Color("#4d7455")
+	ColourUnusual = lipgloss.Color("#8650ac")
+	ColourVintage = lipgloss.Color("#476291")
 
 	HeaderStyleRed  = lipgloss.NewStyle().Foreground(Red).Bold(true).Align(lipgloss.Center)
 	HeaderStyleBlu  = lipgloss.NewStyle().Foreground(Blu).Bold(true).Align(lipgloss.Center)
@@ -55,11 +65,20 @@ var (
 		// BorderLeft(true).
 		Padding(0)
 
-	PanelLabel   = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	PanelLabel   = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Align(lipgloss.Right).Width(20)
 	PanelValue   = lipgloss.NewStyle().Width(60)
+	TabContainer = lipgloss.NewStyle().Align(lipgloss.Center).Background(Black)
 	TabWidth     = 12
-	TabsInactive = lipgloss.NewStyle().Inline(true).Bold(true).
-			Border(lipgloss.NormalBorder()).BorderStyle(lipgloss.InnerHalfBlockBorder()).Padding(1).Width(TabWidth)
-	TabsActive = lipgloss.NewStyle().Inline(true).Bold(true).
-			Border(lipgloss.NormalBorder()).Padding(1).Width(TabWidth).Foreground(Blu)
+	TabsInactive = lipgloss.NewStyle().Inline(true).Background(Black).Bold(true).
+			Border(lipgloss.NormalBorder()).BorderStyle(lipgloss.InnerHalfBlockBorder()).Padding(1).
+			Width(TabWidth).Foreground(ColourVintage)
+	TabsActive = lipgloss.NewStyle().Inline(true).Background(Black).Bold(true).
+			Border(lipgloss.NormalBorder()).Padding(1).Width(TabWidth).Foreground(ColourUnusual)
+
+	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️
+	IconComp   = "🏟️"
+	IconCheck  = "✅"
+	IconBans   = "🛑"
+	IconVac    = "👮"
+	IconDrCool = "😎"
 )

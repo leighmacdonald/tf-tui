@@ -29,17 +29,23 @@ func findCurrentUID(selected int, rows [][]string) int {
 	return -1
 }
 
-type TableDetailModel struct {
+type TableBansModel struct {
 	table  *table.Table
 	player Player
+	width  int
+	height int
 }
 
-func (m TableDetailModel) Init() tea.Cmd {
+func (m TableBansModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TableDetailModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m TableBansModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
 	case SelectedPlayerMsg:
 		m.player = msg.player
 		m.table.ClearRows()
@@ -47,7 +53,7 @@ func (m TableDetailModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var rows [][]string
 		if m.player.meta.Bans != nil {
 			for _, ban := range *m.player.meta.Bans {
-				perm := "✅"
+				perm := styles.IconCheck
 				if !ban.Permanent {
 					perm = ""
 				}
@@ -66,7 +72,10 @@ func (m TableDetailModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m TableDetailModel) View() string {
+func (m TableBansModel) View() string {
+	if m.player.meta.Bans == nil || len(*m.player.meta.Bans) == 0 {
+		return "No bans found " + styles.IconDrCool
+	}
 	return m.table.StyleFunc(func(_, col int) lipgloss.Style {
 		switch col {
 		case 0:
@@ -78,11 +87,11 @@ func (m TableDetailModel) View() string {
 		default:
 			return styles.CellStyle.Width(40)
 		}
-	}).Render()
+	}).Width(m.width).Render()
 }
 
-func newTableDetailModel() tea.Model {
-	return &TableDetailModel{table: newTableDetails()}
+func NewTableBansModel() tea.Model {
+	return &TableBansModel{table: newTableDetails()}
 }
 
 func newTableDetails() *table.Table {

@@ -74,9 +74,9 @@ func fetchPlayerState(ctx context.Context, address string, password string) (G15
 			return lastUpdate, nil
 		}
 		var data G15PlayerState
-		for playerIdx := range 23 {
+		for playerIdx := range 24 {
 			data.SteamID[playerIdx] = steamid.New(76561197960265730 + playerIdx)
-			data.Names[playerIdx] = data.SteamID[playerIdx].String()
+
 			data.UserID[playerIdx] = playerIdx + 1
 			data.Score[playerIdx] = playerIdx
 			data.Ping[playerIdx] = playerIdx
@@ -89,6 +89,13 @@ func fetchPlayerState(ctx context.Context, address string, password string) (G15
 			if playerIdx == 0 {
 				data.SteamID[0] = steamid.New(76561197960265730)
 			}
+			if playerIdx == 5 {
+				data.SteamID[5] = steamid.New(76561197970669109)
+			}
+			if playerIdx == 6 {
+				data.SteamID[playerIdx] = steamid.New(76561198044497183)
+			}
+			data.Names[playerIdx] = data.SteamID[playerIdx].String()
 		}
 
 		return data, nil

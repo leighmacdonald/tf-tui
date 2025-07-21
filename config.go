@@ -26,7 +26,6 @@ type Config struct {
 	Address        string `yaml:"address"`
 	Password       string `yaml:"password"`
 	ConsoleLogPath string `yaml:"console_log_path"`
-	FullScreen     bool   `yaml:"full_screen"`
 	APIBaseURL     string `yaml:"api_base_url,omitempty"`
 }
 
@@ -34,7 +33,6 @@ var defaultConfig = Config{
 	Address:        "127.0.0.1:27015",
 	Password:       "test",
 	ConsoleLogPath: "",
-	FullScreen:     true,
 }
 
 const (
@@ -52,7 +50,6 @@ type keymap struct {
 	down     key.Binding
 	left     key.Binding
 	right    key.Binding
-	fs       key.Binding
 	accept   key.Binding
 	back     key.Binding
 	nextTab  key.Binding
@@ -98,10 +95,6 @@ var DefaultKeyMap = keymap{
 	right: key.NewBinding(
 		key.WithKeys("right", "l"),
 		key.WithHelp("→", "BLU"),
-	),
-	fs: key.NewBinding(
-		key.WithKeys("f"),
-		key.WithHelp("f", "Toggle View"),
 	),
 	nextTab: key.NewBinding(
 		key.WithKeys("tab"),
@@ -190,7 +183,7 @@ type configModel struct {
 	activeView   contentView
 }
 
-func newConfigModal(config Config) tea.Model {
+func NewConfigModal(config Config) tea.Model {
 	return &configModel{
 		config:       config,
 		inputAddr:    newTextInputModel(config.Address, "127.0.0.1:27015"),

@@ -14,6 +14,7 @@ type G15Msg struct {
 
 type SelectedPlayerMsg struct {
 	player Player
+	notes  string
 }
 
 type SelectedTableRowMsg struct {

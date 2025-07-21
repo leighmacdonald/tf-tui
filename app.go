@@ -13,6 +13,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/styles"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 type contentView int
@@ -24,42 +25,52 @@ const (
 )
 
 type AppModel struct {
-	config       Config
-	cache        *PlayerData
-	api          APIs
-	altScreen    bool
-	currentView  contentView
-	titleState   string
-	quitting     bool
-	height       int
-	width        int
-	selectedTeam Team
-	selectedRow  int
-	selectedUID  int
-	statusMsg    string
-	statusError  bool
-	activeTab    tabView
-	scripting    *Scripting
-	helpView     help.Model
-	detailPanel  tea.Model
-	banTable     tea.Model
-	playerTable  tea.Model
-	configModel  tea.Model
-	tabs         tea.Model
+	config        Config
+	cache         *PlayerData
+	api           APIs
+	currentView   contentView
+	titleState    string
+	quitting      bool
+	height        int
+	width         int
+	selectedTeam  Team
+	selectedRow   int
+	selectedUID   int
+	statusMsg     string
+	statusError   bool
+	activeTab     tabView
+	scripting     *Scripting
+	helpView      help.Model
+	detailPanel   tea.Model
+	banTable      tea.Model
+	playerTable   tea.Model
+	compTable     tea.Model
+	configModel   tea.Model
+	notesTextArea tea.Model
+	tabs          tea.Model
 }
 
-func newAppModel(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *AppModel {
+func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *AppModel {
+	helpView := help.New()
+	helpView.Styles.ShortDesc = helpView.Styles.ShortDesc.UnsetBackground()
+	helpView.Styles.FullDesc = helpView.Styles.FullDesc.UnsetBackground()
+	helpView.Styles.FullKey = helpView.Styles.FullKey.UnsetBackground()
+	helpView.Styles.ShortKey = helpView.Styles.ShortKey.UnsetBackground()
+	//helpView.Styles.ShortDesc = helpView.Styles.ShortDesc.Background(styles.Black)
+	//helpView.Styles.ShortDesc = helpView.Styles.ShortDesc.Background(styles.Black)
+
 	app := &AppModel{
-		cache:       cache,
-		altScreen:   config.FullScreen,
-		config:      config,
-		helpView:    help.New(),
-		scripting:   scripting,
-		playerTable: newTableModel(),
-		banTable:    newTableDetailModel(),
-		configModel: newConfigModal(config),
-		tabs:        newTabsModel(),
-		detailPanel: DetailPanel{},
+		cache:         cache,
+		config:        config,
+		helpView:      helpView,
+		scripting:     scripting,
+		playerTable:   NewTablePlayersModel(),
+		banTable:      NewTableBansModel(),
+		configModel:   NewConfigModal(config),
+		compTable:     NewTableCompModel(),
+		tabs:          NewTabsModel(),
+		notesTextArea: NewTextAreaNotes(),
+		detailPanel:   DetailPanel{},
 	}
 
 	if doSetup {
@@ -70,7 +81,7 @@ func newAppModel(config Config, doSetup bool, scripting *Scripting, cache *Playe
 }
 
 func (m AppModel) Init() tea.Cmd {
-	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), m.configModel.Init(), textinput.Blink, m.tabs.Init())
+	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), m.configModel.Init(), textinput.Blink, m.tabs.Init(), m.notesTextArea.Init())
 }
 
 func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
@@ -104,16 +115,6 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	// Is it a key press?
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, DefaultKeyMap.fs):
-			var cmd tea.Cmd
-			if m.altScreen {
-				cmd = tea.ExitAltScreen
-			} else {
-				cmd = tea.EnterAltScreen
-			}
-			m.altScreen = !m.altScreen
-
-			return m, cmd
 		case key.Matches(msg, DefaultKeyMap.quit):
 			return m, tea.Quit
 		case key.Matches(msg, DefaultKeyMap.config):
@@ -138,26 +139,44 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m AppModel) View() string {
-	var builder strings.Builder
+	var (
+		header  string
+		content string
+		footer  string
+	)
 
 	switch m.currentView {
+	case viewConfigFiles:
+		fallthrough
 	case viewConfig:
-		builder.WriteString(m.configModel.View())
+		content = m.configModel.View()
 	case viewPlayerTables:
+		var builder strings.Builder
 		builder.WriteString(m.playerTable.View())
-		builder.WriteString(m.tabs.View())
+
 		builder.WriteString("\n")
 		switch m.activeTab {
 		case TabOverview:
 			builder.WriteString(m.detailPanel.View())
 		case TabBans:
 			builder.WriteString(m.banTable.View())
+		case TabComp:
+			builder.WriteString(m.compTable.View())
+		case TabNotes:
+			builder.WriteString("Notes...")
 		}
+		content = builder.String()
 	}
 
-	builder.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, m.renderHelp(), m.renderHeading()))
+	footer = styles.FooterContainerStyle.
+		Width(m.width).
+		Render(lipgloss.JoinHorizontal(lipgloss.Top, m.renderHelp(), m.renderHeading()))
+	header = m.tabs.View()
 	// Send the UI for rendering
-	return builder.String()
+	return zone.Scan(lipgloss.JoinVertical(lipgloss.Top,
+		styles.HeaderContainerStyle.Width(m.width).Render(header),
+		styles.ContentContainerStyle.Height(m.height-4).Render(content),
+		styles.FooterContainerStyle.Width(m.width).Render(footer)))
 }
 
 func (m AppModel) isInitialized() bool {
@@ -173,13 +192,11 @@ func (m AppModel) SelectedPlayer() (Player, bool) {
 }
 
 func (m AppModel) renderHelp() string {
-	helpView := help.New()
 	var builder strings.Builder
-	builder.WriteString("\n")
 
 	switch m.currentView {
 	case viewConfig:
-		builder.WriteString(helpView.ShortHelpView([]key.Binding{
+		builder.WriteString(m.helpView.ShortHelpView([]key.Binding{
 			DefaultKeyMap.quit,
 			DefaultKeyMap.accept,
 		}))
@@ -187,7 +204,6 @@ func (m AppModel) renderHelp() string {
 		builder.WriteString(m.helpView.ShortHelpView([]key.Binding{
 			DefaultKeyMap.quit,
 			DefaultKeyMap.config,
-			DefaultKeyMap.fs,
 			DefaultKeyMap.up,
 			DefaultKeyMap.down,
 			DefaultKeyMap.left,
@@ -196,7 +212,7 @@ func (m AppModel) renderHelp() string {
 		}))
 	case viewConfigFiles:
 		k := filepicker.DefaultKeyMap()
-		builder.WriteString(helpView.ShortHelpView([]key.Binding{
+		builder.WriteString(m.helpView.ShortHelpView([]key.Binding{
 			k.Down, k.Up, k.Open, k.Select, k.Back, k.GoToLast, k.GoToTop, k.PageDown, k.PageUp,
 		}))
 	}
@@ -248,15 +264,15 @@ func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Propagate to all children.
-	// m.tabs, _ = m.tabs.Update(msg)
-	cmds := make([]tea.Cmd, 6)
+	cmds := make([]tea.Cmd, 8)
 	m.configModel, cmds[0] = m.configModel.Update(msg)
 	m.playerTable, cmds[1] = m.playerTable.Update(msg)
 	m.banTable, cmds[2] = m.banTable.Update(msg)
 	m.helpView, cmds[3] = m.helpView.Update(msg)
 	m.detailPanel, cmds[4] = m.detailPanel.Update(msg)
 	m.tabs, cmds[5] = m.tabs.Update(msg)
+	m.notesTextArea, cmds[6] = m.notesTextArea.Update(msg)
+	m.compTable, cmds[7] = m.compTable.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }

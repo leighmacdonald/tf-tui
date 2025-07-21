@@ -119,7 +119,8 @@ func (m *PlayerData) SetStats(stats G15PlayerState) {
 
 		player, found := m.players[sid]
 		if !found {
-			player = &Player{SteamID: sid}
+			player = &Player{SteamID: sid, meta: MetaProfile{Bans: &[]Ban{}}}
+			m.players[sid] = player
 		}
 
 		player.Valid = stats.Valid[idx]

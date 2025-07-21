@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/tf-tui/styles"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 type tabView int
@@ -20,26 +21,32 @@ const (
 type TabLabel struct {
 	label string
 	tab   tabView
+	id    string
 }
 
-func newTabsModel() tea.Model {
-	return TabsModel{
+func NewTabsModel() tea.Model {
+	return &TabsModel{
+		//id: zone.NewPrefix(),
 		tabs: []TabLabel{
 			{
 				label: "[o]verview",
 				tab:   TabOverview,
+				id:    zone.NewPrefix(),
 			},
 			{
 				label: "[b]ans",
 				tab:   TabBans,
+				id:    zone.NewPrefix(),
 			},
 			{
 				label: "[c]omp",
 				tab:   TabComp,
+				id:    zone.NewPrefix(),
 			},
 			{
 				label: "[n]otes",
 				tab:   TabNotes,
+				id:    zone.NewPrefix(),
 			},
 		},
 		selectedTab: TabOverview,
@@ -49,6 +56,8 @@ func newTabsModel() tea.Model {
 type TabsModel struct {
 	tabs        []TabLabel
 	selectedTab tabView
+	width       int
+	id          string
 }
 
 func (m TabsModel) Init() tea.Cmd {
@@ -58,6 +67,22 @@ func (m TabsModel) Init() tea.Cmd {
 func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	changed := false
 	switch msg := msg.(type) {
+	case tea.MouseMsg:
+		if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
+			return m, nil
+		}
+		for _, item := range m.tabs {
+			// Check each item to see if it's in bounds.
+			if zone.Get(item.id).InBounds(msg) {
+				m.selectedTab = item.tab
+
+				break
+			}
+		}
+		return m, nil
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		return m, nil
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, DefaultKeyMap.nextTab):
@@ -94,11 +119,11 @@ func (m TabsModel) View() string {
 
 	for _, tab := range m.tabs {
 		if tab.tab == m.selectedTab {
-			builder.WriteString(styles.TabsActive.Render(tab.label))
+			builder.WriteString(zone.Mark(tab.id, styles.TabsActive.Render(tab.label)))
 		} else {
-			builder.WriteString(styles.TabsInactive.Render(tab.label))
+			builder.WriteString(zone.Mark(tab.id, styles.TabsInactive.Render(tab.label)))
 		}
 	}
 
-	return builder.String()
+	return styles.TabContainer.Width(m.width).Render(builder.String())
 }

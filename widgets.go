@@ -1,19 +1,9 @@
 package main
 
 import (
-	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/styles"
 )
-
-func newSpinner() spinner.Model {
-	s := spinner.New()
-	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Foreground(lipgloss.Color("205"))
-
-	return s
-}
 
 func newTextInputModel(value string, placeholder string) textinput.Model {
 	input := textinput.New()

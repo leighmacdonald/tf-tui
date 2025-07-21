@@ -1,6 +1,6 @@
 package main
 
-//go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen -config config.yaml ./openapi.yaml
+//go:generate go tool oapi-codegen -config config.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.yaml
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/adrg/xdg"
 	tea "github.com/charmbracelet/bubbletea"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 type Team int
@@ -29,6 +30,8 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
+	zone.NewGlobal()
+
 	if len(os.Getenv("DEBUG")) > 0 {
 		logFile, err := tea.LogToFile("debug.log", "debug")
 		if err != nil {
@@ -65,16 +68,11 @@ func run() error {
 	//	os.Exit(1)
 	//}
 
-	var opts []tea.ProgramOption
-	if config.FullScreen {
-		opts = append(opts, tea.WithAltScreen())
-	}
-
 	players := newPlayerStates(apis)
 	go players.Start(ctx)
 
-	model := newAppModel(config, !configFound, scripting, players)
-	program := tea.NewProgram(model, opts...)
+	model := New(config, !configFound, scripting, players)
+	program := tea.NewProgram(model, tea.WithMouseCellMotion(), tea.WithAltScreen())
 	if _, err := program.Run(); err != nil {
 		return err
 	}
