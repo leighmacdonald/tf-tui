@@ -2,10 +2,8 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -168,11 +166,16 @@ func configWrite(name string, config Config) error {
 	return nil
 }
 
-func newPicker() filepicker.Model {
+func NewPicker() filepicker.Model {
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		homedir = "/"
+	}
+
 	picker := filepicker.New()
-	picker.AllowedTypes = []string{"console.log"}
+	//picker.AllowedTypes = []string{"console.log"}
 	picker.CurrentDirectory, _ = os.UserHomeDir()
-	//picker.CurrentDirectory = "."
+	picker.CurrentDirectory = path.Join(homedir, ".steam/steam/steamapps/common/Team Fortress 2/tf")
 	picker.ShowPermissions = true
 	picker.ShowHidden = true
 	picker.ShowSize = true
@@ -181,27 +184,30 @@ func newPicker() filepicker.Model {
 }
 
 type configModel struct {
-	filepicker   filepicker.Model
-	selectedFile string
 	inputAddr    textinput.Model
 	passwordAddr textinput.Model
+	fileSelect   tea.Model
 	focusIndex   configIdx
 	config       Config
 	activeView   contentView
+	selectedFile string
+	width        int
+	height       int
 }
 
 func NewConfigModal(config Config) tea.Model {
 	return &configModel{
 		config:       config,
-		inputAddr:    newTextInputModel(config.Address, "127.0.0.1:27015"),
-		passwordAddr: newTextInputPasswordModel(config.Password, ""),
-		filepicker:   newPicker(),
-		selectedFile: config.ConsoleLogPath,
+		inputAddr:    NewTextInputModel(config.Address, "127.0.0.1:27015"),
+		passwordAddr: NewTextInputPasswordModel(config.Password, ""),
+		fileSelect:   NewFileSelect(),
+		activeView:   viewConfig,
+		selectedFile: "",
 	}
 }
 
 func (m configModel) Init() tea.Cmd {
-	return tea.Batch(textinput.Blink, m.inputAddr.Focus(), m.filepicker.Init())
+	return tea.Batch(textinput.Blink, m.inputAddr.Focus(), m.fileSelect.Init())
 }
 
 type configIdx int
@@ -218,40 +224,28 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.inputAddr, cmds[0] = m.inputAddr.Update(msg)
 	m.passwordAddr, cmds[1] = m.passwordAddr.Update(msg)
-	m.filepicker, cmds[2] = m.filepicker.Update(msg)
-
-	// Did the user select a file?
-	if didSelect, selectedPath := m.filepicker.DidSelectFile(msg); didSelect {
-		// Get the selectedPath of the selected file.
-		m.selectedFile = selectedPath
-		m.config.ConsoleLogPath = selectedPath
-		m.activeView = viewConfig
-	}
-
-	// Did the user select a disabled file?
-	// This is only necessary to display an error to the user.
-	if didSelect, selectedPath := m.filepicker.DidSelectDisabledFile(msg); didSelect {
-		// Let's clear the selectedFile and display an error.
-		// m.selectedFile = ""
-		cmds = append(cmds, clearErrorAfter(10*time.Second), func() tea.Msg {
-			return StatusMsg{
-				message: fmt.Errorf("%w: Invalid selected file: %s", errInvalidPath, selectedPath).Error(),
-				error:   true,
-			}
-		})
-	}
+	m.fileSelect, cmds[2] = m.fileSelect.Update(msg)
 
 	switch msg := msg.(type) {
 	case SetViewMsg:
 		m.activeView = msg.view
+	case SelectedFileMsg:
+		m.selectedFile = msg.filePath
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
 	case tea.KeyMsg:
+		if m.activeView != viewConfig {
+			break
+		}
 		switch {
 		case key.Matches(msg, DefaultKeyMap.up):
-			if m.focusIndex > 0 && m.focusIndex <= 2 {
+			if m.focusIndex > 0 && m.focusIndex <= 3 {
 				m.focusIndex--
 			}
 		case key.Matches(msg, DefaultKeyMap.down):
-			if m.focusIndex >= 0 && m.focusIndex < 2 {
+			if m.focusIndex >= 0 && m.focusIndex < 3 {
 				m.focusIndex++
 			}
 		case key.Matches(msg, DefaultKeyMap.accept):
@@ -261,6 +255,7 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case fieldPassword:
 				m.focusIndex++
 			case fieldConsoleLogPath:
+				m.focusIndex++
 				return m, func() tea.Msg {
 					return SetViewMsg{view: viewConfigFiles}
 				}
@@ -278,7 +273,8 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				return m, tea.Batch(
 					func() tea.Msg { return cfg },
-					func() tea.Msg { return StatusMsg{message: "Saved config"} })
+					func() tea.Msg { return StatusMsg{message: "Saved config"} },
+					func() tea.Msg { return SetViewMsg{view: viewPlayerTables} })
 			}
 		}
 
@@ -323,7 +319,7 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m configModel) View() string {
 	if m.activeView == viewConfigFiles {
-		return m.renderConsoleLogField()
+		return m.fileSelect.View()
 	} else {
 		return m.renderConfig()
 	}
@@ -338,28 +334,16 @@ func (m configModel) renderConfig() string {
 	fields = append(fields, lipgloss.JoinHorizontal(lipgloss.Top, styles.HelpStyle.Render("RCON Password: "), m.passwordAddr.View()))
 
 	if m.focusIndex == fieldConsoleLogPath {
-		fields = append(fields, lipgloss.JoinHorizontal(lipgloss.Top, styles.HelpStyle.Render("console.log: "), styles.FocusedStyle.Render(m.selectedFile)))
+		fields = append(fields, lipgloss.JoinHorizontal(lipgloss.Top, styles.FocusedStyle.Render("console.log: "), styles.FocusedStyle.Render(m.selectedFile)))
 	} else {
 		fields = append(fields, lipgloss.JoinHorizontal(lipgloss.Top, styles.HelpStyle.Render("console.log: "), m.selectedFile))
 	}
 
 	if m.focusIndex == fieldSave {
-		fields = append(fields, "\n"+styles.FocusedSubmitButton)
+		fields = append(fields, styles.FocusedSubmitButton)
 	} else {
-		fields = append(fields, "\n"+styles.BlurredSubmitButton)
+		fields = append(fields, styles.BlurredSubmitButton)
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Top, fields...)
-}
-
-func (m configModel) renderConsoleLogField() string {
-	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("\n  Dir: %s \n ", m.filepicker.CurrentDirectory))
-	if m.selectedFile == "" {
-		builder.WriteString("Pick a file:")
-	} else {
-		builder.WriteString("Selected file: " + m.filepicker.Styles.Selected.Render(m.selectedFile))
-	}
-	builder.WriteString("\n\n" + m.filepicker.View() + "\n")
-	return builder.String()
+	return lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).Render(lipgloss.JoinVertical(lipgloss.Top, fields...))
 }

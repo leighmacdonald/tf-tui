@@ -1,8 +1,6 @@
 package main
 
 import (
-	"cmp"
-	"slices"
 	"strconv"
 	"time"
 
@@ -110,13 +108,4 @@ func newTableDetails() *table.Table {
 			}
 		}).
 		Headers("Site", "Date", "Perm", "Reason")
-}
-
-func sortTableRows(rows [][]string, col int) {
-	slices.SortStableFunc(rows, func(a, b []string) int {
-		av, _ := strconv.Atoi(a[col])
-		bv, _ := strconv.Atoi(b[col])
-
-		return cmp.Compare(bv, av)
-	})
 }

@@ -5,7 +5,7 @@ import (
 	"github.com/leighmacdonald/tf-tui/styles"
 )
 
-func newTextInputModel(value string, placeholder string) textinput.Model {
+func NewTextInputModel(value string, placeholder string) textinput.Model {
 	input := textinput.New()
 	input.Cursor.Style = styles.CursorStyle
 	input.SetValue(value)
@@ -17,8 +17,8 @@ func newTextInputModel(value string, placeholder string) textinput.Model {
 	return input
 }
 
-func newTextInputPasswordModel(value string, placeholder string) textinput.Model {
-	input := newTextInputModel(value, placeholder)
+func NewTextInputPasswordModel(value string, placeholder string) textinput.Model {
+	input := NewTextInputModel(value, placeholder)
 	input.Cursor.Style = styles.CursorStyle
 	input.CharLimit = 128
 	input.EchoMode = textinput.EchoPassword

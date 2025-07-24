@@ -81,7 +81,8 @@ func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *
 }
 
 func (m AppModel) Init() tea.Cmd {
-	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), m.configModel.Init(), textinput.Blink, m.tabs.Init(), m.notesTextArea.Init())
+	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), m.configModel.Init(),
+		textinput.Blink, m.tabs.Init(), m.notesTextArea.Init())
 }
 
 func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {

@@ -8,7 +8,8 @@ import (
 
 var (
 	Accent = lipgloss.Color("#f4722b")
-	Status = lipgloss.NewStyle().Bold(true).Foreground(Red).
+	Status = lipgloss.NewStyle().Bold(true).
+		Foreground(ColourGenuine).
 		Border(lipgloss.NormalBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(Blu).GetBorderStyle()).Padding(1)
 	Title = lipgloss.NewStyle().Bold(true).Foreground(Blu).Padding(1)

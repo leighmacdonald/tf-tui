@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -182,67 +179,39 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedRow = msg.selectedRow
 		m.selectedUID = msg.selectedUID
 	case FullStateUpdateMsg:
-		m.players = msg.players
-		var rows [][]string
-
-		for _, player := range m.players {
-			if !player.SteamID.Valid() {
-				continue
-			}
-
-			var afflictions []string
-			if len(player.meta.Bans) > 0 {
-				afflictions = append(afflictions, styles.IconBans)
-			}
-
-			if player.meta.NumberOfVacBans > 0 {
-				afflictions = append(afflictions, styles.IconVac)
-			}
-
-			if len(afflictions) == 0 {
-				afflictions = append(afflictions, styles.IconCheck)
-			}
-
-			name := player.Name
-			if name == "" {
-				name = player.SteamID.String()
-			}
-
-			row := []string{
-				fmt.Sprintf("%d", player.UserID),
-				name,
-				fmt.Sprintf("%d", player.Score),
-				fmt.Sprintf("%d", player.Deaths),
-				fmt.Sprintf("%d", player.Ping),
-				strings.Join(afflictions, " "),
-			}
-
-			switch player.Team {
-			case m.team:
-				rows = append(rows, row)
-			}
-		}
-
-		sortTableRows(rows, 0)
-
-		m.table.ClearRows()
-		m.table.Rows(rows...)
-		m.rows = rows
-
-		if m.selectedTeam == m.team {
-			m.selectedUID = findCurrentUID(m.selectedRow, m.rows)
-		}
-
-		return m, func() tea.Msg {
-			return SelectedTableRowMsg{
-				selectedTeam: m.selectedTeam,
-				selectedRow:  m.selectedRow,
-				selectedUID:  m.selectedUID,
-			}
-		}
+		return m.updatePlayers(msg.players)
 	}
 
 	return m, nil
+}
+
+func (m PlayerTableModel) updatePlayers(playersUpdate []Player) (tea.Model, tea.Cmd) {
+	var data PlayerTableData
+
+	for _, player := range playersUpdate {
+		if !player.SteamID.Valid() {
+			continue
+		}
+		if player.Team != m.team {
+			continue
+		}
+
+		data.players = append(data.players, player)
+	}
+
+	m.table.Data(&data)
+
+	if m.selectedTeam == m.team {
+		m.selectedUID = findCurrentUID(m.selectedRow, m.rows)
+	}
+
+	return m, func() tea.Msg {
+		return SelectedTableRowMsg{
+			selectedTeam: m.selectedTeam,
+			selectedRow:  m.selectedRow,
+			selectedUID:  m.selectedUID,
+		}
+	}
 }
 
 type playerTableCol int
