@@ -4,6 +4,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/leighmacdonald/steamid/v4/steamid"
 )
 
 type G15Msg struct {
@@ -12,15 +13,20 @@ type G15Msg struct {
 	dump G15PlayerState
 }
 
+type SortPlayersMsg struct {
+	sortColumn playerTableColumn
+	asc        bool
+}
+
 type SelectedPlayerMsg struct {
 	player Player
 	notes  string
 }
 
 type SelectedTableRowMsg struct {
-	selectedTeam Team
-	selectedRow  int
-	selectedUID  int
+	selectedTeam    Team
+	selectedRow     int
+	selectedSteamID steamid.SteamID
 }
 
 type clearStatusMessageMsg struct{}

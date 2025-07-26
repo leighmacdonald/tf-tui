@@ -186,16 +186,3 @@ func (m *PlayerData) updateMeta(ctx context.Context, steamIDs steamid.Collection
 
 	m.setProfiles(profiles...)
 }
-
-func (m *PlayerData) ByUID(uid int) (Player, bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	for _, player := range m.players {
-		if player.UserID == uid {
-			return *player, true
-		}
-	}
-
-	return Player{}, false
-}

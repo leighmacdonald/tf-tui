@@ -64,6 +64,7 @@ type keymap struct {
 	notes    key.Binding
 }
 
+// TODO make configurable
 var DefaultKeyMap = keymap{
 	accept: key.NewBinding(
 		key.WithKeys("enter"),
@@ -234,7 +235,6 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		return m, nil
 	case tea.KeyMsg:
 		if m.activeView != viewConfig {
 			break

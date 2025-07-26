@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -25,29 +26,29 @@ const (
 )
 
 type AppModel struct {
-	config        Config
-	cache         *PlayerData
-	api           APIs
-	currentView   contentView
-	titleState    string
-	quitting      bool
-	height        int
-	width         int
-	selectedTeam  Team
-	selectedRow   int
-	selectedUID   int
-	statusMsg     string
-	statusError   bool
-	activeTab     tabView
-	scripting     *Scripting
-	helpView      help.Model
-	detailPanel   tea.Model
-	banTable      tea.Model
-	playerTable   tea.Model
-	compTable     tea.Model
-	configModel   tea.Model
-	notesTextArea tea.Model
-	tabs          tea.Model
+	config          Config
+	cache           *PlayerData
+	api             APIs
+	currentView     contentView
+	titleState      string
+	quitting        bool
+	height          int
+	width           int
+	selectedTeam    Team
+	selectedRow     int
+	selectedSteamID steamid.SteamID
+	statusMsg       string
+	statusError     bool
+	activeTab       tabView
+	scripting       *Scripting
+	helpView        help.Model
+	detailPanel     tea.Model
+	banTable        tea.Model
+	playerTable     tea.Model
+	compTable       tea.Model
+	configModel     tea.Model
+	notesTextArea   tea.Model
+	tabs            tea.Model
 }
 
 func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *AppModel {
@@ -108,7 +109,7 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m.propagate(inMsg)
 	case SelectedTableRowMsg:
-		m.selectedUID = msg.selectedUID
+		m.selectedSteamID = msg.selectedSteamID
 		m.selectedRow = msg.selectedRow
 		m.selectedTeam = msg.selectedTeam
 	case TabChangeMsg:
@@ -185,11 +186,16 @@ func (m AppModel) isInitialized() bool {
 }
 
 func (m AppModel) SelectedPlayer() (Player, bool) {
-	if m.selectedUID < 0 {
+	if !m.selectedSteamID.Valid() {
 		return Player{}, false
 	}
 
-	return m.cache.ByUID(m.selectedUID)
+	player, err := m.cache.Get(m.selectedSteamID)
+	if err != nil {
+		return Player{}, false
+	}
+
+	return player, true
 }
 
 func (m AppModel) renderHelp() string {
@@ -282,7 +288,7 @@ func (m AppModel) title() string {
 	return styles.Title.
 		Width(m.width / 2).
 		Render(fmt.Sprintf("c: %d r: %d u: %d",
-			m.selectedTeam, m.selectedRow, m.selectedUID))
+			m.selectedTeam, m.selectedRow, m.selectedSteamID))
 }
 
 func (m AppModel) status() string {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"strconv"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,23 +8,6 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/leighmacdonald/tf-tui/styles"
 )
-
-func findCurrentUID(selected int, rows [][]string) int {
-	for idx, row := range rows {
-		if idx == selected {
-			uid, errUID := strconv.ParseInt(row[0], 10, 32)
-			if errUID != nil {
-				tea.Printf("%s", errUID.Error())
-
-				continue
-			}
-
-			return int(uid)
-		}
-	}
-
-	return -1
-}
 
 type TableBansModel struct {
 	table  *table.Table
