@@ -41,6 +41,7 @@ type AppModel struct {
 	statusError     bool
 	activeTab       tabView
 	scripting       *Scripting
+	listManager     *UserListManager
 	helpView        help.Model
 	detailPanel     tea.Model
 	banTable        tea.Model
@@ -53,12 +54,6 @@ type AppModel struct {
 
 func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *AppModel {
 	helpView := help.New()
-	helpView.Styles.ShortDesc = helpView.Styles.ShortDesc.UnsetBackground()
-	helpView.Styles.FullDesc = helpView.Styles.FullDesc.UnsetBackground()
-	helpView.Styles.FullKey = helpView.Styles.FullKey.UnsetBackground()
-	helpView.Styles.ShortKey = helpView.Styles.ShortKey.UnsetBackground()
-	//helpView.Styles.ShortDesc = helpView.Styles.ShortDesc.Background(styles.Black)
-	//helpView.Styles.ShortDesc = helpView.Styles.ShortDesc.Background(styles.Black)
 
 	app := &AppModel{
 		cache:         cache,
@@ -72,6 +67,7 @@ func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *
 		tabs:          NewTabsModel(),
 		notesTextArea: NewTextAreaNotes(),
 		detailPanel:   DetailPanel{},
+		listManager:   NewUserListManager(config.BDLists),
 	}
 
 	if doSetup {
@@ -83,7 +79,10 @@ func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *
 
 func (m AppModel) Init() tea.Cmd {
 	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), m.configModel.Init(),
-		textinput.Blink, m.tabs.Init(), m.notesTextArea.Init())
+		textinput.Blink, m.tabs.Init(), m.notesTextArea.Init(), func() tea.Msg {
+			m.listManager.Sync()
+			return nil
+		})
 }
 
 func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
