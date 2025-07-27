@@ -73,10 +73,10 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		for _, item := range m.tabs {
 			// Check each item to see if it's in bounds.
-			if zone.Get(item.id).InBounds(msg) {
+			if zone.Get(m.id + item.label).InBounds(msg) {
 				m.selectedTab = item.tab
 
-				break
+				return m, func() tea.Msg { return TabChangeMsg(m.selectedTab) }
 			}
 		}
 
@@ -121,9 +121,9 @@ func (m TabsModel) View() string {
 
 	for _, tab := range m.tabs {
 		if tab.tab == m.selectedTab {
-			builder.WriteString(zone.Mark(tab.id, styles.TabsActive.Render(tab.label)))
+			builder.WriteString(zone.Mark(m.id+tab.label, styles.TabsActive.Render(tab.label)))
 		} else {
-			builder.WriteString(zone.Mark(tab.id, styles.TabsInactive.Render(tab.label)))
+			builder.WriteString(zone.Mark(m.id+tab.label, styles.TabsInactive.Render(tab.label)))
 		}
 	}
 

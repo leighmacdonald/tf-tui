@@ -35,7 +35,6 @@ type AppModel struct {
 	height          int
 	width           int
 	selectedTeam    Team
-	selectedRow     int
 	selectedSteamID steamid.SteamID
 	statusMsg       string
 	statusError     bool
@@ -45,7 +44,7 @@ type AppModel struct {
 	helpView        help.Model
 	detailPanel     tea.Model
 	banTable        tea.Model
-	playerTable     tea.Model
+	playerTables    tea.Model
 	compTable       tea.Model
 	configModel     tea.Model
 	notesTextArea   tea.Model
@@ -60,7 +59,7 @@ func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *
 		config:        config,
 		helpView:      helpView,
 		scripting:     scripting,
-		playerTable:   NewTablePlayersModel(),
+		playerTables:  NewTablePlayersModel(),
 		banTable:      NewTableBansModel(),
 		configModel:   NewConfigModal(config),
 		compTable:     NewTableCompModel(),
@@ -110,7 +109,6 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.propagate(inMsg)
 	case SelectedTableRowMsg:
 		m.selectedSteamID = msg.selectedSteamID
-		m.selectedRow = msg.selectedRow
 		m.selectedTeam = msg.selectedTeam
 	case TabChangeMsg:
 		m.activeTab = tabView(msg)
@@ -154,7 +152,7 @@ func (m AppModel) View() string {
 		content = m.configModel.View()
 	case viewPlayerTables:
 		var builder strings.Builder
-		builder.WriteString(m.playerTable.View())
+		builder.WriteString(m.playerTables.View())
 
 		builder.WriteString("\n")
 		switch m.activeTab {
@@ -249,8 +247,8 @@ func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
 		})
 	}
 
-	// if m.selectedRow > m.playerTable.selectedColumnPlayerCount()-1 {
-	//	m.selectedRow = max(m.playerTable.selectedColumnPlayerCount()-1, 0)
+	// if m.selectedRow > m.playerTables.selectedColumnPlayerCount()-1 {
+	//	m.selectedRow = max(m.playerTables.selectedColumnPlayerCount()-1, 0)
 	//}
 
 	m.cache.SetStats(msg.dump)
@@ -273,7 +271,7 @@ func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
 func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 8)
 	m.configModel, cmds[0] = m.configModel.Update(msg)
-	m.playerTable, cmds[1] = m.playerTable.Update(msg)
+	m.playerTables, cmds[1] = m.playerTables.Update(msg)
 	m.banTable, cmds[2] = m.banTable.Update(msg)
 	m.helpView, cmds[3] = m.helpView.Update(msg)
 	m.detailPanel, cmds[4] = m.detailPanel.Update(msg)
@@ -287,8 +285,8 @@ func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m AppModel) title() string {
 	return styles.Title.
 		Width(m.width / 2).
-		Render(fmt.Sprintf("c: %d r: %d u: %d",
-			m.selectedTeam, m.selectedRow, m.selectedSteamID.Int64()))
+		Render(fmt.Sprintf("t: %d s: %d",
+			m.selectedTeam, m.selectedSteamID.Int64()))
 }
 
 func (m AppModel) status() string {

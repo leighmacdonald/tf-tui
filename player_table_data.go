@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/leighmacdonald/tf-tui/styles"
+	zone "github.com/lrstanley/bubblezone"
 	"golang.org/x/exp/slices"
 )
 
@@ -21,8 +22,9 @@ const (
 	playerMeta
 )
 
-func NewPlayerTableData(playersUpdate []Player, team Team, cols ...playerTableColumn) PlayerTableData {
+func NewPlayerTableData(parentZoneID string, playersUpdate []Player, team Team, cols ...playerTableColumn) PlayerTableData {
 	data := PlayerTableData{
+		zoneID:         parentZoneID,
 		enabledColumns: []playerTableColumn{playerMeta, playerName, playerScore, playerDeaths, playerPing},
 	}
 
@@ -47,7 +49,8 @@ func NewPlayerTableData(playersUpdate []Player, team Team, cols ...playerTableCo
 // PlayerTableData implements the table.Data interface to provide table data.
 type PlayerTableData struct {
 	players []Player
-	// Defines both the columns show and the order they are rendered.
+	zoneID  string
+	// Defines both the columns shown and the order they are rendered.
 	enabledColumns []playerTableColumn
 	sortColumn     playerTableColumn
 	asc            bool
@@ -122,7 +125,7 @@ func (m *PlayerTableData) At(row int, col int) string {
 	case playerUID:
 		return fmt.Sprintf("%d", player.UserID)
 	case playerName:
-		return player.Name
+		return zone.Mark(m.zoneID+player.SteamID.String(), player.Name)
 	case playerScore:
 		return fmt.Sprintf("%d", player.Score)
 	case playerDeaths:

@@ -20,16 +20,9 @@ const (
 )
 
 type PlayerTablesModel struct {
-	id           string
-	selectedRow  int
 	selectedTeam Team // red = 3, blu = 4
 	redTable     tea.Model
 	bluTable     tea.Model
-	redRows      [][]string
-	bluRows      [][]string
-	selectedUID  int
-	height       int
-	width        int
 }
 
 func (m PlayerTablesModel) Init() tea.Cmd {
@@ -43,9 +36,7 @@ func (m PlayerTablesModel) Init() tea.Cmd {
 
 func NewTablePlayersModel() *PlayerTablesModel {
 	model := &PlayerTablesModel{
-		selectedRow:  0,
 		selectedTeam: RED,
-		id:           zone.NewPrefix(),
 		redTable:     NewPlayerTableModel(RED),
 		bluTable:     NewPlayerTableModel(BLU),
 	}
@@ -82,16 +73,18 @@ func (m PlayerTablesModel) View() string {
 }
 
 func NewPlayerTableModel(team Team) *PlayerTableModel {
+	zoneID := zone.NewPrefix()
 	foreground := styles.Red
 	if team == BLU {
 		foreground = styles.Blu
 	}
-	data := NewPlayerTableData([]Player{}, team)
+	data := NewPlayerTableData(zoneID, []Player{}, team)
 
 	return &PlayerTableModel{
-		id:   zone.NewPrefix(),
-		team: team,
-		data: &data,
+		id:           zoneID,
+		team:         team,
+		selectedTeam: RED,
+		data:         &data,
 		table: table.New().
 			BorderStyle(lipgloss.NewStyle().Foreground(foreground)).
 			BorderHeader(false),
@@ -102,11 +95,8 @@ type PlayerTableModel struct {
 	id              string
 	table           *table.Table
 	data            *PlayerTableData
-	players         []Player
 	team            Team
-	rows            [][]string
 	selectedTeam    Team
-	selectedRow     int
 	selectedSteamID steamid.SteamID
 	height          int
 	width           int
@@ -131,17 +121,29 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseMsg:
 		switch msg.Button { //nolint:exhaustive
 		case tea.MouseButtonWheelUp:
-			if m.selectedRow > 0 {
-				m.selectedRow--
-			}
+			return m.moveSelection(Up)
 		case tea.MouseButtonWheelDown:
-			if m.selectedRow < len(m.rows)-1 {
-				m.selectedRow++
-			}
+			return m.moveSelection(Down)
 		default:
-		}
+			if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
+				return m, nil
+			}
 
-		return m, nil
+			for _, item := range m.data.players {
+				// Check each item to see if it's in bounds.
+				if zone.Get(m.id + item.SteamID.String()).InBounds(msg) {
+					m.selectedSteamID = item.SteamID
+					m.selectedTeam = m.team
+					return m, tea.Batch(func() tea.Msg {
+						return SelectedTableRowMsg{selectedTeam: m.selectedTeam, selectedSteamID: m.selectedSteamID}
+					}, func() tea.Msg {
+						return SelectedPlayerMsg{player: item}
+					})
+				}
+			}
+
+			return m, nil
+		}
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, DefaultKeyMap.up):
@@ -157,7 +159,6 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case SelectedTableRowMsg:
 		m.selectedTeam = msg.selectedTeam
-		m.selectedRow = msg.selectedRow
 		m.selectedSteamID = msg.selectedSteamID
 	case FullStateUpdateMsg:
 		return m.updatePlayers(msg.players)
@@ -167,73 +168,105 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m PlayerTableModel) moveSelection(direction Direction) (tea.Model, tea.Cmd) {
+	currentRow := m.currentRowIndex()
 	switch direction {
 	case Up:
-		if m.selectedRow > 0 {
-			m.selectedRow--
-		} else {
+		if currentRow < 0 && len(m.data.players) > 0 {
+			m.selectedSteamID = m.data.players[len(m.data.players)-1].SteamID
+			break
+		}
+		if currentRow == 0 {
 			return m, nil
 		}
+		m.selectedSteamID = m.data.players[currentRow-1].SteamID
 	case Down:
-		if m.selectedRow < len(m.rows)-1 {
-			m.selectedRow++
-		} else {
+		if currentRow < 0 && len(m.data.players) > 0 {
+			m.selectedSteamID = m.data.players[0].SteamID
+			break
+		}
+		if currentRow >= len(m.data.players)-1 {
 			return m, nil
 		}
+		m.selectedSteamID = m.data.players[currentRow+1].SteamID
 	case Left:
-		if m.selectedTeam != RED {
-			m.selectedTeam = RED
-			m.selectedRow = min(len(m.rows)-1, m.selectedRow)
-			if m.selectedRow < 0 {
-				m.selectedRow = 0
-			}
-		} else {
-			return m, nil
+		if m.team == RED {
+			break
+		}
+		m.selectedTeam = RED
+		if currentRow < 0 {
+			currentRow = 0
+		}
+		if m.team == RED {
+			m.selectedSteamID = m.data.players[len(m.data.players)-1].SteamID
 		}
 	case Right:
-		if m.selectedTeam != BLU {
-			m.selectedTeam = BLU
-			m.selectedRow = min(len(m.rows)-1, m.selectedRow)
-			if m.selectedRow < 0 {
-				m.selectedRow = 0
-			}
-		} else {
+		if m.team == BLU {
 			return m, nil
+		}
+		m.selectedTeam = BLU
+		if currentRow < 0 {
+			currentRow = 0
+		}
+		if m.team == BLU {
+			m.selectedSteamID = m.data.players[len(m.data.players)-1].SteamID
 		}
 	}
 
 	var cmd tea.Cmd
 	if m.selectedTeam == m.team {
-		row := m.data.players[m.selectedRow]
-		m.selectedSteamID = row.SteamID
-		cmd = func() tea.Msg { return SelectedPlayerMsg{player: row} }
+		if player, ok := m.currentPlayer(); ok {
+			cmd = func() tea.Msg { return SelectedPlayerMsg{player: player} }
+		}
+	}
+	return m, tea.Batch(cmd, func() tea.Msg {
+		return SelectedTableRowMsg{selectedTeam: m.selectedTeam, selectedSteamID: m.selectedSteamID}
+	})
+}
+
+func (m PlayerTableModel) currentPlayer() (Player, bool) {
+	if m.selectedTeam != m.team {
+		return Player{}, false
+	}
+	for _, player := range m.data.players {
+		if player.SteamID == m.selectedSteamID {
+			return player, true
+		}
 	}
 
-	return m, tea.Batch(
-		cmd, func() tea.Msg {
-			return SelectedTableRowMsg{selectedTeam: m.selectedTeam, selectedRow: m.selectedRow, selectedSteamID: m.selectedSteamID}
-		})
+	return Player{}, false
+}
+
+func (m PlayerTableModel) currentRowIndex() int {
+	for rowIdx, player := range m.data.players {
+		if player.SteamID == m.selectedSteamID {
+			return rowIdx
+		}
+	}
+
+	return -1
 }
 
 func (m PlayerTableModel) updatePlayers(playersUpdate []Player) (tea.Model, tea.Cmd) {
-	data := NewPlayerTableData(playersUpdate, m.team)
+	data := NewPlayerTableData(m.id, playersUpdate, m.team)
 
 	m.data = &data
 	m.data.Sort(m.data.sortColumn, m.data.asc)
 	m.table.Data(&data)
 
 	if m.selectedTeam == m.team {
-		row := m.data.players[m.selectedRow]
-		m.selectedSteamID = row.SteamID
-	}
-
-	return m, func() tea.Msg {
-		return SelectedTableRowMsg{
-			selectedTeam:    m.selectedTeam,
-			selectedRow:     m.selectedRow,
-			selectedSteamID: m.selectedSteamID,
+		if player, ok := m.currentPlayer(); !ok && len(data.players) > 0 {
+			m.selectedSteamID = data.players[0].SteamID
+		} else {
+			m.selectedSteamID = player.SteamID
+		}
+		return m, func() tea.Msg {
+			return SelectedTableRowMsg{
+				selectedTeam:    m.selectedTeam,
+				selectedSteamID: m.selectedSteamID,
+			}
 		}
 	}
+	return m, nil
 }
 
 type playerTableCol int
@@ -248,6 +281,7 @@ const (
 )
 
 func (m PlayerTableModel) View() string {
+	selectedRowIdx := m.currentRowIndex()
 	return m.table.
 		Headers(m.data.Headers()...).
 		StyleFunc(func(row, col int) lipgloss.Style {
@@ -281,7 +315,7 @@ func (m PlayerTableModel) View() string {
 				}
 
 				return styles.HeaderStyleBlu
-			case col != 5 && row == m.selectedRow && m.team == m.selectedTeam:
+			case col != 5 && row == selectedRowIdx && m.team == m.selectedTeam:
 				if m.team == RED {
 					if playerTableCol(col) == colName {
 						return styles.SelectedCellStyleNameRed.Width(width)

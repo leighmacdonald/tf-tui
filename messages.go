@@ -25,7 +25,6 @@ type SelectedPlayerMsg struct {
 
 type SelectedTableRowMsg struct {
 	selectedTeam    Team
-	selectedRow     int
 	selectedSteamID steamid.SteamID
 }
 
