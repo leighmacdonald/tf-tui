@@ -14,6 +14,7 @@ func NewTextAreaNotes() tea.Model {
 	textArea := textarea.New()
 	textArea.Focus()
 	textArea.SetHeight(10)
+
 	return TextAreaNotes{textarea: textArea}
 }
 

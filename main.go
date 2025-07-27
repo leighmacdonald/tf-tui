@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"path"
@@ -22,8 +23,11 @@ const (
 	RED
 )
 
+var errApp = errors.New("application error")
+
 func main() {
 	if err := run(); err != nil {
+		tea.Println(err.Error())
 		os.Exit(1)
 	}
 }
@@ -35,7 +39,7 @@ func run() error {
 	if len(os.Getenv("DEBUG")) > 0 {
 		logFile, err := tea.LogToFile("debug.log", "debug")
 		if err != nil {
-			return err
+			return errors.Join(err, errApp)
 		}
 
 		defer func(f *os.File) {
@@ -43,24 +47,23 @@ func run() error {
 		}(logFile)
 	}
 
-	config, configFound := configRead(defaultConfigName)
-
+	config, configFound := ConfigRead(defaultConfigName)
 	client, errClient := NewClientWithResponses(config.APIBaseURL, WithHTTPClient(&http.Client{
 		Timeout: defaultHTTPTimeout,
 	}))
 	if errClient != nil {
-		return errClient
+		return errors.Join(errClient, errApp)
 	}
 
 	apis := NewAPIs(client)
 
 	if err := os.MkdirAll(path.Join(xdg.ConfigHome, "tf-tui"), 0o755); err != nil {
-		return err
+		return errors.Join(err, errApp)
 	}
 
 	scripting, errScripting := NewScripting()
 	if errScripting != nil {
-		return errScripting
+		return errors.Join(errScripting, errApp)
 	}
 
 	// if errScripts := scripting.LoadDir("scripts"); errScripts != nil {
@@ -74,7 +77,7 @@ func run() error {
 	model := New(config, !configFound, scripting, players)
 	program := tea.NewProgram(model, tea.WithMouseCellMotion(), tea.WithAltScreen())
 	if _, err := program.Run(); err != nil {
-		return err
+		return errors.Join(err, errApp)
 	}
 
 	return nil

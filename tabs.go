@@ -26,7 +26,7 @@ type TabLabel struct {
 
 func NewTabsModel() tea.Model {
 	return &TabsModel{
-		//id: zone.NewPrefix(),
+		// id: zone.NewPrefix(),
 		tabs: []TabLabel{
 			{
 				label: "[o]verview",
@@ -79,9 +79,11 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 		}
+
 		return m, nil
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
+
 		return m, nil
 	case tea.KeyMsg:
 		switch {

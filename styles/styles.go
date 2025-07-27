@@ -76,10 +76,16 @@ var (
 	TabsActive = lipgloss.NewStyle().Inline(true).Background(Black).Bold(true).
 			Border(lipgloss.NormalBorder()).Padding(1).Width(TabWidth).Foreground(ColourUnusual)
 
-	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️
+	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️.
 	IconComp   = "🏟️"
 	IconCheck  = "✅"
 	IconBans   = "🛑"
 	IconVac    = "👮"
 	IconDrCool = "😎"
 )
+
+func DetailRow(label string, value string) string {
+	return lipgloss.JoinHorizontal(lipgloss.Top,
+		PanelLabel.Render(label+" "),
+		PanelValue.Render(value))
+}

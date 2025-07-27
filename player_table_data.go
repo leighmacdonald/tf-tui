@@ -79,13 +79,14 @@ func (m *PlayerTableData) Sort(column playerTableColumn, asc bool) {
 	m.sortColumn = column
 	m.asc = asc
 
-	slices.SortStableFunc(m.players, func(a, b Player) int {
+	slices.SortStableFunc(m.players, func(a, b Player) int { //nolint:varnamelen
 		switch m.sortColumn {
 		case playerUID:
 			return cmp.Compare(a.UserID, b.UserID)
 		case playerName:
 			av, _ := strconv.Atoi(a.Name)
 			bv, _ := strconv.Atoi(b.Name)
+
 			return cmp.Compare(av, bv)
 		case playerScore:
 			return cmp.Compare(a.Score, b.Score)
@@ -131,6 +132,7 @@ func (m *PlayerTableData) At(row int, col int) string {
 	case playerMeta:
 		return m.metaColumn(player)
 	}
+
 	return "?"
 }
 
@@ -154,6 +156,10 @@ func (m *PlayerTableData) metaColumn(player Player) string {
 
 	if len(afflictions) == 0 {
 		afflictions = append(afflictions, styles.IconCheck)
+	}
+
+	if len(player.meta.CompetitiveTeams) > 0 {
+		afflictions = append(afflictions, "🏟️")
 	}
 
 	return strings.Join(afflictions, " ")

@@ -13,6 +13,7 @@ import (
 )
 
 type DetailPanel struct {
+	links  []UserLink
 	player Player
 	width  int
 	height int
@@ -24,6 +25,8 @@ func (m DetailPanel) Init() tea.Cmd {
 
 func (m DetailPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case Config:
+		m.links = msg.Links
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -40,18 +43,16 @@ func (m DetailPanel) View() string {
 	}
 
 	var rows []string
-
 	rows = append(rows,
-		lipgloss.JoinHorizontal(lipgloss.Top,
-			styles.PanelLabel.Render("SteamID "),
-			styles.PanelValue.Render(m.player.SteamID.String())))
+		styles.DetailRow("SteamID", m.player.SteamID.String()),
+		styles.DetailRow("Steam Profile",
+			fmt.Sprintf("https://steamcommunity.com/profiles/%s", m.player.SteamID.String())))
 
-	rows = append(rows,
-		lipgloss.JoinHorizontal(lipgloss.Top,
-			styles.PanelLabel.Render("Steam Profile "),
-			styles.PanelValue.Render(fmt.Sprintf("https://steamcommunity.com/profiles/%s", m.player.SteamID.String()))))
+	for _, link := range m.links {
+		rows = append(rows, styles.DetailRow(link.Name, link.Generate(m.player.SteamID)))
+	}
 
-	if m.player.meta.CompetitiveTeams != nil && len(m.player.meta.CompetitiveTeams) > 0 {
+	if len(m.player.meta.CompetitiveTeams) > 0 {
 		var leagues []string
 		for _, team := range m.player.meta.CompetitiveTeams {
 			if !slices.Contains(leagues, team.League) {
@@ -61,56 +62,36 @@ func (m DetailPanel) View() string {
 		for _, league := range leagues {
 			switch league {
 			case "rgl":
-				rows = append(rows,
-					lipgloss.JoinHorizontal(lipgloss.Top,
-						styles.PanelLabel.Render("RGL Profile "),
-						styles.PanelValue.Render(fmt.Sprintf("https://rgl.gg/Public/PlayerProfile?p=%s", m.player.SteamID.String()))))
+				rows = append(rows, styles.DetailRow("RGL Profile",
+					fmt.Sprintf("https://rgl.gg/Public/PlayerProfile?p=%s", m.player.SteamID.String())))
 			}
 		}
 	}
 
 	if m.player.meta.TimeCreated > 0 {
-		diff := humanize.RelTime(time.Unix(m.player.meta.TimeCreated, 0), time.Now(), "", "")
-		// age := time.Since(time.Unix(m.player.meta.TimeCreated, 0))
-		rows = append(rows,
-			lipgloss.JoinHorizontal(lipgloss.Top,
-				styles.PanelLabel.Render("Acct. Age "),
-				styles.PanelValue.Render(diff)))
+		rows = append(rows, styles.DetailRow("Acct. Age",
+			humanize.RelTime(time.Unix(m.player.meta.TimeCreated, 0), time.Now(), "", "")))
 	}
 
 	if m.player.meta.EconomyBan != "none" && m.player.meta.EconomyBan != "" {
-		rows = append(rows,
-			lipgloss.JoinHorizontal(lipgloss.Top,
-				styles.PanelLabel.Render("Econ Ban "),
-				styles.PanelValue.Render(m.player.meta.EconomyBan)))
+		rows = append(rows, styles.DetailRow("Econ Ban", m.player.meta.EconomyBan))
 	}
 
 	if m.player.meta.CommunityBanned {
-		rows = append(rows,
-			lipgloss.JoinHorizontal(lipgloss.Top,
-				styles.PanelLabel.Render("Comm Ban "),
-				styles.PanelValue.Render("true")))
+		rows = append(rows, styles.DetailRow("Comm Ban", "true"))
 	}
 
 	if m.player.meta.NumberOfVacBans > 0 {
-		rows = append(rows,
-			lipgloss.JoinHorizontal(lipgloss.Top,
-				styles.PanelLabel.Render("Vac Bans "),
-				styles.PanelValue.Render(fmt.Sprintf("%d (%d days)", m.player.meta.NumberOfVacBans, m.player.meta.DaysSinceLastBan))))
+		rows = append(rows, styles.DetailRow("Vac Bans",
+			fmt.Sprintf("%d (%d days)", m.player.meta.NumberOfVacBans, m.player.meta.DaysSinceLastBan)))
 	}
 
 	if m.player.meta.NumberOfGameBans > 0 {
-		rows = append(rows,
-			lipgloss.JoinHorizontal(lipgloss.Top,
-				styles.PanelLabel.Render("Game Bans "),
-				styles.PanelValue.Render(strconv.Itoa(int(m.player.meta.NumberOfGameBans)))))
+		rows = append(rows, styles.DetailRow("Game Bans", strconv.Itoa(int(m.player.meta.NumberOfGameBans))))
 	}
 
 	if m.player.meta.LogsCount > 0 {
-		rows = append(rows,
-			lipgloss.JoinHorizontal(lipgloss.Top,
-				styles.PanelLabel.Render("Logs.tf "),
-				styles.PanelValue.Render(strconv.Itoa(int(m.player.meta.LogsCount)))))
+		rows = append(rows, styles.DetailRow("Logs.tf", strconv.Itoa(int(m.player.meta.LogsCount))))
 	}
 
 	return styles.PanelBorder.Width(m.width - 2).Render(lipgloss.JoinVertical(lipgloss.Top, rows...))

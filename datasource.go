@@ -66,7 +66,7 @@ type G15PlayerState struct {
 
 var lastUpdate G15PlayerState
 
-func fetchPlayerState(ctx context.Context, address string, password string) (G15PlayerState, error) {
+func fetchPlayerState(ctx context.Context, address string, password string) (G15PlayerState, error) { //nolint:unparam
 	conn := newRconConnection(address, password)
 	response, errExec := conn.exec(ctx, "g15_dumpplayer", true)
 	if errExec != nil {
@@ -150,7 +150,7 @@ func parsePlayerState(reader io.Reader) G15PlayerState {
 		case "m_iHealth":
 			data.Health[index] = parseInt(value, 0)
 		case "m_iAccountID":
-			data.SteamID[index] = steamid.New(int32(parseInt(value, 0)))
+			data.SteamID[index] = steamid.New(parseInt(value, 0))
 		case "m_bValid":
 			data.Valid[index] = parseBool(value)
 		case "m_iUserID":

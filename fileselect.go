@@ -37,6 +37,7 @@ func (m FileSelect) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if didSelect, selectedPath := m.filepicker.DidSelectFile(msg); didSelect {
 		m.selectedFile = selectedPath
 		m.err = ""
+
 		return m, tea.Batch(cmd, func() tea.Msg {
 			return SelectedFileMsg{m.selectedFile}
 		})
@@ -56,15 +57,17 @@ func (m FileSelect) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m FileSelect) View() string {
-	var s strings.Builder
-	s.WriteString("\n  ")
-	if m.err != "" {
-		s.WriteString(m.filepicker.Styles.DisabledFile.Render(m.err))
-	} else if m.selectedFile == "" {
-		s.WriteString("Pick a file:")
-	} else {
-		s.WriteString("Selected file: " + m.filepicker.Styles.Selected.Render(m.selectedFile))
+	var builder strings.Builder
+	builder.WriteString("\n  ")
+	switch {
+	case m.err != "":
+		builder.WriteString(m.filepicker.Styles.DisabledFile.Render(m.err))
+	case m.selectedFile == "":
+		builder.WriteString("Pick a file:")
+	default:
+		builder.WriteString("Selected file: " + m.filepicker.Styles.Selected.Render(m.selectedFile))
 	}
-	s.WriteString("\n\n" + m.filepicker.View() + "\n")
-	return s.String()
+	builder.WriteString("\n\n" + m.filepicker.View() + "\n")
+
+	return builder.String()
 }

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"sync"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -18,44 +20,55 @@ func NewUserListManager(lists []UserList) *UserListManager {
 }
 
 func (m *UserListManager) Sync() {
-	wg := sync.WaitGroup{}
-	mu := sync.Mutex{}
+	waitGroup := sync.WaitGroup{}
+	mutex := sync.Mutex{}
+	// There is no context passed down to children in tea apps.
+	ctx := context.Background()
 	var lists []BDSchema
 	for _, userList := range m.userLists {
-		wg.Add(1)
+		waitGroup.Add(1)
 
 		go func(list UserList) {
-			defer wg.Done()
+			defer waitGroup.Done()
 
-			req, errReq := http.NewRequest("GET", list.URL, nil)
+			reqContext, cancel := context.WithTimeout(ctx, time.Second*10)
+			defer cancel()
+
+			req, errReq := http.NewRequestWithContext(reqContext, http.MethodGet, list.URL, nil)
 			if errReq != nil {
 				tea.Printf("Failed to create request: %v\n", errReq)
+
 				return
 			}
 
 			resp, errResp := http.DefaultClient.Do(req)
 			if errResp != nil {
 				tea.Printf("Failed to get response: %v\n", errResp)
+
 				return
 			}
-			if resp.StatusCode != 200 {
+
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
 				tea.Printf("Failed to get response: %v\n", errResp)
+
 				return
 			}
 
 			var bdList BDSchema
 			if err := json.NewDecoder(resp.Body).Decode(&bdList); err != nil {
 				tea.Printf("Failed to decode response: %v\n", errResp)
+
 				return
 			}
-			mu.Lock()
+			mutex.Lock()
 			lists = append(lists, bdList)
-			mu.Unlock()
-
+			mutex.Unlock()
 		}(userList)
 	}
 
-	wg.Wait()
+	waitGroup.Wait()
 
 	m.lists = lists
 }

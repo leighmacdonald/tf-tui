@@ -25,6 +25,7 @@ func (m TableBansModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+
 		return m, nil
 	case SelectedPlayerMsg:
 		m.player = msg.player
@@ -53,9 +54,10 @@ func (m TableBansModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m TableBansModel) View() string {
-	if m.player.meta.Bans == nil || len(m.player.meta.Bans) == 0 {
+	if len(m.player.meta.Bans) == 0 {
 		return "No bans found " + styles.IconDrCool
 	}
+
 	return m.table.StyleFunc(func(_, col int) lipgloss.Style {
 		switch col {
 		case 0:

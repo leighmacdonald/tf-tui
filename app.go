@@ -66,7 +66,7 @@ func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *
 		compTable:     NewTableCompModel(),
 		tabs:          NewTabsModel(),
 		notesTextArea: NewTextAreaNotes(),
-		detailPanel:   DetailPanel{},
+		detailPanel:   DetailPanel{links: config.Links},
 		listManager:   NewUserListManager(config.BDLists),
 	}
 
@@ -81,6 +81,7 @@ func (m AppModel) Init() tea.Cmd {
 	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), m.configModel.Init(),
 		textinput.Blink, m.tabs.Init(), m.notesTextArea.Init(), func() tea.Msg {
 			m.listManager.Sync()
+
 			return nil
 		})
 }
@@ -287,7 +288,7 @@ func (m AppModel) title() string {
 	return styles.Title.
 		Width(m.width / 2).
 		Render(fmt.Sprintf("c: %d r: %d u: %d",
-			m.selectedTeam, m.selectedRow, m.selectedSteamID))
+			m.selectedTeam, m.selectedRow, m.selectedSteamID.Int64()))
 }
 
 func (m AppModel) status() string {

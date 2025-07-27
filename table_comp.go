@@ -30,7 +30,6 @@ func NewTableCompModel() tea.Model {
 				width = 20
 			case 4:
 				width = 30
-
 			}
 			switch {
 			case row == table.HeaderRow:
@@ -77,7 +76,7 @@ func (m TableComp) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m TableComp) View() string {
-	if m.player.meta.CompetitiveTeams == nil || len(m.player.meta.CompetitiveTeams) == 0 {
+	if len(m.player.meta.CompetitiveTeams) == 0 {
 		return "No league history found"
 	}
 

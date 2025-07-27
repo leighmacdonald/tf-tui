@@ -13,7 +13,7 @@ import (
 type Direction int
 
 const (
-	Up Direction = iota
+	Up Direction = iota //nolint:varnamelen
 	Down
 	Left
 	Right
@@ -63,10 +63,18 @@ func (m PlayerTablesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m PlayerTablesModel) selectedColumnPlayerCount() int {
 	if m.selectedTeam == RED {
-		return m.redTable.(PlayerTableModel).data.Rows()
+		if tm, ok := m.redTable.(PlayerTableModel); ok {
+			return tm.data.Rows()
+		}
+
+		return 0
 	}
 
-	return len(m.bluRows)
+	if tm, ok := m.bluTable.(PlayerTableModel); ok {
+		return tm.data.Rows()
+	}
+
+	return 0
 }
 
 func (m PlayerTablesModel) View() string {
@@ -79,13 +87,15 @@ func NewPlayerTableModel(team Team) *PlayerTableModel {
 		foreground = styles.Blu
 	}
 	data := NewPlayerTableData([]Player{}, team)
+
 	return &PlayerTableModel{
 		id:   zone.NewPrefix(),
 		team: team,
 		data: &data,
 		table: table.New().
 			BorderStyle(lipgloss.NewStyle().Foreground(foreground)).
-			BorderHeader(false)}
+			BorderHeader(false),
+	}
 }
 
 type PlayerTableModel struct {
@@ -112,12 +122,14 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.table.Width(msg.Width / 2)
+
 		return m, nil
 	case SortPlayersMsg:
 		m.data.Sort(msg.sortColumn, msg.asc)
+
 		return m, nil
 	case tea.MouseMsg:
-		switch msg.Button {
+		switch msg.Button { //nolint:exhaustive
 		case tea.MouseButtonWheelUp:
 			if m.selectedRow > 0 {
 				m.selectedRow--
@@ -128,6 +140,7 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		default:
 		}
+
 		return m, nil
 	case tea.KeyMsg:
 		switch {
@@ -171,6 +184,9 @@ func (m PlayerTableModel) moveSelection(direction Direction) (tea.Model, tea.Cmd
 		if m.selectedTeam != RED {
 			m.selectedTeam = RED
 			m.selectedRow = min(len(m.rows)-1, m.selectedRow)
+			if m.selectedRow < 0 {
+				m.selectedRow = 0
+			}
 		} else {
 			return m, nil
 		}
@@ -178,6 +194,9 @@ func (m PlayerTableModel) moveSelection(direction Direction) (tea.Model, tea.Cmd
 		if m.selectedTeam != BLU {
 			m.selectedTeam = BLU
 			m.selectedRow = min(len(m.rows)-1, m.selectedRow)
+			if m.selectedRow < 0 {
+				m.selectedRow = 0
+			}
 		} else {
 			return m, nil
 		}
@@ -220,7 +239,7 @@ func (m PlayerTableModel) updatePlayers(playersUpdate []Player) (tea.Model, tea.
 type playerTableCol int
 
 const (
-	colUid playerTableCol = iota
+	colUID playerTableCol = iota
 	colName
 	colScore
 	colDeaths
@@ -235,7 +254,7 @@ func (m PlayerTableModel) View() string {
 			mappedCol := m.data.enabledColumns[col]
 			width := 10
 			switch playerTableCol(mappedCol) {
-			case colUid:
+			case colUID:
 				width = 6
 			case colName:
 				width = 0

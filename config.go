@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/styles"
 	"gopkg.in/yaml.v3"
 )
@@ -27,6 +29,34 @@ type Config struct {
 	ConsoleLogPath string     `yaml:"console_log_path"`
 	APIBaseURL     string     `yaml:"api_base_url,omitempty"`
 	BDLists        []UserList `yaml:"bd_lists"`
+	Links          []UserLink `yaml:"links"`
+}
+
+type SIDFormats string
+
+const (
+	Steam64 SIDFormats = "steam64"
+	Steam2  SIDFormats = "steam"
+	Steam3  SIDFormats = "steam3"
+)
+
+type UserLink struct {
+	URL    string     `yaml:"url"`
+	Name   string     `yaml:"name"`
+	Format SIDFormats `yaml:"format"`
+}
+
+func (u UserLink) Generate(steamID steamid.SteamID) string {
+	switch u.Format {
+	case Steam2:
+		return fmt.Sprintf(u.URL, steamID.Steam(false))
+	case Steam3:
+		return fmt.Sprintf(u.URL, steamID.Steam3())
+	case Steam64:
+		fallthrough
+	default:
+		return fmt.Sprintf(u.URL, steamID.String())
+	}
 }
 
 type UserList struct {
@@ -64,7 +94,7 @@ type keymap struct {
 	notes    key.Binding
 }
 
-// TODO make configurable
+// TODO make configurable.
 var DefaultKeyMap = keymap{
 	accept: key.NewBinding(
 		key.WithKeys("enter"),
@@ -133,7 +163,7 @@ func configPath(name string) string {
 	return fullPath
 }
 
-func configRead(name string) (Config, bool) {
+func ConfigRead(name string) (Config, bool) {
 	var config Config
 	inFile, errOpen := os.Open(configPath(name))
 	if errOpen != nil {
@@ -152,7 +182,7 @@ func configRead(name string) (Config, bool) {
 	return config, true
 }
 
-func configWrite(name string, config Config) error {
+func ConfigWrite(name string, config Config) error {
 	outFile, errOpen := os.Create(configPath(name))
 	if errOpen != nil {
 		return errors.Join(errOpen, errConfigWrite)
@@ -174,7 +204,7 @@ func NewPicker() filepicker.Model {
 	}
 
 	picker := filepicker.New()
-	//picker.AllowedTypes = []string{"console.log"}
+	// picker.AllowedTypes = []string{"console.log"}
 	picker.CurrentDirectory, _ = os.UserHomeDir()
 	picker.CurrentDirectory = path.Join(homedir, ".steam/steam/steamapps/common/Team Fortress 2/tf")
 	picker.ShowPermissions = true
@@ -256,6 +286,7 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.focusIndex++
 			case fieldConsoleLogPath:
 				m.focusIndex++
+
 				return m, func() tea.Msg {
 					return SetViewMsg{view: viewConfigFiles}
 				}
@@ -265,7 +296,7 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cfg.Password = m.passwordAddr.Value()
 				cfg.ConsoleLogPath = m.selectedFile
 
-				if err := configWrite(defaultConfigName, cfg); err != nil {
+				if err := ConfigWrite(defaultConfigName, cfg); err != nil {
 					return m, func() tea.Msg { return StatusMsg{message: err.Error(), error: true} }
 				}
 
@@ -320,9 +351,9 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m configModel) View() string {
 	if m.activeView == viewConfigFiles {
 		return m.fileSelect.View()
-	} else {
-		return m.renderConfig()
 	}
+
+	return m.renderConfig()
 }
 
 func (m configModel) renderConfig() string {

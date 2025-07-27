@@ -9,4 +9,7 @@ check: lint_golangci
 
 lint_golangci:
 	go tool golangci-lint run --fix --timeout 3m ./...
-	
+
+update:
+	go get -u
+	go mod tidy
