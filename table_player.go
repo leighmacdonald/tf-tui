@@ -10,6 +10,7 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 )
 
+// Direction defines the cardinal directions the users can use in the UI.
 type Direction int
 
 const (
@@ -19,6 +20,31 @@ const (
 	Right
 )
 
+// playerTableCol defines all available columns for the player table.
+type playerTableCol int
+
+const (
+	colUID playerTableCol = iota
+	colName
+	colScore
+	colDeaths
+	colPing
+	colMeta
+)
+
+// playerTableColSize defines the sizes of the player columns.
+type playerTableColSize int
+
+const (
+	colUIDSize    playerTableColSize = 6
+	colNameSize   playerTableColSize = 0
+	colScoreSize  playerTableColSize = 5
+	colDeathsSize playerTableColSize = 5
+	colPingSize   playerTableColSize = 5
+	colMetaSize   playerTableColSize = 5
+)
+
+// PlayerTablesModel is a higher level component that manages the two player tables as children.
 type PlayerTablesModel struct {
 	selectedTeam Team // red = 3, blu = 4
 	redTable     tea.Model
@@ -35,13 +61,11 @@ func (m PlayerTablesModel) Init() tea.Cmd {
 }
 
 func NewTablePlayersModel() *PlayerTablesModel {
-	model := &PlayerTablesModel{
+	return &PlayerTablesModel{
 		selectedTeam: RED,
 		redTable:     NewPlayerTableModel(RED),
 		bluTable:     NewPlayerTableModel(BLU),
 	}
-
-	return model
 }
 
 func (m PlayerTablesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -139,6 +163,29 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}, func() tea.Msg {
 						return SelectedPlayerMsg{player: item}
 					})
+				}
+			}
+
+			for _, markID := range []string{"name", "uid", "score", "meta", "deaths", "ping"} {
+				if zone.Get(m.id + markID).InBounds(msg) {
+					var col playerTableColumn
+					switch markID {
+					case "uid":
+						col = playerUID
+					case "score":
+						col = playerScore
+					case "deaths":
+						col = playerDeaths
+					case "ping":
+						col = playerPing
+					case "meta":
+						col = playerMeta
+					default:
+						col = playerName
+
+					}
+					m.data.Sort(col, !m.data.asc)
+					return m, nil
 				}
 			}
 
@@ -269,71 +316,60 @@ func (m PlayerTableModel) updatePlayers(playersUpdate []Player) (tea.Model, tea.
 	return m, nil
 }
 
-type playerTableCol int
-
-const (
-	colUID playerTableCol = iota
-	colName
-	colScore
-	colDeaths
-	colPing
-	colMeta
-)
-
 func (m PlayerTableModel) View() string {
 	selectedRowIdx := m.currentRowIndex()
 	return m.table.
 		Headers(m.data.Headers()...).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			mappedCol := m.data.enabledColumns[col]
-			width := 10
+			width := colNameSize
 			switch playerTableCol(mappedCol) {
 			case colUID:
-				width = 6
+				width = colUIDSize
 			case colName:
-				width = 0
+				width = colNameSize
 			case colScore:
-				width = 5
+				width = colScoreSize
 			case colDeaths:
-				width = 5
+				width = colDeathsSize
 			case colPing:
-				width = 5
+				width = colPingSize
 			case colMeta:
-				width = 10
+				width = colMetaSize
 			}
 			switch {
 			case row == table.HeaderRow:
 				if m.team == RED {
 					if playerTableCol(col) == colName {
-						return styles.HeaderStyleRed.Width(width)
+						return styles.HeaderStyleRed.Width(int(width))
 					}
 
-					return styles.HeaderStyleRed.Width(width)
+					return styles.HeaderStyleRed.Width(int(width))
 				}
 				if col == 1 {
-					return styles.HeaderStyleBlu.Width(width)
+					return styles.HeaderStyleBlu.Width(int(width))
 				}
 
 				return styles.HeaderStyleBlu
 			case col != 5 && row == selectedRowIdx && m.team == m.selectedTeam:
 				if m.team == RED {
 					if playerTableCol(col) == colName {
-						return styles.SelectedCellStyleNameRed.Width(width)
+						return styles.SelectedCellStyleNameRed.Width(int(width))
 					}
 
-					return styles.SelectedCellStyleRed.Width(width)
+					return styles.SelectedCellStyleRed.Width(int(width))
 				}
 				if playerTableCol(col) == colName {
-					return styles.SelectedCellStyleNameBlu.Width(width)
+					return styles.SelectedCellStyleNameBlu.Width(int(width))
 				}
 
-				return styles.SelectedCellStyleBlu.Width(width)
+				return styles.SelectedCellStyleBlu.Width(int(width))
 			case col == 1:
-				return styles.EvenRowStyle.Width(width)
+				return styles.EvenRowStyle.Width(int(width))
 			case row%2 == 0:
-				return styles.EvenRowStyle.Width(width)
+				return styles.EvenRowStyle.Width(int(width))
 			default:
-				return styles.OddRowStyle.Width(width)
+				return styles.OddRowStyle.Width(int(width))
 			}
 		}).
 		String()

@@ -3,7 +3,6 @@ package main
 import (
 	"cmp"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/leighmacdonald/tf-tui/styles"
@@ -61,17 +60,17 @@ func (m *PlayerTableData) Headers() []string {
 	for _, col := range m.enabledColumns {
 		switch col {
 		case playerUID:
-			headers = append(headers, "UID")
+			headers = append(headers, zone.Mark(m.zoneID+"uid", "UID"))
 		case playerName:
-			headers = append(headers, "Name")
+			headers = append(headers, zone.Mark(m.zoneID+"name", "Name"))
 		case playerScore:
-			headers = append(headers, "Score")
+			headers = append(headers, zone.Mark(m.zoneID+"score", "Score"))
 		case playerDeaths:
-			headers = append(headers, "Deaths")
+			headers = append(headers, zone.Mark(m.zoneID+"deaths", "Deaths"))
 		case playerPing:
-			headers = append(headers, "Ping")
+			headers = append(headers, zone.Mark(m.zoneID+"ping", "Ping"))
 		case playerMeta:
-			headers = append(headers, "Meta")
+			headers = append(headers, zone.Mark(m.zoneID+"meta", "Meta"))
 		}
 	}
 
@@ -87,10 +86,7 @@ func (m *PlayerTableData) Sort(column playerTableColumn, asc bool) {
 		case playerUID:
 			return cmp.Compare(a.UserID, b.UserID)
 		case playerName:
-			av, _ := strconv.Atoi(a.Name)
-			bv, _ := strconv.Atoi(b.Name)
-
-			return cmp.Compare(av, bv)
+			return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
 		case playerScore:
 			return cmp.Compare(a.Score, b.Score)
 		case playerDeaths:
@@ -125,7 +121,14 @@ func (m *PlayerTableData) At(row int, col int) string {
 	case playerUID:
 		return fmt.Sprintf("%d", player.UserID)
 	case playerName:
-		return zone.Mark(m.zoneID+player.SteamID.String(), player.Name)
+		name := player.Name
+		if name == "" {
+			name = player.meta.PersonaName
+		}
+		if name == "" {
+			name = player.SteamID.String()
+		}
+		return zone.Mark(m.zoneID+player.SteamID.String(), name)
 	case playerScore:
 		return fmt.Sprintf("%d", player.Score)
 	case playerDeaths:
@@ -157,12 +160,12 @@ func (m *PlayerTableData) metaColumn(player Player) string {
 		afflictions = append(afflictions, styles.IconVac)
 	}
 
-	if len(afflictions) == 0 {
-		afflictions = append(afflictions, styles.IconCheck)
-	}
+	//if len(afflictions) == 0 {
+	//	afflictions = append(afflictions, styles.IconCheck)
+	//}
 
 	if len(player.meta.CompetitiveTeams) > 0 {
-		afflictions = append(afflictions, "🏟️")
+		afflictions = append(afflictions, styles.IconComp)
 	}
 
 	return strings.Join(afflictions, " ")

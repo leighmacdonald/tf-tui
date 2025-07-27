@@ -1,10 +1,9 @@
 package main
 
 import (
-	"strings"
-
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -26,25 +25,24 @@ type TabLabel struct {
 
 func NewTabsModel() tea.Model {
 	return &TabsModel{
-		// id: zone.NewPrefix(),
 		tabs: []TabLabel{
 			{
-				label: "[o]verview",
+				label: styles.IconInfo + " Overview",
 				tab:   TabOverview,
 				id:    zone.NewPrefix(),
 			},
 			{
-				label: "[b]ans",
+				label: styles.IconBans + " Bans",
 				tab:   TabBans,
 				id:    zone.NewPrefix(),
 			},
 			{
-				label: "[c]omp",
+				label: styles.IconComp + " Comp",
 				tab:   TabComp,
 				id:    zone.NewPrefix(),
 			},
 			{
-				label: "[n]otes",
+				label: styles.IconNotes + " Notes",
 				tab:   TabNotes,
 				id:    zone.NewPrefix(),
 			},
@@ -116,16 +114,15 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m TabsModel) View() string {
-	var builder strings.Builder
-	builder.WriteString("\n")
+	var tabs []string
 
 	for _, tab := range m.tabs {
 		if tab.tab == m.selectedTab {
-			builder.WriteString(zone.Mark(m.id+tab.label, styles.TabsActive.Render(tab.label)))
+			tabs = append(tabs, zone.Mark(m.id+tab.label, styles.TabsActive.Render(tab.label)))
 		} else {
-			builder.WriteString(zone.Mark(m.id+tab.label, styles.TabsInactive.Render(tab.label)))
+			tabs = append(tabs, zone.Mark(m.id+tab.label, styles.TabsInactive.Render(tab.label)))
 		}
 	}
 
-	return styles.TabContainer.Width(m.width).Render(builder.String())
+	return styles.TabContainer.Width(m.width).Render(lipgloss.JoinHorizontal(lipgloss.Top, tabs...))
 }

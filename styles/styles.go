@@ -10,8 +10,9 @@ var (
 	Accent = lipgloss.Color("#f4722b")
 	Status = lipgloss.NewStyle().Bold(true).
 		Foreground(ColourGenuine).
+		Align(lipgloss.Center).
 		Border(lipgloss.NormalBorder()).
-		BorderStyle(lipgloss.NewStyle().Foreground(Blu).GetBorderStyle()).Padding(1)
+		BorderStyle(lipgloss.NewStyle().Foreground(Blu).GetBorderStyle()).Padding(0)
 	Title = lipgloss.NewStyle().Bold(true).Foreground(Blu).Padding(1)
 
 	HeaderContainerStyle  = lipgloss.NewStyle().Align(lipgloss.Center)
@@ -70,18 +71,20 @@ var (
 	PanelValue   = lipgloss.NewStyle().Width(60)
 	TabContainer = lipgloss.NewStyle().Align(lipgloss.Center).Background(Black)
 	TabWidth     = 12
-	TabsInactive = lipgloss.NewStyle().Inline(true).Background(Black).Bold(true).
-			Border(lipgloss.NormalBorder()).BorderStyle(lipgloss.InnerHalfBlockBorder()).Padding(1).
-			Width(TabWidth).Foreground(ColourVintage)
-	TabsActive = lipgloss.NewStyle().Inline(true).Background(Black).Bold(true).
-			Border(lipgloss.NormalBorder()).Padding(1).Width(TabWidth).Foreground(ColourUnusual)
+	TabsInactive = lipgloss.NewStyle().Background(Black).Bold(true).
+			Foreground(ColourVintage).PaddingLeft(2).PaddingRight(2)
+	TabsActive = lipgloss.NewStyle().
+			Background(Black).Bold(true).
+			Foreground(ColourUnusual).PaddingLeft(2).PaddingRight(2)
 
 	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️.
-	IconComp   = "🏟️"
+	IconComp   = "🏁"
 	IconCheck  = "✅"
 	IconBans   = "🛑"
 	IconVac    = "👮"
 	IconDrCool = "😎"
+	IconNotes  = "📓"
+	IconInfo   = "💡"
 )
 
 func DetailRow(label string, value string) string {

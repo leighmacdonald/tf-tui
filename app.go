@@ -170,13 +170,17 @@ func (m AppModel) View() string {
 
 	footer = styles.FooterContainerStyle.
 		Width(m.width).
-		Render(lipgloss.JoinHorizontal(lipgloss.Top, m.renderHelp(), m.renderHeading()))
+		Render(lipgloss.JoinVertical(lipgloss.Top, m.renderHelp(), m.renderDebug()))
 	header = m.tabs.View()
+	hdr := styles.HeaderContainerStyle.Width(m.width).Render(header)
+	_, hdrHeight := lipgloss.Size(hdr)
+	ftr := styles.FooterContainerStyle.Width(m.width).Render(footer)
+	_, ftrHeight := lipgloss.Size(ftr)
 	// Send the UI for rendering
-	return zone.Scan(lipgloss.JoinVertical(lipgloss.Top,
-		styles.HeaderContainerStyle.Width(m.width).Render(header),
-		styles.ContentContainerStyle.Height(m.height-4).Render(content),
-		styles.FooterContainerStyle.Width(m.width).Render(footer)))
+	return zone.Scan(lipgloss.JoinVertical(lipgloss.Center,
+		hdr,
+		styles.ContentContainerStyle.Height(m.height-hdrHeight-ftrHeight).Render(content),
+		ftr))
 }
 
 func (m AppModel) isInitialized() bool {
@@ -283,26 +287,20 @@ func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m AppModel) title() string {
-	return styles.Title.
-		Width(m.width / 2).
+	return lipgloss.NewStyle().Bold(true).
+		Align(lipgloss.Center).
 		Render(fmt.Sprintf("t: %d s: %d",
 			m.selectedTeam, m.selectedSteamID.Int64()))
 }
 
 func (m AppModel) status() string {
 	if m.statusError {
-		return styles.Status.Foreground(styles.Red).Width(m.width / 2).Render(m.statusMsg)
+		return styles.Status.Foreground(styles.Red).Render(m.statusMsg)
 	}
 
-	return styles.Status.Width(m.width / 2).Render(m.statusMsg)
+	return styles.Status.Render(m.statusMsg)
 }
 
-func (m AppModel) renderHeading() string {
-	out := lipgloss.JoinHorizontal(lipgloss.Top, m.title(), m.status())
-
-	if m.quitting {
-		return out + "\n"
-	}
-
-	return out
+func (m AppModel) renderDebug() string {
+	return lipgloss.JoinHorizontal(lipgloss.Center, m.title(), m.status())
 }

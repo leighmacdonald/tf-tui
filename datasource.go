@@ -95,7 +95,7 @@ func fetchPlayerState(ctx context.Context, address string, password string) (G15
 			if playerIdx == 6 {
 				data.SteamID[playerIdx] = steamid.New(76561198044497183)
 			}
-			data.Names[playerIdx] = data.SteamID[playerIdx].String()
+			//data.Names[playerIdx] = data.SteamID[playerIdx].String()
 		}
 
 		return data, nil
