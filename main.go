@@ -1,6 +1,7 @@
 package main
 
 //go:generate go tool oapi-codegen -config config.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.yaml
+//go:generate go tool sqlc generate
 
 import (
 	"context"
@@ -11,7 +12,9 @@ import (
 
 	"github.com/adrg/xdg"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/leighmacdonald/tf-tui/store"
 	zone "github.com/lrstanley/bubblezone"
+	_ "modernc.org/sqlite"
 )
 
 type Team int
@@ -37,7 +40,7 @@ func run() error {
 	zone.NewGlobal()
 
 	if len(os.Getenv("DEBUG")) > 0 {
-		logFile, err := tea.LogToFile("debug.log", "debug")
+		logFile, err := tea.LogToFile(ConfigPath(defaultLogName), "debug")
 		if err != nil {
 			return errors.Join(err, errApp)
 		}
@@ -55,9 +58,18 @@ func run() error {
 		return errors.Join(errClient, errApp)
 	}
 
-	apis := NewAPIs(client)
+	db, errDB := store.Connect(ctx, ConfigPath(defaultDBName))
+	if errDB != nil {
+		return errors.Join(errDB, errApp)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			tea.Println(err.Error())
+		}
+	}()
 
-	if err := os.MkdirAll(path.Join(xdg.ConfigHome, "tf-tui"), 0o755); err != nil {
+	apis := NewAPIs(client)
+	if err := os.MkdirAll(path.Join(xdg.ConfigHome, configDirName), 0o600); err != nil {
 		return errors.Join(err, errApp)
 	}
 
@@ -71,7 +83,7 @@ func run() error {
 	//	os.Exit(1)
 	//}
 
-	players := newPlayerStates(apis)
+	players := NewPlayerStates(apis)
 	go players.Start(ctx)
 
 	model := New(config, !configFound, scripting, players)

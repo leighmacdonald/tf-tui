@@ -128,6 +128,7 @@ func (m *PlayerTableData) At(row int, col int) string {
 		if name == "" {
 			name = player.SteamID.String()
 		}
+
 		return zone.Mark(m.zoneID+player.SteamID.String(), name)
 	case playerScore:
 		return fmt.Sprintf("%d", player.Score)
@@ -160,7 +161,7 @@ func (m *PlayerTableData) metaColumn(player Player) string {
 		afflictions = append(afflictions, styles.IconVac)
 	}
 
-	//if len(afflictions) == 0 {
+	// if len(afflictions) == 0 {
 	//	afflictions = append(afflictions, styles.IconCheck)
 	//}
 

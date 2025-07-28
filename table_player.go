@@ -158,6 +158,7 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if zone.Get(m.id + item.SteamID.String()).InBounds(msg) {
 					m.selectedSteamID = item.SteamID
 					m.selectedTeam = m.team
+
 					return m, tea.Batch(func() tea.Msg {
 						return SelectedTableRowMsg{selectedTeam: m.selectedTeam, selectedSteamID: m.selectedSteamID}
 					}, func() tea.Msg {
@@ -182,9 +183,9 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						col = playerMeta
 					default:
 						col = playerName
-
 					}
 					m.data.Sort(col, !m.data.asc)
+
 					return m, nil
 				}
 			}
@@ -220,6 +221,7 @@ func (m PlayerTableModel) moveSelection(direction Direction) (tea.Model, tea.Cmd
 	case Up:
 		if currentRow < 0 && len(m.data.players) > 0 {
 			m.selectedSteamID = m.data.players[len(m.data.players)-1].SteamID
+
 			break
 		}
 		if currentRow == 0 {
@@ -229,6 +231,7 @@ func (m PlayerTableModel) moveSelection(direction Direction) (tea.Model, tea.Cmd
 	case Down:
 		if currentRow < 0 && len(m.data.players) > 0 {
 			m.selectedSteamID = m.data.players[0].SteamID
+
 			break
 		}
 		if currentRow >= len(m.data.players)-1 {
@@ -265,6 +268,7 @@ func (m PlayerTableModel) moveSelection(direction Direction) (tea.Model, tea.Cmd
 			cmd = func() tea.Msg { return SelectedPlayerMsg{player: player} }
 		}
 	}
+
 	return m, tea.Batch(cmd, func() tea.Msg {
 		return SelectedTableRowMsg{selectedTeam: m.selectedTeam, selectedSteamID: m.selectedSteamID}
 	})
@@ -306,6 +310,7 @@ func (m PlayerTableModel) updatePlayers(playersUpdate []Player) (tea.Model, tea.
 		} else {
 			m.selectedSteamID = player.SteamID
 		}
+
 		return m, func() tea.Msg {
 			return SelectedTableRowMsg{
 				selectedTeam:    m.selectedTeam,
@@ -313,11 +318,13 @@ func (m PlayerTableModel) updatePlayers(playersUpdate []Player) (tea.Model, tea.
 			}
 		}
 	}
+
 	return m, nil
 }
 
 func (m PlayerTableModel) View() string {
 	selectedRowIdx := m.currentRowIndex()
+
 	return m.table.
 		Headers(m.data.Headers()...).
 		StyleFunc(func(row, col int) lipgloss.Style {

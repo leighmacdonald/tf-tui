@@ -16,7 +16,7 @@ const (
 	// How long we wait until a player should be ejected from our tracking.
 	// This should be long enough to last through map changes without dropping the
 	// known players.
-	playerExpiration = time.Second * 300
+	playerExpiration = time.Second * 30
 	maxQueueSize     = 100
 )
 
@@ -40,7 +40,7 @@ type Player struct {
 }
 
 func (p Player) Expired() bool {
-	return time.Since(p.g15UpdatedOn) > playerExpiration*2
+	return time.Since(p.g15UpdatedOn) > playerExpiration
 }
 
 type PlayerData struct {
@@ -50,7 +50,7 @@ type PlayerData struct {
 	apis        APIs
 }
 
-func newPlayerStates(apis APIs) *PlayerData {
+func NewPlayerStates(apis APIs) *PlayerData {
 	return &PlayerData{
 		mu:          &sync.RWMutex{},
 		players:     make(map[steamid.SteamID]*Player),

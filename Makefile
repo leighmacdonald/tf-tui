@@ -5,11 +5,12 @@ fmt:
 	go tool gci write . --skip-generated -s standard -s default
 	go tool gofumpt -l -w .
 
-check: lint_golangci
-
-lint_golangci:
+check:
 	go tool golangci-lint run --fix --timeout 3m ./...
 
 update:
 	go get -u
 	go mod tidy
+
+generate:
+	go generate

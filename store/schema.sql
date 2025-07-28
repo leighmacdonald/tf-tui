@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS notes (
+    steam_id BIGINT NOT NULL PRIMARY KEY,
+    note TEXT NOT NULL,
+    updated_on INTEGER NOT NULL
+);

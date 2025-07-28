@@ -23,6 +23,14 @@ var (
 	errInvalidPath = errors.New("invalid path")
 )
 
+const (
+	configDirName      = "tf-tui"
+	defaultConfigName  = "tf-tui.yaml"
+	defaultDBName      = "tf-tui.db"
+	defaultLogName     = "tf-tui.log"
+	defaultHTTPTimeout = 15 * time.Second
+)
+
 type Config struct {
 	Address        string     `yaml:"address"`
 	Password       string     `yaml:"password"`
@@ -69,11 +77,6 @@ var defaultConfig = Config{
 	Password:       "test",
 	ConsoleLogPath: "",
 }
-
-const (
-	defaultConfigName  = "tf-tui.yaml"
-	defaultHTTPTimeout = 15 * time.Second
-)
 
 type keymap struct {
 	start    key.Binding
@@ -154,8 +157,9 @@ var DefaultKeyMap = keymap{
 	),
 }
 
-func configPath(name string) string {
-	fullPath, errFullPath := xdg.ConfigFile(path.Join("tf-tui", name))
+// ConfigPath generates a path pointing to the filename under this apps defined $XDG_CONFIG_HOME.
+func ConfigPath(name string) string {
+	fullPath, errFullPath := xdg.ConfigFile(path.Join(configDirName, name))
 	if errFullPath != nil {
 		panic(errFullPath)
 	}
@@ -165,7 +169,7 @@ func configPath(name string) string {
 
 func ConfigRead(name string) (Config, bool) {
 	var config Config
-	inFile, errOpen := os.Open(configPath(name))
+	inFile, errOpen := os.Open(ConfigPath(name))
 	if errOpen != nil {
 		return defaultConfig, false
 	}
@@ -183,7 +187,7 @@ func ConfigRead(name string) (Config, bool) {
 }
 
 func ConfigWrite(name string, config Config) error {
-	outFile, errOpen := os.Create(configPath(name))
+	outFile, errOpen := os.Create(ConfigPath(name))
 	if errOpen != nil {
 		return errors.Join(errOpen, errConfigWrite)
 	}

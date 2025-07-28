@@ -52,12 +52,10 @@ type AppModel struct {
 }
 
 func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *AppModel {
-	helpView := help.New()
-
 	app := &AppModel{
 		cache:         cache,
 		config:        config,
-		helpView:      helpView,
+		helpView:      help.New(),
 		scripting:     scripting,
 		playerTables:  NewTablePlayersModel(),
 		banTable:      NewTableBansModel(),
@@ -151,21 +149,19 @@ func (m AppModel) View() string {
 	case viewConfig:
 		content = m.configModel.View()
 	case viewPlayerTables:
-		var builder strings.Builder
-		builder.WriteString(m.playerTables.View())
+		parts := []string{m.playerTables.View()}
 
-		builder.WriteString("\n")
 		switch m.activeTab {
 		case TabOverview:
-			builder.WriteString(m.detailPanel.View())
+			parts = append(parts, m.detailPanel.View())
 		case TabBans:
-			builder.WriteString(m.banTable.View())
+			parts = append(parts, m.banTable.View())
 		case TabComp:
-			builder.WriteString(m.compTable.View())
+			parts = append(parts, m.compTable.View())
 		case TabNotes:
-			builder.WriteString("Notes...")
+			parts = append(parts, "Notes...")
 		}
-		content = builder.String()
+		content = lipgloss.JoinVertical(lipgloss.Top, parts...)
 	}
 
 	footer = styles.FooterContainerStyle.
@@ -176,10 +172,11 @@ func (m AppModel) View() string {
 	_, hdrHeight := lipgloss.Size(hdr)
 	ftr := styles.FooterContainerStyle.Width(m.width).Render(footer)
 	_, ftrHeight := lipgloss.Size(ftr)
+	contentViewPortHeight := m.height - hdrHeight - ftrHeight
 	// Send the UI for rendering
 	return zone.Scan(lipgloss.JoinVertical(lipgloss.Center,
 		hdr,
-		styles.ContentContainerStyle.Height(m.height-hdrHeight-ftrHeight).Render(content),
+		styles.ContentContainerStyle.Height(contentViewPortHeight).Render(content),
 		ftr))
 }
 
@@ -250,10 +247,6 @@ func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
 			}
 		})
 	}
-
-	// if m.selectedRow > m.playerTables.selectedColumnPlayerCount()-1 {
-	//	m.selectedRow = max(m.playerTables.selectedColumnPlayerCount()-1, 0)
-	//}
 
 	m.cache.SetStats(msg.dump)
 
