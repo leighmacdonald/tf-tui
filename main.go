@@ -1,7 +1,7 @@
 package main
 
-//go:generate go tool oapi-codegen -config config.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.yaml
-//go:generate go tool sqlc generate
+//go:generate go tool oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.yaml
+//go:generate go tool sqlc generate -f .sqlc.yaml
 
 import (
 	"context"

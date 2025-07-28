@@ -77,19 +77,25 @@ func (m PlayerTablesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m PlayerTablesModel) selectedColumnPlayerCount() int {
-	if m.selectedTeam == RED {
-		if tm, ok := m.redTable.(PlayerTableModel); ok {
-			return tm.data.Rows()
-		}
+	var (
+		model PlayerTableModel
+		ok    bool
+	)
 
+	switch m.selectedTeam {
+	case RED:
+		model, ok = m.redTable.(PlayerTableModel)
+	case BLU:
+		model, ok = m.bluTable.(PlayerTableModel)
+	default:
 		return 0
 	}
 
-	if tm, ok := m.bluTable.(PlayerTableModel); ok {
-		return tm.data.Rows()
+	if !ok {
+		return 0
 	}
 
-	return 0
+	return model.data.Rows()
 }
 
 func (m PlayerTablesModel) View() string {
