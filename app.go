@@ -22,6 +22,7 @@ const (
 	viewPlayerTables contentView = iota
 	viewConfig
 	viewConsole
+	viewCHat
 )
 
 type AppModel struct {
@@ -49,6 +50,7 @@ type AppModel struct {
 	notesTextArea   tea.Model
 	tabs            tea.Model
 	statusView      tea.Model
+	chatView        tea.Model
 }
 
 func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData, console *ConsoleLog) *AppModel {
@@ -68,6 +70,7 @@ func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData, c
 		listManager:   NewUserListManager(config.BDLists),
 		consoleView:   NewConsoleView(),
 		statusView:    NewStatusView(),
+		chatView:      NewPanelChatModel(),
 	}
 
 	if doSetup {
@@ -89,6 +92,7 @@ func (m AppModel) Init() tea.Cmd {
 		m.notesTextArea.Init(),
 		m.consoleView.Init(),
 		m.statusView.Init(),
+		m.chatView.Init(),
 		func() tea.Msg {
 			m.listManager.Sync()
 
@@ -133,6 +137,8 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.currentView = viewConfig
 			}
+		case key.Matches(msg, DefaultKeyMap.chat):
+			m.currentView = viewCHat
 		}
 
 	case SetViewMsg:
@@ -150,6 +156,8 @@ func (m AppModel) View() string {
 	)
 
 	switch m.currentView {
+	case viewCHat:
+		content = m.chatView.View()
 	case viewConsole:
 		content = m.consoleView.View()
 	case viewConfig:
@@ -222,6 +230,7 @@ func (m AppModel) renderHelp() string {
 			DefaultKeyMap.right,
 			DefaultKeyMap.nextTab,
 			DefaultKeyMap.console,
+			DefaultKeyMap.chat,
 		}))
 	case viewConsole:
 		k := filepicker.DefaultKeyMap()
@@ -270,7 +279,7 @@ func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 10)
+	cmds := make([]tea.Cmd, 11)
 	m.configModel, cmds[0] = m.configModel.Update(msg)
 	m.playerTables, cmds[1] = m.playerTables.Update(msg)
 	m.banTable, cmds[2] = m.banTable.Update(msg)
@@ -281,6 +290,7 @@ func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.compTable, cmds[7] = m.compTable.Update(msg)
 	m.consoleView, cmds[8] = m.consoleView.Update(msg)
 	m.statusView, cmds[9] = m.statusView.Update(msg)
+	m.chatView, cmds[10] = m.chatView.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }

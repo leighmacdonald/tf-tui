@@ -34,12 +34,13 @@ const (
 )
 
 type Config struct {
-	Address        string     `yaml:"address"`
-	Password       string     `yaml:"password"`
-	ConsoleLogPath string     `yaml:"console_log_path"`
-	APIBaseURL     string     `yaml:"api_base_url,omitempty"`
-	BDLists        []UserList `yaml:"bd_lists"`
-	Links          []UserLink `yaml:"links"`
+	Address        string          `yaml:"address"`
+	Password       string          `yaml:"password"`
+	ConsoleLogPath string          `yaml:"console_log_path"`
+	APIBaseURL     string          `yaml:"api_base_url,omitempty"`
+	BDLists        []UserList      `yaml:"bd_lists"`
+	Links          []UserLink      `yaml:"links"`
+	SteamID        steamid.SteamID `yaml:"steam_id"`
 }
 
 type SIDFormats string
@@ -86,6 +87,7 @@ type keymap struct {
 	reset    key.Binding
 	quit     key.Binding
 	config   key.Binding
+	chat     key.Binding
 	up       key.Binding
 	down     key.Binding
 	left     key.Binding
@@ -161,6 +163,10 @@ var DefaultKeyMap = keymap{
 	console: key.NewBinding(
 		key.WithKeys("~"),
 		key.WithHelp("~", "Console"),
+	),
+	chat: key.NewBinding(
+		key.WithKeys("t"),
+		key.WithHelp("t", "Chat"),
 	),
 }
 

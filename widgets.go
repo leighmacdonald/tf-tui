@@ -9,7 +9,7 @@ func NewTextInputModel(value string, placeholder string) textinput.Model {
 	input := textinput.New()
 	input.Cursor.Style = styles.CursorStyle
 	input.SetValue(value)
-	input.CharLimit = 128
+	input.CharLimit = 127
 	input.Placeholder = placeholder
 	input.PromptStyle = styles.FocusedStyle
 	input.TextStyle = styles.FocusedStyle

@@ -79,7 +79,15 @@ var (
 	StatusMessage  = lipgloss.NewStyle().Foreground(ColourGenuine).Background(Black).Align(lipgloss.Right).Bold(true).PaddingRight(2)
 	StatusRedTeam  = lipgloss.NewStyle().Foreground(Red).Background(Black).Bold(true).PaddingLeft(0).Align(lipgloss.Center).PaddingRight(0)
 	StatusBluTeam  = lipgloss.NewStyle().Foreground(Blu).Background(Black).Bold(true).PaddingLeft(0).Align(lipgloss.Center).PaddingRight(0)
+
+	ChatNameOther = lipgloss.NewStyle().Foreground(ColourLimited).Bold(true).Align(lipgloss.Left)
+	ChatNameBlu   = lipgloss.NewStyle().Width(20).Foreground(Blu).Bold(true).Align(lipgloss.Left)
+	ChatNameRed   = lipgloss.NewStyle().Width(20).Foreground(Red).Bold(true).Align(lipgloss.Left)
+	ChatMessage   = lipgloss.NewStyle()
+	ChatTime      = lipgloss.NewStyle().Width(14).Foreground(Gray).Background(Black)
+
 	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️.
+	IconDead   = "💀"
 	IconComp   = "🏁"
 	IconCheck  = "✅"
 	IconBans   = "🛑"
