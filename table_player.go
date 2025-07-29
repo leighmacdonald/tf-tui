@@ -41,7 +41,7 @@ const (
 	colScoreSize  playerTableColSize = 5
 	colDeathsSize playerTableColSize = 5
 	colPingSize   playerTableColSize = 5
-	colMetaSize   playerTableColSize = 5
+	colMetaSize   playerTableColSize = 8
 )
 
 // PlayerTablesModel is a higher level component that manages the two player tables as children.

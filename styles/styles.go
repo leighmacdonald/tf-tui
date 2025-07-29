@@ -8,12 +8,6 @@ import (
 
 var (
 	Accent = lipgloss.Color("#f4722b")
-	Status = lipgloss.NewStyle().Bold(true).
-		Foreground(ColourGenuine).
-		Align(lipgloss.Center).
-		Border(lipgloss.NormalBorder()).
-		BorderStyle(lipgloss.NewStyle().Foreground(Blu).GetBorderStyle()).Padding(0)
-	Title = lipgloss.NewStyle().Bold(true).Foreground(Blu).Padding(1)
 
 	HeaderContainerStyle  = lipgloss.NewStyle().Align(lipgloss.Center)
 	ContentContainerStyle = lipgloss.NewStyle().Align(lipgloss.Center)
@@ -73,13 +67,18 @@ var (
 	PanelLabel   = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Align(lipgloss.Right).Width(20)
 	PanelValue   = lipgloss.NewStyle().Width(60)
 	TabContainer = lipgloss.NewStyle().Align(lipgloss.Center).Background(Black)
-	TabWidth     = 12
 	TabsInactive = lipgloss.NewStyle().Background(Black).Bold(true).
 			Foreground(ColourVintage).PaddingLeft(2).PaddingRight(2)
 	TabsActive = lipgloss.NewStyle().
 			Background(Black).Bold(true).
 			Foreground(ColourUnusual).PaddingLeft(2).PaddingRight(2)
 
+	StatusHostname = lipgloss.NewStyle().Foreground(ColourStrange).Background(Black).PaddingRight(2).PaddingLeft(2).Bold(true)
+	StatusMap      = lipgloss.NewStyle().Foreground(ColourGenuine).Background(Black).PaddingRight(2).PaddingLeft(2).Bold(true)
+	StatusError    = lipgloss.NewStyle().Foreground(Red).Background(Black).Align(lipgloss.Right).Bold(true).PaddingRight(2)
+	StatusMessage  = lipgloss.NewStyle().Foreground(ColourGenuine).Background(Black).Align(lipgloss.Right).Bold(true).PaddingRight(2)
+	StatusRedTeam  = lipgloss.NewStyle().Foreground(Red).Background(Black).Bold(true).PaddingLeft(0).Align(lipgloss.Center).PaddingRight(0)
+	StatusBluTeam  = lipgloss.NewStyle().Foreground(Blu).Background(Black).Bold(true).PaddingLeft(0).Align(lipgloss.Center).PaddingRight(0)
 	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️.
 	IconComp   = "🏁"
 	IconCheck  = "✅"

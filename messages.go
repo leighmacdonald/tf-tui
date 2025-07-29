@@ -37,8 +37,7 @@ func clearErrorAfter(t time.Duration) tea.Cmd {
 }
 
 type FullStateUpdateMsg struct {
-	players     []Player
-	selectedUID int
+	players []Player
 }
 
 type StatusMsg struct {

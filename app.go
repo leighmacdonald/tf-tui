@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -36,8 +35,6 @@ type AppModel struct {
 	width           int
 	selectedTeam    Team
 	selectedSteamID steamid.SteamID
-	statusMsg       string
-	statusError     bool
 	activeTab       tabView
 	scripting       *Scripting
 	listManager     *UserListManager
@@ -51,6 +48,7 @@ type AppModel struct {
 	configModel     tea.Model
 	notesTextArea   tea.Model
 	tabs            tea.Model
+	statusView      tea.Model
 }
 
 func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData, console *ConsoleLog) *AppModel {
@@ -69,6 +67,7 @@ func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData, c
 		detailPanel:   NewDetailPanel(config.Links),
 		listManager:   NewUserListManager(config.BDLists),
 		consoleView:   NewConsoleView(),
+		statusView:    NewStatusView(),
 	}
 
 	if doSetup {
@@ -89,6 +88,7 @@ func (m AppModel) Init() tea.Cmd {
 		m.tabs.Init(),
 		m.notesTextArea.Init(),
 		m.consoleView.Init(),
+		m.statusView.Init(),
 		func() tea.Msg {
 			m.listManager.Sync()
 
@@ -106,11 +106,6 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := inMsg.(type) {
 	case Config:
 		m.config = msg
-	case StatusMsg:
-		m.statusMsg = msg.message
-		m.statusError = msg.error
-
-		return m, clearErrorAfter(time.Second * 5)
 	case G15Msg:
 		return m.onPlayerStateMsg(msg)
 	case tea.WindowSizeMsg:
@@ -139,9 +134,7 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 				m.currentView = viewConfig
 			}
 		}
-	case clearStatusMessageMsg:
-		m.statusError = false
-		m.statusMsg = ""
+
 	case SetViewMsg:
 		m.currentView = msg.view
 	}
@@ -179,7 +172,7 @@ func (m AppModel) View() string {
 
 	footer = styles.FooterContainerStyle.
 		Width(m.width).
-		Render(lipgloss.JoinVertical(lipgloss.Top, m.renderHelp(), m.renderDebug()))
+		Render(lipgloss.JoinVertical(lipgloss.Top, m.renderHelp(), m.statusView.View()))
 	header = m.tabs.View()
 	hdr := styles.HeaderContainerStyle.Width(m.width).Render(header)
 	_, hdrHeight := lipgloss.Size(hdr)
@@ -270,17 +263,14 @@ func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
 	}
 
 	cmds = append(cmds, m.tickEvery(), func() tea.Msg {
-		return FullStateUpdateMsg{
-			players:     players,
-			selectedUID: 0,
-		}
+		return FullStateUpdateMsg{players: players}
 	})
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 9)
+	cmds := make([]tea.Cmd, 10)
 	m.configModel, cmds[0] = m.configModel.Update(msg)
 	m.playerTables, cmds[1] = m.playerTables.Update(msg)
 	m.banTable, cmds[2] = m.banTable.Update(msg)
@@ -290,25 +280,7 @@ func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.notesTextArea, cmds[6] = m.notesTextArea.Update(msg)
 	m.compTable, cmds[7] = m.compTable.Update(msg)
 	m.consoleView, cmds[8] = m.consoleView.Update(msg)
+	m.statusView, cmds[9] = m.statusView.Update(msg)
 
 	return m, tea.Batch(cmds...)
-}
-
-func (m AppModel) title() string {
-	return lipgloss.NewStyle().Bold(true).
-		Align(lipgloss.Center).
-		Render(fmt.Sprintf("t: %d s: %d",
-			m.selectedTeam, m.selectedSteamID.Int64()))
-}
-
-func (m AppModel) status() string {
-	if m.statusError {
-		return styles.Status.Foreground(styles.Red).Render(m.statusMsg)
-	}
-
-	return styles.Status.Render(m.statusMsg)
-}
-
-func (m AppModel) renderDebug() string {
-	return lipgloss.JoinHorizontal(lipgloss.Center, m.title(), m.status())
 }
