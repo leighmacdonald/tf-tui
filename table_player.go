@@ -108,7 +108,7 @@ func NewPlayerTableModel(team Team) *PlayerTableModel {
 	if team == BLU {
 		foreground = styles.Blu
 	}
-	data := NewPlayerTableData(zoneID, []Player{}, team)
+	data := NewTablePlayerData(zoneID, []Player{}, team)
 
 	return &PlayerTableModel{
 		id:           zoneID,
@@ -124,7 +124,7 @@ func NewPlayerTableModel(team Team) *PlayerTableModel {
 type PlayerTableModel struct {
 	id              string
 	table           *table.Table
-	data            *PlayerTableData
+	data            *TablePlayerData
 	team            Team
 	selectedTeam    Team
 	selectedSteamID steamid.SteamID
@@ -304,7 +304,7 @@ func (m PlayerTableModel) currentRowIndex() int {
 }
 
 func (m PlayerTableModel) updatePlayers(playersUpdate []Player) (tea.Model, tea.Cmd) {
-	data := NewPlayerTableData(m.id, playersUpdate, m.team)
+	data := NewTablePlayerData(m.id, playersUpdate, m.team)
 
 	m.data = &data
 	m.data.Sort(m.data.sortColumn, m.data.asc)

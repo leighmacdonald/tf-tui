@@ -22,7 +22,7 @@ type contentView int
 const (
 	viewPlayerTables contentView = iota
 	viewConfig
-	viewConfigFiles
+	viewConsole
 )
 
 type AppModel struct {
@@ -42,6 +42,8 @@ type AppModel struct {
 	scripting       *Scripting
 	listManager     *UserListManager
 	helpView        help.Model
+	console         *ConsoleLog
+	consoleView     tea.Model
 	detailPanel     tea.Model
 	banTable        tea.Model
 	playerTables    tea.Model
@@ -51,10 +53,11 @@ type AppModel struct {
 	tabs            tea.Model
 }
 
-func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *AppModel {
+func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData, console *ConsoleLog) *AppModel {
 	app := &AppModel{
 		cache:         cache,
 		config:        config,
+		console:       console,
 		helpView:      help.New(),
 		scripting:     scripting,
 		playerTables:  NewTablePlayersModel(),
@@ -63,20 +66,30 @@ func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData) *
 		compTable:     NewTableCompModel(),
 		tabs:          NewTabsModel(),
 		notesTextArea: NewTextAreaNotes(),
-		detailPanel:   DetailPanel{links: config.Links},
+		detailPanel:   NewDetailPanel(config.Links),
 		listManager:   NewUserListManager(config.BDLists),
+		consoleView:   NewConsoleView(),
 	}
 
 	if doSetup {
 		app.currentView = viewConfig
 	}
 
+	app.console.ReadFile(config.ConsoleLogPath)
+
 	return app
 }
 
 func (m AppModel) Init() tea.Cmd {
-	return tea.Batch(tea.SetWindowTitle("tf-tui"), m.tickEvery(), m.configModel.Init(),
-		textinput.Blink, m.tabs.Init(), m.notesTextArea.Init(), func() tea.Msg {
+	return tea.Batch(
+		tea.SetWindowTitle("tf-tui"),
+		m.tickEvery(),
+		m.configModel.Init(),
+		textinput.Blink,
+		m.tabs.Init(),
+		m.notesTextArea.Init(),
+		m.consoleView.Init(),
+		func() tea.Msg {
 			m.listManager.Sync()
 
 			return nil
@@ -103,8 +116,6 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-
-		return m.propagate(inMsg)
 	case SelectedTableRowMsg:
 		m.selectedSteamID = msg.selectedSteamID
 		m.selectedTeam = msg.selectedTeam
@@ -115,6 +126,12 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, DefaultKeyMap.quit):
 			return m, tea.Quit
+		case key.Matches(msg, DefaultKeyMap.console):
+			if m.currentView == viewConsole {
+				m.currentView = viewPlayerTables
+			} else {
+				m.currentView = viewConsole
+			}
 		case key.Matches(msg, DefaultKeyMap.config):
 			if m.currentView == viewConfig {
 				m.currentView = viewPlayerTables
@@ -122,13 +139,9 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 				m.currentView = viewConfig
 			}
 		}
-
-		return m.propagate(inMsg)
 	case clearStatusMessageMsg:
 		m.statusError = false
 		m.statusMsg = ""
-
-		return m, nil
 	case SetViewMsg:
 		m.currentView = msg.view
 	}
@@ -144,8 +157,8 @@ func (m AppModel) View() string {
 	)
 
 	switch m.currentView {
-	case viewConfigFiles:
-		fallthrough
+	case viewConsole:
+		content = m.consoleView.View()
 	case viewConfig:
 		content = m.configModel.View()
 	case viewPlayerTables:
@@ -215,8 +228,9 @@ func (m AppModel) renderHelp() string {
 			DefaultKeyMap.left,
 			DefaultKeyMap.right,
 			DefaultKeyMap.nextTab,
+			DefaultKeyMap.console,
 		}))
-	case viewConfigFiles:
+	case viewConsole:
 		k := filepicker.DefaultKeyMap()
 		builder.WriteString(m.helpView.ShortHelpView([]key.Binding{
 			k.Down, k.Up, k.Open, k.Select, k.Back, k.GoToLast, k.GoToTop, k.PageDown, k.PageUp,
@@ -266,7 +280,7 @@ func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 8)
+	cmds := make([]tea.Cmd, 9)
 	m.configModel, cmds[0] = m.configModel.Update(msg)
 	m.playerTables, cmds[1] = m.playerTables.Update(msg)
 	m.banTable, cmds[2] = m.banTable.Update(msg)
@@ -275,6 +289,7 @@ func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.tabs, cmds[5] = m.tabs.Update(msg)
 	m.notesTextArea, cmds[6] = m.notesTextArea.Update(msg)
 	m.compTable, cmds[7] = m.compTable.Update(msg)
+	m.consoleView, cmds[8] = m.consoleView.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }

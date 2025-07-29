@@ -12,6 +12,10 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+func NewDetailPanel(links []UserLink) DetailPanel {
+	return DetailPanel{links: links}
+}
+
 type DetailPanel struct {
 	links  []UserLink
 	player Player
@@ -60,7 +64,7 @@ func (m DetailPanel) View() string {
 			}
 		}
 		for _, league := range leagues {
-			switch league {
+			switch league { //nolint:gocritic
 			case "rgl":
 				rows = append(rows, styles.DetailRow("RGL Profile",
 					fmt.Sprintf("https://rgl.gg/Public/PlayerProfile?p=%s", m.player.SteamID.String())))

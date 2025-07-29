@@ -23,7 +23,7 @@ func (m TextAreaNotes) Init() tea.Cmd {
 }
 
 func (m TextAreaNotes) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
+	switch msg := msg.(type) { //nolint:gocritic
 	case SelectedPlayerMsg:
 		m.player = msg.player
 		m.textarea.SetValue(msg.notes)

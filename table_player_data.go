@@ -21,8 +21,8 @@ const (
 	playerMeta
 )
 
-func NewPlayerTableData(parentZoneID string, playersUpdate []Player, team Team, cols ...playerTableColumn) PlayerTableData {
-	data := PlayerTableData{
+func NewTablePlayerData(parentZoneID string, playersUpdate []Player, team Team, cols ...playerTableColumn) TablePlayerData {
+	data := TablePlayerData{
 		zoneID:         parentZoneID,
 		enabledColumns: []playerTableColumn{playerMeta, playerName, playerScore, playerDeaths, playerPing},
 	}
@@ -45,8 +45,8 @@ func NewPlayerTableData(parentZoneID string, playersUpdate []Player, team Team, 
 	return data
 }
 
-// PlayerTableData implements the table.Data interface to provide table data.
-type PlayerTableData struct {
+// TablePlayerData implements the table.Data interface to provide table data.
+type TablePlayerData struct {
 	players []Player
 	zoneID  string
 	// Defines both the columns shown and the order they are rendered.
@@ -55,7 +55,7 @@ type PlayerTableData struct {
 	asc            bool
 }
 
-func (m *PlayerTableData) Headers() []string {
+func (m *TablePlayerData) Headers() []string {
 	var headers []string
 	for _, col := range m.enabledColumns {
 		switch col {
@@ -77,7 +77,7 @@ func (m *PlayerTableData) Headers() []string {
 	return headers
 }
 
-func (m *PlayerTableData) Sort(column playerTableColumn, asc bool) {
+func (m *TablePlayerData) Sort(column playerTableColumn, asc bool) {
 	m.sortColumn = column
 	m.asc = asc
 
@@ -108,7 +108,7 @@ func (m *PlayerTableData) Sort(column playerTableColumn, asc bool) {
 	}
 }
 
-func (m *PlayerTableData) At(row int, col int) string {
+func (m *TablePlayerData) At(row int, col int) string {
 	if col > len(m.enabledColumns)-1 {
 		return "oobcol"
 	}
@@ -143,15 +143,15 @@ func (m *PlayerTableData) At(row int, col int) string {
 	return "?"
 }
 
-func (m *PlayerTableData) Rows() int {
+func (m *TablePlayerData) Rows() int {
 	return len(m.players)
 }
 
-func (m *PlayerTableData) Columns() int {
+func (m *TablePlayerData) Columns() int {
 	return len(m.enabledColumns)
 }
 
-func (m *PlayerTableData) metaColumn(player Player) string {
+func (m *TablePlayerData) metaColumn(player Player) string {
 	var afflictions []string
 	if len(player.meta.Bans) > 0 {
 		afflictions = append(afflictions, styles.IconBans)

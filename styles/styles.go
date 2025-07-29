@@ -67,6 +67,9 @@ var (
 		// BorderLeft(true).
 		Padding(0)
 
+	ConsoleTime = lipgloss.NewStyle().Foreground(Gray).Background(Black)
+	ConsoleMsg  = lipgloss.NewStyle().Foreground(ColourLimited)
+
 	PanelLabel   = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Align(lipgloss.Right).Width(20)
 	PanelValue   = lipgloss.NewStyle().Width(60)
 	TabContainer = lipgloss.NewStyle().Align(lipgloss.Center).Background(Black)

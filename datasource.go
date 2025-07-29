@@ -68,7 +68,7 @@ var lastUpdate G15PlayerState
 
 func fetchPlayerState(ctx context.Context, address string, password string) (G15PlayerState, error) { //nolint:unparam
 	conn := newRconConnection(address, password)
-	response, errExec := conn.exec(ctx, "g15_dumpplayer", true)
+	response, errExec := conn.exec(ctx, "status;g15_dumpplayer", true)
 	if errExec != nil {
 		if lastUpdate.SteamID[0].Valid() {
 			return lastUpdate, nil

@@ -86,8 +86,12 @@ func run() error {
 	players := NewPlayerStates(apis)
 	go players.Start(ctx)
 
-	model := New(config, !configFound, scripting, players)
-	program := tea.NewProgram(model, tea.WithMouseCellMotion(), tea.WithAltScreen())
+	console := NewConsoleLog()
+	program := tea.NewProgram(New(config, !configFound, scripting, players, console),
+		tea.WithMouseCellMotion(), tea.WithAltScreen())
+
+	console.sender = program
+
 	if _, err := program.Run(); err != nil {
 		return errors.Join(err, errApp)
 	}
