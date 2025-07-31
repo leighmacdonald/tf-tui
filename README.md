@@ -11,3 +11,6 @@ If you set `DEBUG=1` env var, a log file will be created for extra error logging
 
 Linux: `~/.config/tf-tui/tf-tui.log`
 
+25.50
+
+

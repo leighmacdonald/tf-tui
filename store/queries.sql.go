@@ -10,6 +10,41 @@ import (
 	"strings"
 )
 
+const getChatHistory = `-- name: GetChatHistory :many
+SELECT chat_id, steam_id, name, message, team_only, created_on FROM chat_history
+WHERE steam_id = ?
+`
+
+func (q *Queries) GetChatHistory(ctx context.Context, steamID int64) ([]ChatHistory, error) {
+	rows, err := q.db.QueryContext(ctx, getChatHistory, steamID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ChatHistory
+	for rows.Next() {
+		var i ChatHistory
+		if err := rows.Scan(
+			&i.ChatID,
+			&i.SteamID,
+			&i.Name,
+			&i.Message,
+			&i.TeamOnly,
+			&i.CreatedOn,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getNotes = `-- name: GetNotes :many
 SELECT steam_id, note, updated_on FROM notes
 WHERE steam_id IN (/*SLICE:steam_ids*/?)
@@ -46,6 +81,56 @@ func (q *Queries) GetNotes(ctx context.Context, steamIds []int64) ([]Note, error
 		return nil, err
 	}
 	return items, nil
+}
+
+const insertChat = `-- name: InsertChat :exec
+INSERT INTO chat_history (chat_id, steam_id, name, message, team_only, created_on)
+VALUES (?, ?, ?, ?, ?, ?)
+`
+
+type InsertChatParams struct {
+	ChatID    int64
+	SteamID   int64
+	Name      string
+	Message   string
+	TeamOnly  int64
+	CreatedOn int64
+}
+
+func (q *Queries) InsertChat(ctx context.Context, arg InsertChatParams) error {
+	_, err := q.db.ExecContext(ctx, insertChat,
+		arg.ChatID,
+		arg.SteamID,
+		arg.Name,
+		arg.Message,
+		arg.TeamOnly,
+		arg.CreatedOn,
+	)
+	return err
+}
+
+const insertMark = `-- name: InsertMark :exec
+INSERT INTO marks (steam_id, tag, note, created_on, updated_on)
+VALUES (?, ?, ?, ?, ?)
+`
+
+type InsertMarkParams struct {
+	SteamID   int64
+	Tag       string
+	Note      string
+	CreatedOn int64
+	UpdatedOn int64
+}
+
+func (q *Queries) InsertMark(ctx context.Context, arg InsertMarkParams) error {
+	_, err := q.db.ExecContext(ctx, insertMark,
+		arg.SteamID,
+		arg.Tag,
+		arg.Note,
+		arg.CreatedOn,
+		arg.UpdatedOn,
+	)
+	return err
 }
 
 const insertNote = `-- name: InsertNote :exec

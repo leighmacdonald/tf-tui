@@ -95,6 +95,7 @@ var (
 	IconDrCool = "😎"
 	IconNotes  = "📓"
 	IconInfo   = "💡"
+	IconChat   = "🌮"
 )
 
 func DetailRow(label string, value string) string {

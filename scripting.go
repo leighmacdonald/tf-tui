@@ -51,7 +51,7 @@ func NewScripting() (*Scripting, error) {
 	custom := make(map[string]map[string]reflect.Value)
 	custom["tftui/tftui"] = make(map[string]reflect.Value)
 	custom["tftui/tftui"]["PlayerState"] = reflect.ValueOf((*G15PlayerState)(nil))
-	custom["tftui/tftui"]["MaxDataSize"] = reflect.ValueOf(MaxDataSize)
+	custom["tftui/tftui"]["g15PlayerCount"] = reflect.ValueOf(g15PlayerCount)
 
 	if err := interpreter.Use(custom); err != nil {
 		return nil, errors.Join(err, errInvalidScriptNamespace)

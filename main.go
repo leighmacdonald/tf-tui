@@ -8,9 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
-	"path"
 
-	"github.com/adrg/xdg"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/tf-tui/store"
 	zone "github.com/lrstanley/bubblezone"
@@ -68,11 +66,6 @@ func run() error {
 		}
 	}()
 
-	apis := NewAPIs(client)
-	if err := os.MkdirAll(path.Join(xdg.ConfigHome, configDirName), 0o600); err != nil {
-		return errors.Join(err, errApp)
-	}
-
 	scripting, errScripting := NewScripting()
 	if errScripting != nil {
 		return errors.Join(errScripting, errApp)
@@ -83,11 +76,14 @@ func run() error {
 	//	os.Exit(1)
 	//}
 
-	players := NewPlayerStates(apis)
-	go players.Start(ctx)
-
 	console := NewConsoleLog()
-	program := tea.NewProgram(New(config, !configFound, scripting, players, console),
+	defer func() {
+		if console.tail != nil {
+			defer console.tail.Cleanup()
+		}
+	}()
+
+	program := tea.NewProgram(New(config, !configFound, scripting, console, client),
 		tea.WithMouseCellMotion(), tea.WithAltScreen())
 
 	console.sender = program

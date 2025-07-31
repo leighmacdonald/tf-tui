@@ -168,7 +168,7 @@ func (m PanelChatModel) View() string {
 	} else {
 		m.viewPort.Width = m.width
 		m.viewPort.Height = m.height - 3
-		return lipgloss.JoinVertical(lipgloss.Top, m.viewPort.View(), m.input.View())
+		return lipgloss.JoinVertical(lipgloss.Top, m.viewPort.View())
 	}
 
 }

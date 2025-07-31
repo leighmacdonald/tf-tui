@@ -4,6 +4,24 @@
 
 package store
 
+type ChatHistory struct {
+	ChatID    int64
+	SteamID   int64
+	Name      string
+	Message   string
+	TeamOnly  int64
+	CreatedOn int64
+}
+
+type Mark struct {
+	MarkID    int64
+	SteamID   int64
+	Tag       string
+	Note      string
+	CreatedOn int64
+	UpdatedOn int64
+}
+
 type Note struct {
 	SteamID   int64
 	Note      string

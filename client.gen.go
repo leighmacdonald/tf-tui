@@ -421,7 +421,16 @@ type LeagueTeamResponse struct {
 
 // LogsTFChat defines model for LogsTFChat.
 type LogsTFChat struct {
+	// CreatedOn The date of the match, not the message specifically
+	CreatedOn time.Time `json:"created_on"`
+
+	// LogId Parent Logs.TF match ID
+	LogId int64 `json:"log_id"`
+
+	// Message Message sent
 	Message string `json:"message"`
+
+	// Name Name of the player at the time
 	Name    string `json:"name"`
 	SteamId string `json:"steam_id"`
 }
@@ -1038,7 +1047,7 @@ type LeaguesTeamsParamsLeague string
 
 // LogstfChatQueryParams defines parameters for LogstfChatQuery.
 type LogstfChatQueryParams struct {
-	Query string `form:"query" json:"query"`
+	Query string `form:"query,omitempty" json:"query,omitempty"`
 }
 
 // MetaProfileParams defines parameters for MetaProfile.

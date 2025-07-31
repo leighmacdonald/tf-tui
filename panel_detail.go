@@ -68,6 +68,9 @@ func (m DetailPanel) View() string {
 			case "rgl":
 				rows = append(rows, styles.DetailRow("RGL Profile",
 					fmt.Sprintf("https://rgl.gg/Public/PlayerProfile?p=%s", m.player.SteamID.String())))
+			case "ugc":
+				rows = append(rows, styles.DetailRow("UGC Profile",
+					fmt.Sprintf("https://www.ugcleague.com/players_page.cfm?player_id=%s", m.player.SteamID.String())))
 			}
 		}
 	}

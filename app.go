@@ -1,9 +1,7 @@
 package main
 
 import (
-	"context"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/help"
@@ -11,7 +9,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -22,20 +19,14 @@ const (
 	viewPlayerTables contentView = iota
 	viewConfig
 	viewConsole
-	viewCHat
+	viewChat
 )
 
 type AppModel struct {
-	config          Config
-	cache           *PlayerData
-	api             APIs
 	currentView     contentView
-	titleState      string
 	quitting        bool
 	height          int
 	width           int
-	selectedTeam    Team
-	selectedSteamID steamid.SteamID
 	activeTab       tabView
 	scripting       *Scripting
 	listManager     *UserListManager
@@ -51,26 +42,28 @@ type AppModel struct {
 	tabs            tea.Model
 	statusView      tea.Model
 	chatView        tea.Model
+	playerDataModel tea.Model
 }
 
-func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData, console *ConsoleLog) *AppModel {
+func New(config Config, doSetup bool, scripting *Scripting, console *ConsoleLog, client *ClientWithResponses) *AppModel {
 	app := &AppModel{
-		cache:         cache,
-		config:        config,
-		console:       console,
-		helpView:      help.New(),
-		scripting:     scripting,
-		playerTables:  NewTablePlayersModel(),
-		banTable:      NewTableBansModel(),
-		configModel:   NewConfigModal(config),
-		compTable:     NewTableCompModel(),
-		tabs:          NewTabsModel(),
-		notesTextArea: NewTextAreaNotes(),
-		detailPanel:   NewDetailPanel(config.Links),
-		listManager:   NewUserListManager(config.BDLists),
-		consoleView:   NewConsoleView(),
-		statusView:    NewStatusView(),
-		chatView:      NewPanelChatModel(),
+		currentView:     viewPlayerTables,
+		activeTab:       TabOverview,
+		console:         console,
+		scripting:       scripting,
+		helpView:        help.New(),
+		playerTables:    NewTablePlayersModel(),
+		banTable:        NewTableBansModel(),
+		configModel:     NewConfigModal(config),
+		compTable:       NewTableCompModel(),
+		tabs:            NewTabsModel(),
+		notesTextArea:   NewTextAreaNotes(),
+		detailPanel:     NewDetailPanel(config.Links),
+		listManager:     NewUserListManager(config.BDLists),
+		consoleView:     NewConsoleView(),
+		statusView:      NewStatusView(),
+		chatView:        NewPanelChatModel(),
+		playerDataModel: NewPlayerDataModel(client, config),
 	}
 
 	if doSetup {
@@ -85,7 +78,6 @@ func New(config Config, doSetup bool, scripting *Scripting, cache *PlayerData, c
 func (m AppModel) Init() tea.Cmd {
 	return tea.Batch(
 		tea.SetWindowTitle("tf-tui"),
-		m.tickEvery(),
 		m.configModel.Init(),
 		textinput.Blink,
 		m.tabs.Init(),
@@ -108,16 +100,9 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := inMsg.(type) {
-	case Config:
-		m.config = msg
-	case G15Msg:
-		return m.onPlayerStateMsg(msg)
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-	case SelectedTableRowMsg:
-		m.selectedSteamID = msg.selectedSteamID
-		m.selectedTeam = msg.selectedTeam
 	case TabChangeMsg:
 		m.activeTab = tabView(msg)
 	// Is it a key press?
@@ -138,7 +123,7 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 				m.currentView = viewConfig
 			}
 		case key.Matches(msg, DefaultKeyMap.chat):
-			m.currentView = viewCHat
+			m.currentView = viewChat
 		}
 
 	case SetViewMsg:
@@ -156,12 +141,14 @@ func (m AppModel) View() string {
 	)
 
 	switch m.currentView {
-	case viewCHat:
-		content = m.chatView.View()
+	//case viewChat:
+	//	content = m.chatView.View()
 	case viewConsole:
 		content = m.consoleView.View()
 	case viewConfig:
 		content = m.configModel.View()
+	case viewChat:
+		fallthrough
 	case viewPlayerTables:
 		parts := []string{m.playerTables.View()}
 
@@ -174,6 +161,8 @@ func (m AppModel) View() string {
 			parts = append(parts, m.compTable.View())
 		case TabNotes:
 			parts = append(parts, "Notes...")
+		case TabChat:
+			parts = append(parts, m.chatView.View())
 		}
 		content = lipgloss.JoinVertical(lipgloss.Top, parts...)
 	}
@@ -187,29 +176,27 @@ func (m AppModel) View() string {
 	ftr := styles.FooterContainerStyle.Width(m.width).Render(footer)
 	_, ftrHeight := lipgloss.Size(ftr)
 	contentViewPortHeight := m.height - hdrHeight - ftrHeight
-	// Send the UI for rendering
-	return zone.Scan(lipgloss.JoinVertical(lipgloss.Center,
-		hdr,
-		styles.ContentContainerStyle.Height(contentViewPortHeight).Render(content),
-		ftr))
+	ctr := styles.ContentContainerStyle.Height(contentViewPortHeight).Render(content)
+
+	return zone.Scan(lipgloss.JoinVertical(lipgloss.Center, hdr, ctr, ftr))
 }
 
 func (m AppModel) isInitialized() bool {
 	return m.height != 0 && m.width != 0
 }
 
-func (m AppModel) SelectedPlayer() (Player, bool) {
-	if !m.selectedSteamID.Valid() {
-		return Player{}, false
-	}
-
-	player, err := m.cache.Get(m.selectedSteamID)
-	if err != nil {
-		return Player{}, false
-	}
-
-	return player, true
-}
+// func (m AppModel) SelectedPlayer() (Player, bool) {
+//	if !m.selectedSteamID.Valid() {
+//		return Player{}, false
+//	}
+//
+//	player, err := m.cache.Get(m.selectedSteamID)
+//	if err != nil {
+//		return Player{}, false
+//	}
+//
+//	return player, true
+// }
 
 func (m AppModel) renderHelp() string {
 	var builder strings.Builder
@@ -240,42 +227,6 @@ func (m AppModel) renderHelp() string {
 	}
 
 	return builder.String()
-}
-
-func (m AppModel) tickEvery() tea.Cmd {
-	return tea.Tick(time.Second, func(lastTime time.Time) tea.Msg {
-		dump, errDump := fetchPlayerState(context.Background(), m.config.Address, m.config.Password)
-		if errDump != nil {
-			return G15Msg{err: errDump, t: lastTime}
-		}
-
-		return G15Msg{t: lastTime, dump: dump}
-	})
-}
-
-func (m AppModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-	if msg.err != nil {
-		cmds = append(cmds, func() tea.Msg {
-			return StatusMsg{
-				message: msg.err.Error(),
-				error:   true,
-			}
-		})
-	}
-
-	m.cache.SetStats(msg.dump)
-
-	players, errPlayers := m.cache.All()
-	if errPlayers != nil {
-		return m, tea.Batch(m.tickEvery())
-	}
-
-	cmds = append(cmds, m.tickEvery(), func() tea.Msg {
-		return FullStateUpdateMsg{players: players}
-	})
-
-	return m, tea.Batch(cmds...)
 }
 
 func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {

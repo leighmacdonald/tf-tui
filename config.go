@@ -182,6 +182,12 @@ func ConfigPath(name string) string {
 
 func ConfigRead(name string) (Config, bool) {
 	var config Config
+	if err := os.MkdirAll(path.Join(xdg.ConfigHome, configDirName), 0o600); err != nil {
+		tea.Println("Failed to make config root: " + err.Error())
+
+		return defaultConfig, false
+	}
+
 	inFile, errOpen := os.Open(ConfigPath(name))
 	if errOpen != nil {
 		return defaultConfig, false
@@ -193,7 +199,7 @@ func ConfigRead(name string) (Config, bool) {
 	}
 
 	if config.APIBaseURL == "" {
-		config.APIBaseURL = "http://localhost:8888/"
+		config.APIBaseURL = "https://tf-api.roto.lol/"
 	}
 
 	if config.ConsoleLogPath == "" {
