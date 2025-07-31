@@ -43,6 +43,8 @@ func (l *ConsoleLog) ReadFile(filePath string) error {
 			Offset: 0,
 			Whence: io.SeekEnd,
 		},
+		// Ensure we don't see the log messages and mangle the ui
+		Logger:    tail.DiscardingLogger,
 		Follow:    true,
 		ReOpen:    true,
 		MustExist: false,
@@ -66,8 +68,6 @@ func (l *ConsoleLog) ReadFile(filePath string) error {
 
 // start begins reading incoming log events, parsing events from the lines and emitting any found events as a LogEvent.
 func (l *ConsoleLog) start() {
-	defer l.tail.Cleanup()
-
 	for {
 		select {
 		case msg := <-l.tail.Lines:
@@ -83,11 +83,11 @@ func (l *ConsoleLog) start() {
 
 			var logEvent LogEvent
 			if err := l.parser.parse(line, &logEvent); err != nil || errors.Is(err, ErrNoMatch) {
-				// slog.Debug("could not match line", slog.String("line", line))
-				continue
+				// This is sent as a "raw" line so that the console view can show it even if it doesn't
+				// match any supported events.
+				logEvent.Raw = line
+				logEvent.Type = EvtAny
 			}
-
-			tea.Println("matched line: " + line)
 
 			l.sender.Send(logEvent)
 		case <-l.stopChan:
@@ -268,92 +268,94 @@ func newLogParser() *logParser {
 func (parser *logParser) parse(msg string, outEvent *LogEvent) error {
 	// the index must match the index of the EventType const values
 	for i, rxMatcher := range parser.rx {
-		if match := rxMatcher.FindStringSubmatch(msg); match != nil { //nolint:nestif
-			outEvent.Raw = msg
-			outEvent.Type = EventType(i)
-			if outEvent.Type != EvtLobby {
-				if errTS := outEvent.ApplyTimestamp(match[1]); errTS != nil {
-					tea.Println("Failed to parse timestamp: " + errTS.Error())
-				}
-			}
-
-			switch outEvent.Type {
-			case EvtConnect:
-				outEvent.Player = match[2]
-			case EvtDisconnect:
-				outEvent.MetaData = match[2]
-			case EvtMsg:
-				name := match[2]
-				dead := false
-				team := false
-
-				if strings.HasPrefix(name, teamPrefix) {
-					name = strings.TrimPrefix(name, teamPrefix)
-					team = true
-				}
-
-				if strings.HasPrefix(name, deadTeamPrefix) {
-					name = strings.TrimPrefix(name, deadTeamPrefix)
-					dead = true
-					team = true
-				} else if strings.HasPrefix(name, deadPrefix) {
-					dead = true
-					name = strings.TrimPrefix(name, deadPrefix)
-				}
-
-				outEvent.TeamOnly = team
-				outEvent.Dead = dead
-				outEvent.Player = name
-				outEvent.Message = match[3]
-			case EvtStatusID:
-				userID, errUserID := strconv.ParseInt(match[2], 10, 32)
-				if errUserID != nil {
-					tea.Println("Failed to parse status userid: " + errUserID.Error())
-
-					continue
-				}
-
-				ping, errPing := strconv.ParseInt(match[7], 10, 32)
-				if errPing != nil {
-					tea.Println("Failed to parse status ping: " + errPing.Error())
-
-					continue
-				}
-
-				dur, durErr := parseConnected(match[5])
-				if durErr != nil {
-					tea.Println("Failed to parse status duration: " + durErr.Error())
-
-					continue
-				}
-
-				outEvent.UserID = int(userID)
-				outEvent.Player = match[3]
-				outEvent.PlayerSID = steamid.New(match[4])
-				outEvent.PlayerConnected = dur
-				outEvent.PlayerPing = int(ping)
-			case EvtKill:
-				outEvent.Player = match[2]
-				outEvent.Victim = match[3]
-			case EvtHostname:
-				outEvent.MetaData = match[2]
-			case EvtMap:
-				outEvent.MetaData = match[2]
-			case EvtTags:
-				outEvent.MetaData = match[2]
-			case EvtAddress:
-				outEvent.MetaData = match[2]
-			case EvtLobby:
-				outEvent.PlayerSID = steamid.New(match[2])
-				if match[3] == "INVADERS" {
-					outEvent.Team = BLU
-				} else {
-					outEvent.Team = RED
-				}
-			}
-
-			return nil
+		match := rxMatcher.FindStringSubmatch(msg)
+		if match == nil {
+			continue
 		}
+		outEvent.Raw = msg
+		outEvent.Type = EventType(i)
+		if outEvent.Type != EvtLobby {
+			if errTS := outEvent.ApplyTimestamp(match[1]); errTS != nil {
+				tea.Println("Failed to parse timestamp: " + errTS.Error())
+			}
+		}
+
+		switch outEvent.Type {
+		case EvtConnect:
+			outEvent.Player = match[2]
+		case EvtDisconnect:
+			outEvent.MetaData = match[2]
+		case EvtMsg:
+			name := match[2]
+			dead := false
+			team := false
+
+			if strings.HasPrefix(name, teamPrefix) {
+				name = strings.TrimPrefix(name, teamPrefix)
+				team = true
+			}
+
+			if strings.HasPrefix(name, deadTeamPrefix) {
+				name = strings.TrimPrefix(name, deadTeamPrefix)
+				dead = true
+				team = true
+			} else if strings.HasPrefix(name, deadPrefix) {
+				dead = true
+				name = strings.TrimPrefix(name, deadPrefix)
+			}
+
+			outEvent.TeamOnly = team
+			outEvent.Dead = dead
+			outEvent.Player = name
+			outEvent.Message = match[3]
+		case EvtStatusID:
+			userID, errUserID := strconv.ParseInt(match[2], 10, 32)
+			if errUserID != nil {
+				tea.Println("Failed to parse status userid: " + errUserID.Error())
+
+				continue
+			}
+
+			ping, errPing := strconv.ParseInt(match[7], 10, 32)
+			if errPing != nil {
+				tea.Println("Failed to parse status ping: " + errPing.Error())
+
+				continue
+			}
+
+			dur, durErr := parseConnected(match[5])
+			if durErr != nil {
+				tea.Println("Failed to parse status duration: " + durErr.Error())
+
+				continue
+			}
+
+			outEvent.UserID = int(userID)
+			outEvent.Player = match[3]
+			outEvent.PlayerSID = steamid.New(match[4])
+			outEvent.PlayerConnected = dur
+			outEvent.PlayerPing = int(ping)
+		case EvtKill:
+			outEvent.Player = match[2]
+			outEvent.Victim = match[3]
+		case EvtHostname:
+			outEvent.MetaData = match[2]
+		case EvtMap:
+			outEvent.MetaData = match[2]
+		case EvtTags:
+			outEvent.MetaData = match[2]
+		case EvtAddress:
+			outEvent.MetaData = match[2]
+		case EvtLobby:
+			outEvent.PlayerSID = steamid.New(match[2])
+			if match[3] == "INVADERS" {
+				outEvent.Team = BLU
+			} else {
+				outEvent.Team = RED
+			}
+		}
+
+		return nil
 	}
 
 	return ErrNoMatch
