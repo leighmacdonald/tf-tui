@@ -11,12 +11,6 @@ import (
 	"github.com/leighmacdonald/tf-tui/styles"
 )
 
-func NewPanelChatModel() *PanelChatModel {
-	input := NewTextInputModel("", ">")
-	input.CharLimit = 127
-	return &PanelChatModel{input: input}
-}
-
 type ChatRow struct {
 	steamID   steamid.SteamID
 	name      string
@@ -48,11 +42,6 @@ func (m ChatRow) View() string {
 	)
 }
 
-type ChatMsg struct {
-	Message  string
-	ChatType ChatType
-}
-
 type ChatType int
 
 const (
@@ -61,7 +50,13 @@ const (
 	PartyChat
 )
 
-type PanelChatModel struct {
+func NewChatModel() *ChatModel {
+	input := NewTextInputModel("", ">")
+	input.CharLimit = 127
+	return &ChatModel{input: input}
+}
+
+type ChatModel struct {
 	input        textinput.Model
 	viewPort     viewport.Model
 	team         Team
@@ -74,11 +69,11 @@ type PanelChatModel struct {
 	chatType     ChatType
 }
 
-func (m PanelChatModel) Init() tea.Cmd {
+func (m ChatModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m PanelChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case LogEvent:
 		if msg.Type != EvtMsg {
@@ -145,12 +140,12 @@ func (m PanelChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		if !m.ready {
-			m.viewPort = viewport.New(msg.Width, msg.Height-3)
+			m.viewPort = viewport.New(msg.Width, msg.Height-30)
 			//m.viewPort.YPosition = headerHeight
 			m.ready = true
 		} else {
 			m.viewPort.Width = msg.Width
-			m.viewPort.Height = msg.Height - 3
+			m.viewPort.Height = msg.Height - 20
 		}
 	}
 	cmds := make([]tea.Cmd, 2)
@@ -160,14 +155,14 @@ func (m PanelChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m PanelChatModel) View() string {
+func (m ChatModel) View() string {
 	if m.inputOpen {
 		m.viewPort.Width = m.width
-		m.viewPort.Height = m.height - 4
+		m.viewPort.Height = m.height - 30
 		return lipgloss.JoinVertical(lipgloss.Top, m.viewPort.View(), m.input.View())
 	} else {
 		m.viewPort.Width = m.width
-		m.viewPort.Height = m.height - 3
+		m.viewPort.Height = m.height - 29
 		return lipgloss.JoinVertical(lipgloss.Top, m.viewPort.View())
 	}
 

@@ -5,24 +5,24 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type TextAreaNotes struct {
+type NotesModel struct {
 	textarea textarea.Model
 	player   Player
 }
 
-func NewTextAreaNotes() tea.Model {
+func NewNotesModel() tea.Model {
 	textArea := textarea.New()
 	textArea.Focus()
 	textArea.SetHeight(10)
 
-	return TextAreaNotes{textarea: textArea}
+	return NotesModel{textarea: textArea}
 }
 
-func (m TextAreaNotes) Init() tea.Cmd {
+func (m NotesModel) Init() tea.Cmd {
 	return textarea.Blink
 }
 
-func (m TextAreaNotes) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m NotesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) { //nolint:gocritic
 	case SelectedPlayerMsg:
 		m.player = msg.player
@@ -32,6 +32,6 @@ func (m TextAreaNotes) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m TextAreaNotes) View() string {
+func (m NotesModel) View() string {
 	return m.textarea.View()
 }

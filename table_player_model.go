@@ -78,15 +78,15 @@ func (m PlayerTablesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m PlayerTablesModel) selectedColumnPlayerCount() int {
 	var (
-		model PlayerTableModel
+		model TablePlayerModel
 		ok    bool
 	)
 
 	switch m.selectedTeam {
 	case RED:
-		model, ok = m.redTable.(PlayerTableModel)
+		model, ok = m.redTable.(TablePlayerModel)
 	case BLU:
-		model, ok = m.bluTable.(PlayerTableModel)
+		model, ok = m.bluTable.(TablePlayerModel)
 	default:
 		return 0
 	}
@@ -102,7 +102,7 @@ func (m PlayerTablesModel) View() string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, m.redTable.View(), m.bluTable.View())
 }
 
-func NewPlayerTableModel(team Team) *PlayerTableModel {
+func NewPlayerTableModel(team Team) *TablePlayerModel {
 	zoneID := zone.NewPrefix()
 	foreground := styles.Red
 	if team == BLU {
@@ -110,7 +110,7 @@ func NewPlayerTableModel(team Team) *PlayerTableModel {
 	}
 	data := NewTablePlayerData(zoneID, []Player{}, team)
 
-	return &PlayerTableModel{
+	return &TablePlayerModel{
 		id:           zoneID,
 		team:         team,
 		selectedTeam: RED,
@@ -121,7 +121,7 @@ func NewPlayerTableModel(team Team) *PlayerTableModel {
 	}
 }
 
-type PlayerTableModel struct {
+type TablePlayerModel struct {
 	id              string
 	table           *table.Table
 	data            *TablePlayerData
@@ -132,11 +132,11 @@ type PlayerTableModel struct {
 	width           int
 }
 
-func (m PlayerTableModel) Init() tea.Cmd {
+func (m TablePlayerModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -221,7 +221,7 @@ func (m PlayerTableModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m PlayerTableModel) moveSelection(direction Direction) (tea.Model, tea.Cmd) {
+func (m TablePlayerModel) moveSelection(direction Direction) (tea.Model, tea.Cmd) {
 	currentRow := m.currentRowIndex()
 	switch direction {
 	case Up:
@@ -233,7 +233,9 @@ func (m PlayerTableModel) moveSelection(direction Direction) (tea.Model, tea.Cmd
 		if currentRow == 0 {
 			return m, nil
 		}
-		m.selectedSteamID = m.data.players[currentRow-1].SteamID
+		if currentRow-1 >= 0 && max(0, len(m.data.players)-1) > currentRow-1 {
+			m.selectedSteamID = m.data.players[currentRow-1].SteamID
+		}
 	case Down:
 		if currentRow < 0 && len(m.data.players) > 0 {
 			m.selectedSteamID = m.data.players[0].SteamID
@@ -280,7 +282,7 @@ func (m PlayerTableModel) moveSelection(direction Direction) (tea.Model, tea.Cmd
 	})
 }
 
-func (m PlayerTableModel) currentPlayer() (Player, bool) {
+func (m TablePlayerModel) currentPlayer() (Player, bool) {
 	if m.selectedTeam != m.team {
 		return Player{}, false
 	}
@@ -293,7 +295,7 @@ func (m PlayerTableModel) currentPlayer() (Player, bool) {
 	return Player{}, false
 }
 
-func (m PlayerTableModel) currentRowIndex() int {
+func (m TablePlayerModel) currentRowIndex() int {
 	for rowIdx, player := range m.data.players {
 		if player.SteamID == m.selectedSteamID {
 			return rowIdx
@@ -303,7 +305,7 @@ func (m PlayerTableModel) currentRowIndex() int {
 	return -1
 }
 
-func (m PlayerTableModel) updatePlayers(playersUpdate []Player) (tea.Model, tea.Cmd) {
+func (m TablePlayerModel) updatePlayers(playersUpdate []Player) (tea.Model, tea.Cmd) {
 	data := NewTablePlayerData(m.id, playersUpdate, m.team)
 
 	m.data = &data
@@ -328,7 +330,7 @@ func (m PlayerTableModel) updatePlayers(playersUpdate []Player) (tea.Model, tea.
 	return m, nil
 }
 
-func (m PlayerTableModel) View() string {
+func (m TablePlayerModel) View() string {
 	selectedRowIdx := m.currentRowIndex()
 
 	return m.table.

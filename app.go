@@ -3,7 +3,6 @@ package main
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -18,8 +17,6 @@ type contentView int
 const (
 	viewPlayerTables contentView = iota
 	viewConfig
-	viewConsole
-	viewChat
 )
 
 type AppModel struct {
@@ -31,7 +28,6 @@ type AppModel struct {
 	scripting       *Scripting
 	listManager     *UserListManager
 	helpView        help.Model
-	console         *ConsoleLog
 	consoleView     tea.Model
 	detailPanel     tea.Model
 	banTable        tea.Model
@@ -45,11 +41,10 @@ type AppModel struct {
 	playerDataModel tea.Model
 }
 
-func New(config Config, doSetup bool, scripting *Scripting, console *ConsoleLog, client *ClientWithResponses) *AppModel {
+func New(config Config, doSetup bool, scripting *Scripting, client *ClientWithResponses) *AppModel {
 	app := &AppModel{
 		currentView:     viewPlayerTables,
 		activeTab:       TabOverview,
-		console:         console,
 		scripting:       scripting,
 		helpView:        help.New(),
 		playerTables:    NewTablePlayersModel(),
@@ -57,20 +52,18 @@ func New(config Config, doSetup bool, scripting *Scripting, console *ConsoleLog,
 		configModel:     NewConfigModal(config),
 		compTable:       NewTableCompModel(),
 		tabs:            NewTabsModel(),
-		notesTextArea:   NewTextAreaNotes(),
-		detailPanel:     NewDetailPanel(config.Links),
+		notesTextArea:   NewNotesModel(),
+		detailPanel:     NewDetailPanelModel(config.Links),
 		listManager:     NewUserListManager(config.BDLists),
-		consoleView:     NewConsoleView(),
-		statusView:      NewStatusView(),
-		chatView:        NewPanelChatModel(),
+		consoleView:     NewConsoleModel(config.ConsoleLogPath),
+		statusView:      NewStatusBarModel(),
+		chatView:        NewChatModel(),
 		playerDataModel: NewPlayerDataModel(client, config),
 	}
 
 	if doSetup {
 		app.currentView = viewConfig
 	}
-
-	app.console.ReadFile(config.ConsoleLogPath)
 
 	return app
 }
@@ -85,6 +78,7 @@ func (m AppModel) Init() tea.Cmd {
 		m.consoleView.Init(),
 		m.statusView.Init(),
 		m.chatView.Init(),
+		m.playerDataModel.Init(),
 		func() tea.Msg {
 			m.listManager.Sync()
 
@@ -110,20 +104,12 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, DefaultKeyMap.quit):
 			return m, tea.Quit
-		case key.Matches(msg, DefaultKeyMap.console):
-			if m.currentView == viewConsole {
-				m.currentView = viewPlayerTables
-			} else {
-				m.currentView = viewConsole
-			}
 		case key.Matches(msg, DefaultKeyMap.config):
 			if m.currentView == viewConfig {
 				m.currentView = viewPlayerTables
 			} else {
 				m.currentView = viewConfig
 			}
-		case key.Matches(msg, DefaultKeyMap.chat):
-			m.currentView = viewChat
 		}
 
 	case SetViewMsg:
@@ -141,30 +127,35 @@ func (m AppModel) View() string {
 	)
 
 	switch m.currentView {
-	//case viewChat:
-	//	content = m.chatView.View()
-	case viewConsole:
-		content = m.consoleView.View()
 	case viewConfig:
 		content = m.configModel.View()
-	case viewChat:
-		fallthrough
 	case viewPlayerTables:
-		parts := []string{m.playerTables.View()}
-
+		tables := m.playerTables.View()
+		var ptContent string
 		switch m.activeTab {
 		case TabOverview:
-			parts = append(parts, m.detailPanel.View())
+			ptContent = m.detailPanel.View()
 		case TabBans:
-			parts = append(parts, m.banTable.View())
+			ptContent = m.banTable.View()
 		case TabComp:
-			parts = append(parts, m.compTable.View())
+			ptContent = m.compTable.View()
 		case TabNotes:
-			parts = append(parts, "Notes...")
+			ptContent = "Notes..."
 		case TabChat:
-			parts = append(parts, m.chatView.View())
+			ptContent = m.chatView.View()
+		case TabConsole:
+			ptContent = m.consoleView.View()
 		}
-		content = lipgloss.JoinVertical(lipgloss.Top, parts...)
+
+		playerHeight := m.height - lipgloss.Height(tables) - 5
+
+		content = lipgloss.JoinVertical(
+			lipgloss.Top,
+			tables,
+			lipgloss.NewStyle().Width(m.width-2).Height(playerHeight).
+				Border(lipgloss.NormalBorder()).
+				BorderForeground(styles.Gray).
+				Render(ptContent))
 	}
 
 	footer = styles.FooterContainerStyle.
@@ -219,18 +210,13 @@ func (m AppModel) renderHelp() string {
 			DefaultKeyMap.console,
 			DefaultKeyMap.chat,
 		}))
-	case viewConsole:
-		k := filepicker.DefaultKeyMap()
-		builder.WriteString(m.helpView.ShortHelpView([]key.Binding{
-			k.Down, k.Up, k.Open, k.Select, k.Back, k.GoToLast, k.GoToTop, k.PageDown, k.PageUp,
-		}))
 	}
 
 	return builder.String()
 }
 
 func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 11)
+	cmds := make([]tea.Cmd, 12)
 	m.configModel, cmds[0] = m.configModel.Update(msg)
 	m.playerTables, cmds[1] = m.playerTables.Update(msg)
 	m.banTable, cmds[2] = m.banTable.Update(msg)
@@ -242,6 +228,7 @@ func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.consoleView, cmds[8] = m.consoleView.Update(msg)
 	m.statusView, cmds[9] = m.statusView.Update(msg)
 	m.chatView, cmds[10] = m.chatView.Update(msg)
+	m.playerDataModel, cmds[11] = m.playerDataModel.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }

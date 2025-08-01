@@ -7,7 +7,7 @@ import (
 	"github.com/leighmacdonald/tf-tui/styles"
 )
 
-type TableComp struct {
+type TableCompModel struct {
 	player Player
 	table  *table.Table
 	width  int
@@ -15,7 +15,7 @@ type TableComp struct {
 }
 
 func NewTableCompModel() tea.Model {
-	return &TableComp{table: table.New().
+	return &TableCompModel{table: table.New().
 		// Border(lipgloss.NormalBorder()).
 		Height(20).
 		BorderStyle(lipgloss.NewStyle().Foreground(styles.Gray)).
@@ -43,11 +43,11 @@ func NewTableCompModel() tea.Model {
 		Headers("League", "Competition", "format", "Division", "Team Name")}
 }
 
-func (m TableComp) Init() tea.Cmd {
+func (m TableCompModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TableComp) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m TableCompModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
@@ -75,7 +75,7 @@ func (m TableComp) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m TableComp) View() string {
+func (m TableCompModel) View() string {
 	if len(m.player.meta.CompetitiveTeams) == 0 {
 		return "No league history found"
 	}

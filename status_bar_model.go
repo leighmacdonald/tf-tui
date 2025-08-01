@@ -9,7 +9,7 @@ import (
 	"github.com/leighmacdonald/tf-tui/styles"
 )
 
-type StatusView struct {
+type StatusBarModel struct {
 	width       int
 	hostname    string
 	mapName     string
@@ -20,15 +20,15 @@ type StatusView struct {
 	bluPlayers  int
 }
 
-func NewStatusView() *StatusView {
-	return &StatusView{}
+func NewStatusBarModel() *StatusBarModel {
+	return &StatusBarModel{}
 }
 
-func (m StatusView) Init() tea.Cmd {
+func (m StatusBarModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m StatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m StatusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case FullStateUpdateMsg:
 		var (
@@ -68,7 +68,7 @@ func (m StatusView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	return m, nil
 }
-func (m StatusView) View() string {
+func (m StatusBarModel) View() string {
 
 	return lipgloss.NewStyle().Width(m.width).Background(styles.Black).Render(lipgloss.JoinHorizontal(lipgloss.Top,
 		styles.StatusRedTeam.Render(fmt.Sprintf("%3d", m.redPlayers)),
@@ -77,7 +77,7 @@ func (m StatusView) View() string {
 		styles.StatusMap.Render(m.mapName)))
 }
 
-func (m StatusView) status() string {
+func (m StatusBarModel) status() string {
 	if m.statusError {
 		return styles.StatusError.Render(m.statusMsg)
 	}

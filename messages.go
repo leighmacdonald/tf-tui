@@ -7,10 +7,10 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 )
 
-type G15Msg struct {
+type DumpPlayerMsg struct {
 	err  error
 	t    time.Time
-	dump G15PlayerState
+	dump DumpPlayer
 }
 
 type SortPlayersMsg struct {
@@ -51,3 +51,13 @@ type SetViewMsg struct {
 }
 
 type TabChangeMsg tabView
+
+type ConsoleLogMsg struct {
+	logs []LogEvent
+	t    time.Time
+}
+
+type ChatMsg struct {
+	Message  string
+	ChatType ChatType
+}

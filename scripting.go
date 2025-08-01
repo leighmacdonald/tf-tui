@@ -26,7 +26,7 @@ var CallbackNames = []FnNames{
 
 type OnAdd func(a int, b int) int
 
-type OnPlayerState func(state G15PlayerState) G15PlayerState
+type OnPlayerState func(state DumpPlayer) DumpPlayer
 
 var (
 	errInvalidScriptInterpreter = errors.New("invalid interpreter")
@@ -50,7 +50,7 @@ func NewScripting() (*Scripting, error) {
 
 	custom := make(map[string]map[string]reflect.Value)
 	custom["tftui/tftui"] = make(map[string]reflect.Value)
-	custom["tftui/tftui"]["PlayerState"] = reflect.ValueOf((*G15PlayerState)(nil))
+	custom["tftui/tftui"]["PlayerState"] = reflect.ValueOf((*DumpPlayer)(nil))
 	custom["tftui/tftui"]["g15PlayerCount"] = reflect.ValueOf(g15PlayerCount)
 
 	if err := interpreter.Use(custom); err != nil {
@@ -87,7 +87,7 @@ func (s *Scripting) LoadDir(scriptDir string) error {
 
 				s.onAdd = append(s.onAdd, call)
 			case onPlayerState:
-				call, ok := evaluatedFunc.Interface().(func(G15PlayerState) G15PlayerState)
+				call, ok := evaluatedFunc.Interface().(func(DumpPlayer) DumpPlayer)
 				if !ok {
 					continue
 				}

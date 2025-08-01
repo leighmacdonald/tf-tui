@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,18 +22,23 @@ var (
 	errParseTimestamp = errors.New("failed to parse timestamp")
 )
 
-type MsgSender interface {
-	Send(tea.Msg)
+func NewConsoleLog() *ConsoleLog {
+	return &ConsoleLog{
+		tail:       nil,
+		stopChan:   make(chan bool),
+		parser:     newLogParser(),
+		outQueueMu: &sync.Mutex{}}
 }
 
 type ConsoleLog struct {
-	tail     *tail.Tail
-	parser   Parser
-	sender   MsgSender
-	stopChan chan bool
+	tail       *tail.Tail
+	parser     Parser
+	stopChan   chan bool
+	outQueue   []LogEvent
+	outQueueMu *sync.Mutex
 }
 
-func (l *ConsoleLog) ReadFile(filePath string) error {
+func (l *ConsoleLog) ReadConsole(filePath string) error {
 	if l.tail != nil && l.tail.Filename == filePath {
 		return nil
 	}
@@ -43,7 +49,7 @@ func (l *ConsoleLog) ReadFile(filePath string) error {
 			Offset: 0,
 			Whence: io.SeekEnd,
 		},
-		// Ensure we don't see the log messages and mangle the ui
+		// Ensure we don't see the log messages in stdout and mangle the ui
 		Logger:    tail.DiscardingLogger,
 		Follow:    true,
 		ReOpen:    true,
@@ -64,6 +70,14 @@ func (l *ConsoleLog) ReadFile(filePath string) error {
 	go l.start()
 
 	return nil
+}
+func (l *ConsoleLog) Dequeue() []LogEvent {
+	l.outQueueMu.Lock()
+	out := l.outQueue
+	l.outQueue = nil
+	l.outQueueMu.Unlock()
+
+	return out
 }
 
 // start begins reading incoming log events, parsing events from the lines and emitting any found events as a LogEvent.
@@ -89,7 +103,9 @@ func (l *ConsoleLog) start() {
 				logEvent.Type = EvtAny
 			}
 
-			l.sender.Send(logEvent)
+			l.outQueueMu.Lock()
+			l.outQueue = append(l.outQueue, logEvent)
+			l.outQueueMu.Unlock()
 		case <-l.stopChan:
 			if errStop := l.tail.Stop(); errStop != nil {
 				tea.Println("Failed to stop tailing console.log cleanly: " + errStop.Error())
@@ -98,10 +114,6 @@ func (l *ConsoleLog) start() {
 			return
 		}
 	}
-}
-
-func NewConsoleLog() *ConsoleLog {
-	return &ConsoleLog{tail: nil, stopChan: make(chan bool), parser: newLogParser()}
 }
 
 var ErrNoMatch = errors.New("no match found")

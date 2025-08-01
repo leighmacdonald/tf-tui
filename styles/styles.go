@@ -87,15 +87,16 @@ var (
 	ChatTime      = lipgloss.NewStyle().Width(14).Foreground(Gray).Background(Black)
 
 	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️.
-	IconDead   = "💀"
-	IconComp   = "🏁"
-	IconCheck  = "✅"
-	IconBans   = "🛑"
-	IconVac    = "👮"
-	IconDrCool = "😎"
-	IconNotes  = "📓"
-	IconInfo   = "💡"
-	IconChat   = "🌮"
+	IconDead    = "💀"
+	IconComp    = "🏁"
+	IconCheck   = "✅"
+	IconBans    = "🛑"
+	IconVac     = "👮"
+	IconDrCool  = "😎"
+	IconNotes   = "📓"
+	IconInfo    = "💡"
+	IconChat    = "🌮"
+	IconConsole = "🐤" //
 )
 
 func DetailRow(label string, value string) string {

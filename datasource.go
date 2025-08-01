@@ -52,7 +52,7 @@ func (p Player) Expired() bool {
 	return time.Since(p.g15UpdatedOn) > playerExpiration
 }
 
-type G15PlayerState struct {
+type DumpPlayer struct {
 	Names     [g15PlayerCount]string
 	Ping      [g15PlayerCount]int
 	Score     [g15PlayerCount]int
@@ -78,7 +78,7 @@ func NewPlayerDataModel(client *ClientWithResponses, config Config) *PlayerDataM
 
 type PlayerDataModel struct {
 	client      *ClientWithResponses
-	lastUpdate  G15PlayerState
+	lastUpdate  DumpPlayer
 	g15re       *regexp.Regexp
 	config      Config
 	players     map[steamid.SteamID]*Player
@@ -100,7 +100,7 @@ func (m *PlayerDataModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case Config:
 		m.config = msg
 		return m, nil
-	case G15Msg:
+	case DumpPlayerMsg:
 		return m.onPlayerStateMsg(msg)
 	}
 	return m, nil
@@ -110,14 +110,14 @@ func (m *PlayerDataModel) tickEvery() tea.Cmd {
 	return tea.Tick(time.Second, func(lastTime time.Time) tea.Msg {
 		dump, errDump := m.fetchPlayerState(context.Background(), m.config.Address, m.config.Password)
 		if errDump != nil {
-			return G15Msg{err: errDump, t: lastTime}
+			return DumpPlayerMsg{err: errDump, t: lastTime}
 		}
 
-		return G15Msg{t: lastTime, dump: dump}
+		return DumpPlayerMsg{t: lastTime, dump: dump}
 	})
 }
 
-func (m *PlayerDataModel) onPlayerStateMsg(msg G15Msg) (tea.Model, tea.Cmd) {
+func (m *PlayerDataModel) onPlayerStateMsg(msg DumpPlayerMsg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	if msg.err != nil {
 		cmds = append(cmds, func() tea.Msg {
@@ -161,7 +161,7 @@ func (m *PlayerDataModel) getMetaProfiles(ctx context.Context, steamIDs steamid.
 	return *parsed.JSON200, nil
 }
 
-func (m *PlayerDataModel) fetchPlayerState(ctx context.Context, address string, password string) (G15PlayerState, error) { //nolint:unparam
+func (m *PlayerDataModel) fetchPlayerState(ctx context.Context, address string, password string) (DumpPlayer, error) { //nolint:unparam
 	conn := newRconConnection(address, password)
 	response, errExec := conn.exec(ctx, "status;g15_dumpplayer", true)
 	if errExec != nil {
@@ -169,10 +169,10 @@ func (m *PlayerDataModel) fetchPlayerState(ctx context.Context, address string, 
 			return m.lastUpdate, nil
 		}
 		if len(os.Getenv("DEBUG")) == 0 {
-			return G15PlayerState{}, errExec
+			return DumpPlayer{}, errExec
 		}
 		// FIXME remove this test data generation eventually
-		var data G15PlayerState
+		var data DumpPlayer
 		for playerIdx := range 24 {
 			data.SteamID[playerIdx] = steamid.New(76561197960265730 + playerIdx)
 			data.UserID[playerIdx] = playerIdx + 1
@@ -206,9 +206,9 @@ func (m *PlayerDataModel) fetchPlayerState(ctx context.Context, address string, 
 
 // parsePlayerState provides the ability to parse the output of the `g15_dumpplayer` command into a PlayerState struct.
 // This functionality requires the `-g15` launch parameter for TF2 to be set.
-func (m *PlayerDataModel) parsePlayerState(reader io.Reader) G15PlayerState {
+func (m *PlayerDataModel) parsePlayerState(reader io.Reader) DumpPlayer {
 	var (
-		data    G15PlayerState
+		data    DumpPlayer
 		scanner = bufio.NewScanner(reader)
 	)
 
@@ -311,7 +311,7 @@ func (m *PlayerDataModel) setProfiles(profiles ...MetaProfile) {
 	}
 }
 
-func (m *PlayerDataModel) SetStats(stats G15PlayerState) {
+func (m *PlayerDataModel) SetStats(stats DumpPlayer) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

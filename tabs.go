@@ -16,6 +16,7 @@ const (
 	TabComp
 	TabNotes
 	TabChat
+	TabConsole
 )
 
 type TabLabel struct {
@@ -50,6 +51,11 @@ func NewTabsModel() tea.Model {
 			{
 				label: styles.IconChat + " Chat",
 				tab:   TabChat,
+				id:    zone.NewPrefix(),
+			},
+			{
+				label: styles.IconConsole + " Console",
+				tab:   TabConsole,
 				id:    zone.NewPrefix(),
 			},
 		},
@@ -93,7 +99,7 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, DefaultKeyMap.nextTab):
 			m.selectedTab++
-			if m.selectedTab > TabChat {
+			if m.selectedTab > TabConsole {
 				m.selectedTab = TabOverview
 			}
 			changed = true

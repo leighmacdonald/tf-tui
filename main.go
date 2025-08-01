@@ -76,17 +76,8 @@ func run() error {
 	//	os.Exit(1)
 	//}
 
-	console := NewConsoleLog()
-	defer func() {
-		if console.tail != nil {
-			defer console.tail.Cleanup()
-		}
-	}()
-
-	program := tea.NewProgram(New(config, !configFound, scripting, console, client),
+	program := tea.NewProgram(New(config, !configFound, scripting, client),
 		tea.WithMouseCellMotion(), tea.WithAltScreen())
-
-	console.sender = program
 
 	if _, err := program.Run(); err != nil {
 		return errors.Join(err, errApp)

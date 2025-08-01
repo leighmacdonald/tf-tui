@@ -12,22 +12,22 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func NewDetailPanel(links []UserLink) DetailPanel {
-	return DetailPanel{links: links}
+func NewDetailPanelModel(links []UserLink) DetailPanelModel {
+	return DetailPanelModel{links: links}
 }
 
-type DetailPanel struct {
+type DetailPanelModel struct {
 	links  []UserLink
 	player Player
 	width  int
 	height int
 }
 
-func (m DetailPanel) Init() tea.Cmd {
+func (m DetailPanelModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m DetailPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m DetailPanelModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case Config:
 		m.links = msg.Links
@@ -41,7 +41,7 @@ func (m DetailPanel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m DetailPanel) View() string {
+func (m DetailPanelModel) View() string {
 	if !m.player.SteamID.Valid() {
 		return ""
 	}
@@ -101,5 +101,5 @@ func (m DetailPanel) View() string {
 		rows = append(rows, styles.DetailRow("Logs.tf", strconv.Itoa(int(m.player.meta.LogsCount))))
 	}
 
-	return styles.PanelBorder.Width(m.width - 2).Render(lipgloss.JoinVertical(lipgloss.Top, rows...))
+	return lipgloss.JoinVertical(lipgloss.Top, rows...)
 }
