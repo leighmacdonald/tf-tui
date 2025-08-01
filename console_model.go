@@ -61,6 +61,7 @@ func (m *ConsoleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.updateView()
 	case ConsoleLogMsg:
 		m.onLogs(msg.logs)
+
 		return m, m.logTick()
 	}
 

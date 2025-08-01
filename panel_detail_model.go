@@ -66,7 +66,7 @@ func (m DetailPanelModel) View() string {
 			}
 		}
 		for _, league := range leagues {
-			switch league { //nolint:gocritic
+			switch league {
 			case "rgl":
 				rows = append(rows, styles.DetailRow("RGL Profile",
 					fmt.Sprintf("https://rgl.gg/Public/PlayerProfile?p=%s", m.player.SteamID.String())))
