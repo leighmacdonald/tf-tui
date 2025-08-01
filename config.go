@@ -236,7 +236,6 @@ func DefaultConsoleLogPath() string {
 	default:
 		return ""
 	}
-
 }
 
 func ConfigWrite(name string, config Config) error {

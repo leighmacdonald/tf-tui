@@ -1,0 +1,65 @@
+version: 2
+project_name: tf-tui
+
+#before:
+#  hooks:
+#    - make frontend
+#dockers:
+#  - dockerfile: "docker/Dockerfile"
+#    skip_push: false
+#    goamd64: v2
+#    extra_files:
+#      - LICENSE
+#    ids: ["tf-tui"]
+#    image_templates:
+#      - "ghcr.io/leighmacdonald/tf-tui:latest"
+#      - "ghcr.io/leighmacdonald/tf-tui:{{ .Tag }}"
+#      - "ghcr.io/leighmacdonald/tf-tui:v{{ .Major }}"
+#    build_flag_templates:
+#      - "--pull"
+#      - "--label=org.opencontainers.image.created={{.Date}}"
+#      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+#      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+#      - "--label=org.opencontainers.image.version={{.Version}}"
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goamd64:
+      - v2
+    goos:
+      - linux
+      - windows
+      #- darwin
+    tags:
+      - release
+    # GOARCH to build for.
+    # For more info refer to: https://go.dev/doc/install/source#environment
+    #
+    # Default: [ '386', 'amd64', 'arm64' ].
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w -X github.com/leighmacdonald/tf-tui/BuildMode=production -X github.com/leighmacdonald/tf-tui/BuildVersion={{.Version}} -X github.com/leighmacdonald/tf-tui/BuildCommit={{.Commit}} -X github.com/leighmacdonald/tf-tui/BuildDate={{.Date}}
+
+archives:
+  - formats: ['tar.gz']
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- .Version }}-
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        formats: ['zip']
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

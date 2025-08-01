@@ -97,7 +97,7 @@ func (m AppModel) Init() tea.Cmd {
 func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	if !m.isInitialized() {
 		if _, ok := inMsg.(tea.WindowSizeMsg); !ok {
-			return m, nil //return m.propagate(func() tea.Msg {
+			return m, nil // return m.propagate(func() tea.Msg {
 			//	return ContentViewPortHeightMsg{contentViewPortHeight: m.contentViewPortHeight, height: msg.Height, width: msg.Width}
 			//})
 		}
