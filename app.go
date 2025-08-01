@@ -20,45 +20,52 @@ const (
 )
 
 type AppModel struct {
-	currentView     contentView
-	quitting        bool
-	height          int
-	width           int
-	activeTab       tabView
-	scripting       *Scripting
-	listManager     *UserListManager
-	helpView        help.Model
-	consoleView     tea.Model
-	detailPanel     tea.Model
-	banTable        tea.Model
-	playerTables    tea.Model
-	compTable       tea.Model
-	configModel     tea.Model
-	notesTextArea   tea.Model
-	tabs            tea.Model
-	statusView      tea.Model
-	chatView        tea.Model
-	playerDataModel tea.Model
+	currentView           contentView
+	quitting              bool
+	height                int
+	width                 int
+	activeTab             tabView
+	scripting             *Scripting
+	listManager           *UserListManager
+	helpView              help.Model
+	consoleView           tea.Model
+	detailPanel           tea.Model
+	banTable              tea.Model
+	playerTables          tea.Model
+	compTable             tea.Model
+	configModel           tea.Model
+	notesTextArea         tea.Model
+	tabs                  tea.Model
+	statusView            tea.Model
+	chatView              tea.Model
+	playerDataModel       tea.Model
+	contentViewPortHeight int
+	ftrHeight             int
+	hdrHeight             int
+	rendered              string
 }
 
 func New(config Config, doSetup bool, scripting *Scripting, client *ClientWithResponses) *AppModel {
 	app := &AppModel{
-		currentView:     viewPlayerTables,
-		activeTab:       TabOverview,
-		scripting:       scripting,
-		helpView:        help.New(),
-		playerTables:    NewTablePlayersModel(),
-		banTable:        NewTableBansModel(),
-		configModel:     NewConfigModal(config),
-		compTable:       NewTableCompModel(),
-		tabs:            NewTabsModel(),
-		notesTextArea:   NewNotesModel(),
-		detailPanel:     NewDetailPanelModel(config.Links),
-		listManager:     NewUserListManager(config.BDLists),
-		consoleView:     NewConsoleModel(config.ConsoleLogPath),
-		statusView:      NewStatusBarModel(),
-		chatView:        NewChatModel(),
-		playerDataModel: NewPlayerDataModel(client, config),
+		currentView:           viewPlayerTables,
+		activeTab:             TabOverview,
+		scripting:             scripting,
+		helpView:              help.New(),
+		playerTables:          NewTablePlayersModel(),
+		banTable:              NewTableBansModel(),
+		configModel:           NewConfigModal(config),
+		compTable:             NewTableCompModel(),
+		tabs:                  NewTabsModel(),
+		notesTextArea:         NewNotesModel(),
+		detailPanel:           NewDetailPanelModel(config.Links),
+		listManager:           NewUserListManager(config.BDLists),
+		consoleView:           NewConsoleModel(config.ConsoleLogPath),
+		statusView:            NewStatusBarModel(),
+		chatView:              NewChatModel(),
+		playerDataModel:       NewPlayerDataModel(client, config),
+		contentViewPortHeight: 10,
+		hdrHeight:             1,
+		ftrHeight:             1,
 	}
 
 	if doSetup {
@@ -79,6 +86,7 @@ func (m AppModel) Init() tea.Cmd {
 		m.statusView.Init(),
 		m.chatView.Init(),
 		m.playerDataModel.Init(),
+
 		func() tea.Msg {
 			m.listManager.Sync()
 
@@ -89,7 +97,9 @@ func (m AppModel) Init() tea.Cmd {
 func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	if !m.isInitialized() {
 		if _, ok := inMsg.(tea.WindowSizeMsg); !ok {
-			return m, nil
+			return m, nil //return m.propagate(func() tea.Msg {
+			//	return ContentViewPortHeightMsg{contentViewPortHeight: m.contentViewPortHeight, height: msg.Height, width: msg.Width}
+			//})
 		}
 	}
 
@@ -97,6 +107,11 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
+		m.contentViewPortHeight = m.height - m.hdrHeight - m.ftrHeight
+
+		//return m.propagate(func() tea.Msg {
+		//	return ContentViewPortHeightMsg{contentViewPortHeight: m.contentViewPortHeight, height: msg.Height, width: msg.Width}
+		//})
 	case TabChangeMsg:
 		m.activeTab = tabView(msg)
 	// Is it a key press?
@@ -126,11 +141,27 @@ func (m AppModel) View() string {
 		footer  string
 	)
 
+	// Early so we can use their size info
+	footer = styles.FooterContainerStyle.
+		Width(m.width).
+		Render(lipgloss.JoinVertical(lipgloss.Top, m.renderHelp(), m.statusView.View()))
+	header = m.tabs.View()
+	hdr := styles.HeaderContainerStyle.Width(m.width).Render(header)
+	_, hdrHeight := lipgloss.Size(hdr)
+	m.hdrHeight = hdrHeight
+
+	ftr := styles.FooterContainerStyle.Width(m.width).Render(footer)
+	_, ftrHeight := lipgloss.Size(ftr)
+	m.ftrHeight = ftrHeight
+
+	contentViewPortHeight := m.height - hdrHeight - ftrHeight
 	switch m.currentView {
 	case viewConfig:
 		content = m.configModel.View()
 	case viewPlayerTables:
 		tables := m.playerTables.View()
+		playerHeight := m.height - lipgloss.Height(tables) - 5
+
 		var ptContent string
 		switch m.activeTab {
 		case TabOverview:
@@ -147,8 +178,6 @@ func (m AppModel) View() string {
 			ptContent = m.consoleView.View()
 		}
 
-		playerHeight := m.height - lipgloss.Height(tables) - 5
-
 		content = lipgloss.JoinVertical(
 			lipgloss.Top,
 			tables,
@@ -156,17 +185,15 @@ func (m AppModel) View() string {
 				Border(lipgloss.NormalBorder()).
 				BorderForeground(styles.Gray).
 				Render(ptContent))
+
+		// Automatically scroll if we are at the bottom.
+		//wasBottom := m.viewPort.AtBottom()
+		//m.viewPort.SetContent(m.rowsRendered)
+		//if wasBottom {
+		//	m.viewPort.GotoBottom()
+		//}
 	}
 
-	footer = styles.FooterContainerStyle.
-		Width(m.width).
-		Render(lipgloss.JoinVertical(lipgloss.Top, m.renderHelp(), m.statusView.View()))
-	header = m.tabs.View()
-	hdr := styles.HeaderContainerStyle.Width(m.width).Render(header)
-	_, hdrHeight := lipgloss.Size(hdr)
-	ftr := styles.FooterContainerStyle.Width(m.width).Render(footer)
-	_, ftrHeight := lipgloss.Size(ftr)
-	contentViewPortHeight := m.height - hdrHeight - ftrHeight
 	ctr := styles.ContentContainerStyle.Height(contentViewPortHeight).Render(content)
 
 	return zone.Scan(lipgloss.JoinVertical(lipgloss.Center, hdr, ctr, ftr))
@@ -215,8 +242,8 @@ func (m AppModel) renderHelp() string {
 	return builder.String()
 }
 
-func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 12)
+func (m *AppModel) propagate(msg tea.Msg, cmd ...tea.Cmd) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 13)
 	m.configModel, cmds[0] = m.configModel.Update(msg)
 	m.playerTables, cmds[1] = m.playerTables.Update(msg)
 	m.banTable, cmds[2] = m.banTable.Update(msg)
@@ -229,6 +256,8 @@ func (m AppModel) propagate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.statusView, cmds[9] = m.statusView.Update(msg)
 	m.chatView, cmds[10] = m.chatView.Update(msg)
 	m.playerDataModel, cmds[11] = m.playerDataModel.Update(msg)
+
+	cmds = append(cmds, cmd...)
 
 	return m, tea.Batch(cmds...)
 }

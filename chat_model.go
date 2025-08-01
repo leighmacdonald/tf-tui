@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/steamid/v4/steamid"
@@ -58,7 +57,6 @@ func NewChatModel() *ChatModel {
 
 type ChatModel struct {
 	input        textinput.Model
-	viewPort     viewport.Model
 	team         Team
 	ready        bool
 	rows         []ChatRow
@@ -90,11 +88,6 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.rows = append(m.rows, newRow)
 		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
-		wasBottom := m.viewPort.AtBottom()
-		m.viewPort.SetContent(m.rowsRendered)
-		if wasBottom {
-			m.viewPort.GotoBottom()
-		}
 	case tea.KeyMsg:
 		k := msg.String()
 		if m.input.Focused() {
@@ -139,31 +132,17 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		if !m.ready {
-			m.viewPort = viewport.New(msg.Width, msg.Height-30)
-			//m.viewPort.YPosition = headerHeight
-			m.ready = true
-		} else {
-			m.viewPort.Width = msg.Width
-			m.viewPort.Height = msg.Height - 20
-		}
 	}
-	cmds := make([]tea.Cmd, 2)
-	m.viewPort, cmds[0] = m.viewPort.Update(msg)
-	m.input, cmds[1] = m.input.Update(msg)
+
+	cmds := make([]tea.Cmd, 1)
+	m.input, cmds[0] = m.input.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m ChatModel) View() string {
 	if m.inputOpen {
-		m.viewPort.Width = m.width
-		m.viewPort.Height = m.height - 30
-		return lipgloss.JoinVertical(lipgloss.Top, m.viewPort.View(), m.input.View())
-	} else {
-		m.viewPort.Width = m.width
-		m.viewPort.Height = m.height - 29
-		return lipgloss.JoinVertical(lipgloss.Top, m.viewPort.View())
+		return lipgloss.JoinVertical(lipgloss.Top, m.rowsRendered, m.input.View())
 	}
-
+	return lipgloss.JoinVertical(lipgloss.Top, m.rowsRendered)
 }

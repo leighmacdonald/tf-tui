@@ -14,3 +14,6 @@ update:
 
 generate:
 	go generate
+
+race:
+	GORACE="race.txt" DEBUG=1 go run -race .

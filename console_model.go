@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -22,86 +23,87 @@ func (r LogRow) View() string {
 }
 
 type ConsoleModel struct {
-	viewPort       viewport.Model
 	ready          bool
+	rowsMu         sync.RWMutex
 	rows           []LogRow
 	rowsRendered   string
 	console        *ConsoleLog
 	consoleLogPath string
+	viewPort       viewport.Model
+	width          int
 }
 
 func NewConsoleModel(consoleLogPath string) *ConsoleModel {
-	cm := &ConsoleModel{console: NewConsoleLog(), consoleLogPath: consoleLogPath}
+	cm := &ConsoleModel{console: NewConsoleLog(), consoleLogPath: consoleLogPath, viewPort: viewport.New(10, 10)}
 	if consoleLogPath != "" {
-		cm.console.ReadConsole(consoleLogPath)
+		cm.console.Read(consoleLogPath)
 	}
 
 	return cm
 }
 
+type ContentViewPortHeightMsg struct {
+	contentViewPortHeight int
+	height                int
+	width                 int
+}
+
 func (m *ConsoleModel) Init() tea.Cmd {
-	return m.logEmitter()
+	return m.logTick()
 }
 
 func (m *ConsoleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
-	)
-
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		if k := msg.String(); k == "`" || k == "esc" {
-			return m, func() tea.Msg {
-				return SetViewMsg{view: viewPlayerTables}
-			}
-		}
-
-	case tea.WindowSizeMsg:
-		if !m.ready {
-			m.viewPort = viewport.New(msg.Width, msg.Height-3)
-			//m.viewPort.YPosition = headerHeight
-			m.viewPort.SetContent("~~~ Start of console ~~~")
-			m.ready = true
-		} else {
-			m.viewPort.Width = msg.Width
-			m.viewPort.Height = msg.Height - 20
-		}
+	case ContentViewPortHeightMsg:
+		m.width = msg.width
+		m.viewPort.Width = msg.width
+		m.viewPort.Height = msg.contentViewPortHeight
+		m.updateView()
+	case ConsoleLogMsg:
+		m.onLogs(msg.logs)
+		return m, m.logTick()
 	}
 
-	// Handle keyboard and mouse events in the viewport
+	var cmd tea.Cmd
 	m.viewPort, cmd = m.viewPort.Update(msg)
-	cmds = append(cmds, cmd)
 
-	return m, tea.Batch(cmds...)
+	return m, cmd
+}
+
+func (m *ConsoleModel) onLogs(logs []LogEvent) {
+	if len(logs) == 0 {
+		return
+	}
+
+	for _, msg := range logs {
+		parts := strings.SplitN(msg.Raw, ": ", 2)
+		if len(parts) != 2 {
+			break
+		}
+		newRow := LogRow{Content: parts[1], CreatedOn: time.Now()}
+		m.rowsMu.Lock()
+		m.rows = append(m.rows, newRow)
+		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
+		m.rowsMu.Unlock()
+	}
+
+	m.updateView()
 }
 
 func (m *ConsoleModel) View() string {
 	return m.viewPort.View()
 }
 
-func (m *ConsoleModel) logEmitter() tea.Cmd {
-	return tea.Tick(time.Millisecond*100, func(lastTime time.Time) tea.Msg {
-		var outLogs []LogEvent
-		for _, msg := range m.console.Dequeue() {
-			parts := strings.SplitN(msg.Raw, ": ", 2)
-			if len(parts) != 2 {
-				break
-			}
+func (m *ConsoleModel) updateView() {
+	wasBottom := m.viewPort.AtBottom()
+	m.viewPort.SetContent(m.rowsRendered)
+	if wasBottom {
+		m.viewPort.GotoBottom()
+	}
+}
 
-			newRow := LogRow{Content: parts[1], CreatedOn: time.Now()}
-			m.rows = append(m.rows, newRow)
-			m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
-
-			// Automatically scroll if we are at the bottom.
-			wasBottom := m.viewPort.AtBottom()
-			m.viewPort.SetContent(m.rowsRendered)
-			if wasBottom {
-				m.viewPort.GotoBottom()
-			}
-			outLogs = append(outLogs, msg)
-		}
-
-		return ConsoleLogMsg{t: lastTime, logs: outLogs}
+func (m *ConsoleModel) logTick() tea.Cmd {
+	return tea.Tick(time.Second, func(lastTime time.Time) tea.Msg {
+		return ConsoleLogMsg{t: lastTime, logs: m.console.Dequeue()}
 	})
 }

@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dustin/go-humanize"
@@ -21,6 +22,7 @@ type DetailPanelModel struct {
 	player Player
 	width  int
 	height int
+	viewport.Model
 }
 
 func (m DetailPanelModel) Init() tea.Cmd {

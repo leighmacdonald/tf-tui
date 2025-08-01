@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -38,7 +40,7 @@ type ConsoleLog struct {
 	outQueueMu *sync.Mutex
 }
 
-func (l *ConsoleLog) ReadConsole(filePath string) error {
+func (l *ConsoleLog) Read(filePath string) error {
 	if l.tail != nil && l.tail.Filename == filePath {
 		return nil
 	}
@@ -79,9 +81,43 @@ func (l *ConsoleLog) Dequeue() []LogEvent {
 
 	return out
 }
+func (l *ConsoleLog) handleLine(rawLine string) {
+	line := strings.TrimSuffix(rawLine, "\r")
+	if line == "" {
+		return
+	}
+
+	var logEvent LogEvent
+	if err := l.parser.parse(line, &logEvent); err != nil || errors.Is(err, ErrNoMatch) {
+		// This is sent as a "raw" line so that the console view can show it even if it doesn't
+		// match any supported events.
+		logEvent.Raw = line
+		logEvent.Type = EvtAny
+	}
+
+	l.outQueueMu.Lock()
+	l.outQueue = append(l.outQueue, logEvent)
+	l.outQueueMu.Unlock()
+}
 
 // start begins reading incoming log events, parsing events from the lines and emitting any found events as a LogEvent.
 func (l *ConsoleLog) start() {
+	if len(os.Getenv("DEBUG")) > 0 {
+		go func() {
+			for {
+				reader, errReader := os.Open("testdata/console.log")
+				if errReader != nil {
+					panic(errReader)
+				}
+
+				scanner := bufio.NewScanner(reader)
+				for scanner.Scan() {
+					l.handleLine(scanner.Text())
+					time.Sleep(time.Millisecond * 50)
+				}
+			}
+		}()
+	}
 	for {
 		select {
 		case msg := <-l.tail.Lines:
@@ -89,23 +125,7 @@ func (l *ConsoleLog) start() {
 				// Happens on linux only?
 				continue
 			}
-
-			line := strings.TrimSuffix(msg.Text, "\r")
-			if line == "" {
-				continue
-			}
-
-			var logEvent LogEvent
-			if err := l.parser.parse(line, &logEvent); err != nil || errors.Is(err, ErrNoMatch) {
-				// This is sent as a "raw" line so that the console view can show it even if it doesn't
-				// match any supported events.
-				logEvent.Raw = line
-				logEvent.Type = EvtAny
-			}
-
-			l.outQueueMu.Lock()
-			l.outQueue = append(l.outQueue, logEvent)
-			l.outQueueMu.Unlock()
+			l.handleLine(msg.Text)
 		case <-l.stopChan:
 			if errStop := l.tail.Stop(); errStop != nil {
 				tea.Println("Failed to stop tailing console.log cleanly: " + errStop.Error())
