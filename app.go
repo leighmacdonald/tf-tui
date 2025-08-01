@@ -97,9 +97,9 @@ func (m AppModel) Init() tea.Cmd {
 func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	if !m.isInitialized() {
 		if _, ok := inMsg.(tea.WindowSizeMsg); !ok {
-			return m, nil //return m.propagate(func() tea.Msg {
+			return m, nil // return m.propagate(func() tea.Msg {
 			//	return ContentViewPortHeightMsg{contentViewPortHeight: m.contentViewPortHeight, height: msg.Height, width: msg.Width}
-			//})
+			// })
 		}
 	}
 
@@ -109,7 +109,7 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.contentViewPortHeight = m.height - m.hdrHeight - m.ftrHeight
 
-		//return m.propagate(func() tea.Msg {
+		// return m.propagate(func() tea.Msg {
 		//	return ContentViewPortHeightMsg{contentViewPortHeight: m.contentViewPortHeight, height: msg.Height, width: msg.Width}
 		//})
 	case TabChangeMsg:
@@ -187,7 +187,7 @@ func (m AppModel) View() string {
 				Render(ptContent))
 
 		// Automatically scroll if we are at the bottom.
-		//wasBottom := m.viewPort.AtBottom()
+		// wasBottom := m.viewPort.AtBottom()
 		//m.viewPort.SetContent(m.rowsRendered)
 		//if wasBottom {
 		//	m.viewPort.GotoBottom()

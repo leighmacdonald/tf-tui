@@ -29,7 +29,8 @@ func NewConsoleLog() *ConsoleLog {
 		tail:       nil,
 		stopChan:   make(chan bool),
 		parser:     newLogParser(),
-		outQueueMu: &sync.Mutex{}}
+		outQueueMu: &sync.Mutex{},
+	}
 }
 
 type ConsoleLog struct {
@@ -73,6 +74,7 @@ func (l *ConsoleLog) Read(filePath string) error {
 
 	return nil
 }
+
 func (l *ConsoleLog) Dequeue() []LogEvent {
 	l.outQueueMu.Lock()
 	out := l.outQueue
@@ -81,6 +83,7 @@ func (l *ConsoleLog) Dequeue() []LogEvent {
 
 	return out
 }
+
 func (l *ConsoleLog) handleLine(rawLine string) {
 	line := strings.TrimSuffix(rawLine, "\r")
 	if line == "" {

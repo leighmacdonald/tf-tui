@@ -223,12 +223,14 @@ func DefaultConsoleLogPath() string {
 		if err != nil {
 			panic(err)
 		}
+
 		return fmt.Sprintf("/Users/%s/Library/Application Support/Steam/steamapps/common/Team Fortress 2/tf/console.log", usr.Name)
 	case "linux":
 		homedir, err := os.UserHomeDir()
 		if err != nil {
 			homedir = "/"
 		}
+
 		return path.Join(homedir, ".steam/steam/steamapps/common/Team Fortress 2/tf/console.log")
 	case "windows":
 		// Untested
@@ -236,7 +238,6 @@ func DefaultConsoleLogPath() string {
 	default:
 		return ""
 	}
-
 }
 
 func ConfigWrite(name string, config Config) error {

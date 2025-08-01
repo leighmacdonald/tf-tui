@@ -35,6 +35,7 @@ func NewConfigModal(config Config) tea.Model {
 	if config.ConsoleLogPath == "" {
 		config.ConsoleLogPath = logPath
 	}
+
 	return &configModel{
 		config:         config,
 		inputAddr:      NewTextInputModel(config.Address, "127.0.0.1:27015"),

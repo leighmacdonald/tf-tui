@@ -34,6 +34,7 @@ func (m ChatRow) View() string {
 	if m.dead {
 		msg = styles.IconDead + " " + msg
 	}
+
 	return lipgloss.JoinHorizontal(lipgloss.Top,
 		styles.ChatTime.Render(m.createdOn.Format(time.TimeOnly)),
 		name,
@@ -52,6 +53,7 @@ const (
 func NewChatModel() *ChatModel {
 	input := NewTextInputModel("", ">")
 	input.CharLimit = 127
+
 	return &ChatModel{input: input}
 }
 
@@ -95,6 +97,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.input.Blur()
 				m.inputOpen = false
+
 				return m, nil
 			case "return":
 				m.inputOpen = false
@@ -103,6 +106,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				m.input.SetValue("")
+
 				return m, func() tea.Msg {
 					return ChatMsg{
 						Message:  message,
@@ -144,5 +148,6 @@ func (m ChatModel) View() string {
 	if m.inputOpen {
 		return lipgloss.JoinVertical(lipgloss.Top, m.rowsRendered, m.input.View())
 	}
+
 	return lipgloss.JoinVertical(lipgloss.Top, m.rowsRendered)
 }

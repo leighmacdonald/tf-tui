@@ -68,8 +68,8 @@ func (m StatusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	return m, nil
 }
-func (m StatusBarModel) View() string {
 
+func (m StatusBarModel) View() string {
 	return lipgloss.NewStyle().Width(m.width).Background(styles.Black).Render(lipgloss.JoinHorizontal(lipgloss.Top,
 		styles.StatusRedTeam.Render(fmt.Sprintf("%3d", m.redPlayers)),
 		styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.bluPlayers)),

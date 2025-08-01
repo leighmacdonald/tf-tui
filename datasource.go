@@ -73,7 +73,8 @@ func NewPlayerDataModel(client *ClientWithResponses, config Config) *PlayerDataM
 		updateQueue: make(chan steamid.SteamID, maxQueueSize),
 		client:      client,
 		config:      config,
-		g15re:       regexp.MustCompile(`^(m_szName|m_iPing|m_iScore|m_iDeaths|m_bConnected|m_iTeam|m_bAlive|m_iHealth|m_iAccountID|m_bValid|m_iUserID)\[(\d+)]\s(integer|bool|string)\s\((.+?)?\)$`)}
+		g15re:       regexp.MustCompile(`^(m_szName|m_iPing|m_iScore|m_iDeaths|m_bConnected|m_iTeam|m_bAlive|m_iHealth|m_iAccountID|m_bValid|m_iUserID)\[(\d+)]\s(integer|bool|string)\s\((.+?)?\)$`),
+	}
 }
 
 type PlayerDataModel struct {
@@ -99,10 +100,12 @@ func (m *PlayerDataModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case Config:
 		m.config = msg
+
 		return m, nil
 	case DumpPlayerMsg:
 		return m.onPlayerStateMsg(msg)
 	}
+
 	return m, nil
 }
 
@@ -161,7 +164,7 @@ func (m *PlayerDataModel) getMetaProfiles(ctx context.Context, steamIDs steamid.
 	return *parsed.JSON200, nil
 }
 
-func (m *PlayerDataModel) fetchPlayerState(ctx context.Context, address string, password string) (DumpPlayer, error) { //nolint:unparam
+func (m *PlayerDataModel) fetchPlayerState(ctx context.Context, address string, password string) (DumpPlayer, error) {
 	conn := newRconConnection(address, password)
 	response, errExec := conn.exec(ctx, "status;g15_dumpplayer", true)
 	if errExec != nil {
