@@ -75,6 +75,7 @@ const (
 // Defines values for LeaguesCompetitionsParamsLeague.
 const (
 	LeaguesCompetitionsParamsLeagueEtf2l      LeaguesCompetitionsParamsLeague = "etf2l"
+	LeaguesCompetitionsParamsLeagueMgetf      LeaguesCompetitionsParamsLeague = "mgetf"
 	LeaguesCompetitionsParamsLeagueOzfortress LeaguesCompetitionsParamsLeague = "ozfortress"
 	LeaguesCompetitionsParamsLeagueRgl        LeaguesCompetitionsParamsLeague = "rgl"
 	LeaguesCompetitionsParamsLeagueUgc        LeaguesCompetitionsParamsLeague = "ugc"
@@ -105,6 +106,7 @@ const (
 // Defines values for LeaguesHistoryParamsLeague.
 const (
 	LeaguesHistoryParamsLeagueEtf2l      LeaguesHistoryParamsLeague = "etf2l"
+	LeaguesHistoryParamsLeagueMgetf      LeaguesHistoryParamsLeague = "mgetf"
 	LeaguesHistoryParamsLeagueOzfortress LeaguesHistoryParamsLeague = "ozfortress"
 	LeaguesHistoryParamsLeagueRgl        LeaguesHistoryParamsLeague = "rgl"
 	LeaguesHistoryParamsLeagueUgc        LeaguesHistoryParamsLeague = "ugc"
@@ -135,6 +137,7 @@ const (
 // Defines values for LeaguesTeamMembersParamsLeague.
 const (
 	LeaguesTeamMembersParamsLeagueEtf2l      LeaguesTeamMembersParamsLeague = "etf2l"
+	LeaguesTeamMembersParamsLeagueMgetf      LeaguesTeamMembersParamsLeague = "mgetf"
 	LeaguesTeamMembersParamsLeagueOzfortress LeaguesTeamMembersParamsLeague = "ozfortress"
 	LeaguesTeamMembersParamsLeagueRgl        LeaguesTeamMembersParamsLeague = "rgl"
 	LeaguesTeamMembersParamsLeagueUgc        LeaguesTeamMembersParamsLeague = "ugc"
@@ -143,6 +146,7 @@ const (
 // Defines values for LeaguesTeamsParamsLeague.
 const (
 	LeaguesTeamsParamsLeagueEtf2l      LeaguesTeamsParamsLeague = "etf2l"
+	LeaguesTeamsParamsLeagueMgetf      LeaguesTeamsParamsLeague = "mgetf"
 	LeaguesTeamsParamsLeagueOzfortress LeaguesTeamsParamsLeague = "ozfortress"
 	LeaguesTeamsParamsLeagueRgl        LeaguesTeamsParamsLeague = "rgl"
 	LeaguesTeamsParamsLeagueUgc        LeaguesTeamsParamsLeague = "ugc"
@@ -278,39 +282,10 @@ type Float32 struct {
 
 // Friend defines model for Friend.
 type Friend struct {
-	CreatedOn    time.Time `json:"created_on"`
 	FriendSince  time.Time `json:"friend_since"`
 	Relationship string    `json:"relationship"`
 	RemovedOn    time.Time `json:"removed_on"`
 	SteamId      string    `json:"steam_id"`
-	UpdatedOn    time.Time `json:"updated_on"`
-}
-
-// GameOwnedPlayer defines model for GameOwnedPlayer.
-type GameOwnedPlayer struct {
-	// AppId The AppID of the game
-	AppId int32 `json:"app_id"`
-
-	// HasCommunityVisibleStats Does the game have visible stats
-	HasCommunityVisibleStats bool `json:"has_community_visible_stats"`
-
-	// ImgIconUrl URL of the icon
-	ImgIconUrl string `json:"img_icon_url"`
-
-	// ImgLogoUrl URL of the logo
-	ImgLogoUrl string `json:"img_logo_url"`
-
-	// Name Title of the game
-	Name string `json:"name"`
-
-	// PlaytimeForeverMinutes How long the user has played the game (minutes)
-	PlaytimeForeverMinutes int64 `json:"playtime_forever_minutes"`
-
-	// PlaytimeTwoWeeks How long the user has played the game in the last two weeks
-	PlaytimeTwoWeeks int64 `json:"playtime_two_weeks"`
-
-	// SteamId Owner steam id
-	SteamId string `json:"steam_id"`
 }
 
 // LeaguePlayerTeamHistory defines model for LeaguePlayerTeamHistory.
@@ -755,26 +730,6 @@ type MetaProfileCommunityVisibilityState int64
 // MetaProfileProfileState Has the profile been setup
 type MetaProfileProfileState int64
 
-// PlayerSummaryResponse defines model for PlayerSummaryResponse.
-type PlayerSummaryResponse struct {
-	AvatarHash        string `json:"avatar_hash"`
-	CommentPermission int64  `json:"comment_permission"`
-	LastLogoff        int64  `json:"last_logoff"`
-	LocCityId         int64  `json:"loc_city_id"`
-	LocCountryCode    string `json:"loc_country_code"`
-	LocStateCode      string `json:"loc_state_code"`
-	PersonaName       string `json:"persona_name"`
-	PersonaState      int64  `json:"persona_state"`
-	PersonaStateFlags int64  `json:"persona_state_flags"`
-	PrimaryClanId     string `json:"primary_clan_id"`
-	ProfileState      int64  `json:"profile_state"`
-	ProfileUrl        string `json:"profile_url"`
-	RealName          string `json:"real_name"`
-	SteamId           string `json:"steam_id"`
-	TimeCreated       int64  `json:"time_created"`
-	VisibilityState   int64  `json:"visibility_state"`
-}
-
 // PlayerTeamHistoryResponse defines model for PlayerTeamHistoryResponse.
 type PlayerTeamHistoryResponse struct {
 	// Alias Player alias on team
@@ -821,160 +776,39 @@ type PlayerTeamHistoryResponse struct {
 // PlayerTeamHistoryResponseType Type of the tournament
 type PlayerTeamHistoryResponseType string
 
-// ResolvedSteamID defines model for ResolvedSteamID.
-type ResolvedSteamID struct {
-	// Schema A URL to the JSON Schema for this object.
-	Schema  string `json:"$schema,omitempty"`
-	Profile string `json:"profile"`
-	Steam   string `json:"steam"`
-	Steam3  string `json:"steam3"`
-	Steam32 int32  `json:"steam32"`
-	Steam64 string `json:"steam64"`
-}
-
-// SchemaAttributes defines model for SchemaAttributes.
-type SchemaAttributes struct {
-	Class string      `json:"class"`
-	Name  string      `json:"name"`
-	Value interface{} `json:"value"`
-}
-
-// SchemaItem defines model for SchemaItem.
-type SchemaItem struct {
-	Attributes        []SchemaAttributes     `json:"attributes"`
-	Capabilities      SchemaItemCapabilities `json:"capabilities,omitempty"`
-	CraftClass        string                 `json:"craft_class"`
-	CraftMaterialType string                 `json:"craft_material_type"`
-	Defindex          int64                  `json:"defindex"`
-	DropType          string                 `json:"drop_type,omitempty"`
-	ImageInventory    string                 `json:"image_inventory"`
-	ImageUrl          string                 `json:"image_url"`
-	ImageUrlLarge     string                 `json:"image_url_large"`
-	ItemClass         string                 `json:"item_class"`
-	ItemDescription   string                 `json:"item_description,omitempty"`
-	ItemName          string                 `json:"item_name"`
-	ItemQuality       int64                  `json:"item_quality"`
-	ItemSlot          string                 `json:"item_slot"`
-	ItemTypeName      string                 `json:"item_type_name"`
-	MaxIlevel         int64                  `json:"max_ilevel"`
-	MinIlevel         int64                  `json:"min_ilevel"`
-	ModelPlayer       string                 `json:"model_player"`
-	Name              string                 `json:"name"`
-	ProperName        bool                   `json:"proper_name"`
-	Styles            []SchemaItemStyles     `json:"styles"`
-	UsedByClasses     []string               `json:"used_by_classes"`
-}
-
-// SchemaItemCapabilities defines model for SchemaItemCapabilities.
-type SchemaItemCapabilities struct {
-	CanBeRestored       bool `json:"can_be_restored"`
-	CanCardUpgrade      bool `json:"can_card_upgrade"`
-	CanConsume          bool `json:"can_consume"`
-	CanCraftCount       bool `json:"can_craft_count"`
-	CanCraftIfPurchased bool `json:"can_craft_if_purchased"`
-	CanCraftMark        bool `json:"can_craft_mark"`
-	CanGiftWrap         bool `json:"can_gift_wrap"`
-	CanKillstreakify    bool `json:"can_killstreakify"`
-	CanStrangify        bool `json:"can_strangify"`
-	Nameable            bool `json:"nameable"`
-	Paintable           bool `json:"paintable"`
-	StrangeParts        bool `json:"strange_parts"`
-}
-
-// SchemaItemStyles defines model for SchemaItemStyles.
-type SchemaItemStyles struct {
+// SiteInfo defines model for SiteInfo.
+type SiteInfo struct {
+	// Name Unique name/key of the site
 	Name string `json:"name"`
-}
 
-// SiteStats defines model for SiteStats.
-type SiteStats struct {
-	// Schema A URL to the JSON Schema for this object.
-	Schema string `json:"$schema,omitempty"`
+	// Title Longer decorative title of the site
+	Title string `json:"title"`
 
-	// AvatarCount Number of avatars tracked.
-	AvatarCount int64 `json:"avatar_count"`
+	// Type Type of the site
+	Type string `json:"type"`
 
-	// BanCounts Ban counts organized into their respective sites.
-	BanCounts map[string]int64 `json:"ban_counts"`
-
-	// BanTotalCount Number of all known bans seen.
-	BanTotalCount int64 `json:"ban_total_count"`
-
-	// BdListCount Number of unique bot detector lists.
-	BdListCount int64 `json:"bd_list_count"`
-
-	// BdListEntriesCount Number of player entries across all lists.
-	BdListEntriesCount int64 `json:"bd_list_entries_count"`
-
-	// CommunityBanCount Number of community bans seen.
-	CommunityBanCount int64 `json:"community_ban_count"`
-
-	// FriendCount Number of friends tracked.
-	FriendCount int64 `json:"friend_count"`
-
-	// GameBanCount Number of game bans seen.
-	GameBanCount int64 `json:"game_ban_count"`
-
-	// LogsTfChatCount Number of logs.tf chat messages.
-	LogsTfChatCount int64 `json:"logs_tf_chat_count"`
-
-	// LogsTfCount Number of successfully indexed logs.
-	LogsTfCount int64 `json:"logs_tf_count"`
-
-	// LogsTfPlayerCount Number of unique logs.tf players.
-	LogsTfPlayerCount int64 `json:"logs_tf_player_count"`
-
-	// MapsCount Number of unique maps seen
-	MapsCount int64 `json:"maps_count"`
-
-	// NameCount Number of names tracked.
-	NameCount int64 `json:"name_count"`
-
-	// PlayersCount Number of unique players tracked.
-	PlayersCount int64 `json:"players_count"`
-
-	// SourceCount Total number of data sources used.
-	SourceCount int64 `json:"source_count"`
-
-	// VacCount Number of vac bans seen.
-	VacCount int64 `json:"vac_count"`
-}
-
-// SteamBan defines model for SteamBan.
-type SteamBan struct {
-	CommunityBanned  bool      `json:"community_banned"`
-	CreatedOn        time.Time `json:"created_on"`
-	DaysSinceLastBan int64     `json:"days_since_last_ban"`
-	EconomyBan       string    `json:"economy_ban"`
-	NumberOfGameBans int64     `json:"number_of_game_bans"`
-	NumberOfVacBans  int64     `json:"number_of_vac_bans"`
-	SteamId          string    `json:"steam_id"`
-	UpdatedOn        time.Time `json:"updated_on"`
-	VacBanned        bool      `json:"vac_banned"`
-}
-
-// SteamRepEntry defines model for SteamRepEntry.
-type SteamRepEntry struct {
-	// Banned Indicates if the player banned
-	Banned bool `json:"banned"`
-
-	// Reputations Comma separated list of reputation sources
-	Reputations []string `json:"reputations"`
-
-	// SteamId Steam ID of the player
-	SteamId string `json:"steam_id"`
+	// Url URL to the site
+	Url string `json:"url"`
 }
 
 // BansSearchParams defines parameters for BansSearch.
 type BansSearchParams struct {
-	SiteName     string   `form:"site_name,omitempty" json:"site_name,omitempty"`
-	HideUnbanned bool     `form:"hide_unbanned,omitempty" json:"hide_unbanned,omitempty"`
-	SteamIds     []string `form:"steam_ids" json:"steam_ids"`
+	SiteName     string `form:"site_name,omitempty" json:"site_name,omitempty"`
+	HideUnbanned bool   `form:"hide_unbanned,omitempty" json:"hide_unbanned,omitempty"`
+
+	// Steamids Comma separated list of Steam IDs in any standard format
+	Steamids string `form:"steamids" json:"steamids"`
+}
+
+// BdListParams defines parameters for BdList.
+type BdListParams struct {
+	Site string `form:"site,omitempty" json:"site,omitempty"`
 }
 
 // BdSearchParams defines parameters for BdSearch.
 type BdSearchParams struct {
-	Steamids []string `form:"steamids" json:"steamids"`
+	// Steamids Comma separated list of Steam IDs in any standard format
+	Steamids string   `form:"steamids" json:"steamids"`
 	Attrs    []string `form:"attrs,omitempty" json:"attrs,omitempty"`
 }
 
@@ -996,8 +830,8 @@ type LeaguesCompetitionsParamsType string
 
 // LeaguesHistoryParams defines parameters for LeaguesHistory.
 type LeaguesHistoryParams struct {
-	// Steamids SteamIDs in any standard format
-	Steamids []string `form:"steamids" json:"steamids"`
+	// Steamids Comma separated list of Steam IDs in any standard format
+	Steamids string `form:"steamids" json:"steamids"`
 
 	// League Name of the league
 	League LeaguesHistoryParamsLeague `form:"league,omitempty" json:"league,omitempty"`
@@ -1047,46 +881,27 @@ type LeaguesTeamsParamsLeague string
 
 // LogstfChatQueryParams defines parameters for LogstfChatQuery.
 type LogstfChatQueryParams struct {
-	Query string `form:"query,omitempty" json:"query,omitempty"`
+	// Steamid Steam ID in any standard format
+	Steamid string `form:"steamid" json:"steamid"`
+	Query   string `form:"query,omitempty" json:"query,omitempty"`
+}
+
+// LogstfMatchListParams defines parameters for LogstfMatchList.
+type LogstfMatchListParams struct {
+	// Steamid Steam ID in any standard format
+	Steamid string `form:"steamid" json:"steamid"`
+}
+
+// LogstfPlayerSummaryParams defines parameters for LogstfPlayerSummary.
+type LogstfPlayerSummaryParams struct {
+	// Steamid Steam ID in any standard format
+	Steamid string `form:"steamid" json:"steamid"`
 }
 
 // MetaProfileParams defines parameters for MetaProfile.
 type MetaProfileParams struct {
-	// Steamids List of steam ids to query
-	Steamids []string `form:"steamids" json:"steamids"`
-}
-
-// SteamBansParams defines parameters for SteamBans.
-type SteamBansParams struct {
-	// Steamids List of steam ids to query
-	Steamids []string `form:"steamids" json:"steamids"`
-}
-
-// SteamFriendsParams defines parameters for SteamFriends.
-type SteamFriendsParams struct {
-	Steamid string `form:"steamid" json:"steamid"`
-}
-
-// SteamGamesParams defines parameters for SteamGames.
-type SteamGamesParams struct {
-	// Steamids List of steam ids to query
-	Steamids []string `form:"steamids" json:"steamids"`
-}
-
-// SteamIdParams defines parameters for SteamId.
-type SteamIdParams struct {
-	Steamid string `form:"steamid,omitempty" json:"steamid,omitempty"`
-}
-
-// SteamSummariesParams defines parameters for SteamSummaries.
-type SteamSummariesParams struct {
-	// Steamids List of steam ids to query
-	Steamids []string `form:"steamids" json:"steamids"`
-}
-
-// SteamrepQueryParams defines parameters for SteamrepQuery.
-type SteamrepQueryParams struct {
-	SteamIds []string `form:"steam_ids" json:"steam_ids"`
+	// Steamids Comma separated list of Steam IDs in any standard format
+	Steamids string `form:"steamids" json:"steamids"`
 }
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
@@ -1166,7 +981,7 @@ type ClientInterface interface {
 	BansSearch(ctx context.Context, params *BansSearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// BdList request
-	BdList(ctx context.Context, siteName string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	BdList(ctx context.Context, params *BdListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// BdSearch request
 	BdSearch(ctx context.Context, params *BdSearchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1184,58 +999,22 @@ type ClientInterface interface {
 	LeaguesTeams(ctx context.Context, params *LeaguesTeamsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// LogstfChatQuery request
-	LogstfChatQuery(ctx context.Context, steamId string, params *LogstfChatQueryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	LogstfChatQuery(ctx context.Context, params *LogstfChatQueryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// LogstfLog request
 	LogstfLog(ctx context.Context, logid int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// LogstfMatchList request
-	LogstfMatchList(ctx context.Context, steamId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	LogstfMatchList(ctx context.Context, params *LogstfMatchListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// LogstfPlayerSummary request
-	LogstfPlayerSummary(ctx context.Context, steamId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	LogstfPlayerSummary(ctx context.Context, params *LogstfPlayerSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// MetaProfile request
 	MetaProfile(ctx context.Context, params *MetaProfileParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// OpenapiJson30 request
-	OpenapiJson30(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// OpenapiYaml30 request
-	OpenapiYaml30(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// OpenapiJson request
-	OpenapiJson(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// OpenapiYaml request
-	OpenapiYaml(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// StatsId request
-	StatsId(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SteamBans request
-	SteamBans(ctx context.Context, params *SteamBansParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SteamFriends request
-	SteamFriends(ctx context.Context, params *SteamFriendsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SteamGames request
-	SteamGames(ctx context.Context, params *SteamGamesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SteamId request
-	SteamId(ctx context.Context, params *SteamIdParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SteamParse request
-	SteamParse(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SteamSchemaItems request
-	SteamSchemaItems(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SteamSummaries request
-	SteamSummaries(ctx context.Context, params *SteamSummariesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SteamrepQuery request
-	SteamrepQuery(ctx context.Context, params *SteamrepQueryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// MetaSites request
+	MetaSites(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) BansSearch(ctx context.Context, params *BansSearchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -1250,8 +1029,8 @@ func (c *Client) BansSearch(ctx context.Context, params *BansSearchParams, reqEd
 	return c.Client.Do(req)
 }
 
-func (c *Client) BdList(ctx context.Context, siteName string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewBdListRequest(c.Server, siteName)
+func (c *Client) BdList(ctx context.Context, params *BdListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBdListRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1322,8 +1101,8 @@ func (c *Client) LeaguesTeams(ctx context.Context, params *LeaguesTeamsParams, r
 	return c.Client.Do(req)
 }
 
-func (c *Client) LogstfChatQuery(ctx context.Context, steamId string, params *LogstfChatQueryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewLogstfChatQueryRequest(c.Server, steamId, params)
+func (c *Client) LogstfChatQuery(ctx context.Context, params *LogstfChatQueryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLogstfChatQueryRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1346,8 +1125,8 @@ func (c *Client) LogstfLog(ctx context.Context, logid int64, reqEditors ...Reque
 	return c.Client.Do(req)
 }
 
-func (c *Client) LogstfMatchList(ctx context.Context, steamId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewLogstfMatchListRequest(c.Server, steamId)
+func (c *Client) LogstfMatchList(ctx context.Context, params *LogstfMatchListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLogstfMatchListRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1358,8 +1137,8 @@ func (c *Client) LogstfMatchList(ctx context.Context, steamId string, reqEditors
 	return c.Client.Do(req)
 }
 
-func (c *Client) LogstfPlayerSummary(ctx context.Context, steamId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewLogstfPlayerSummaryRequest(c.Server, steamId)
+func (c *Client) LogstfPlayerSummary(ctx context.Context, params *LogstfPlayerSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLogstfPlayerSummaryRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1382,152 +1161,8 @@ func (c *Client) MetaProfile(ctx context.Context, params *MetaProfileParams, req
 	return c.Client.Do(req)
 }
 
-func (c *Client) OpenapiJson30(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewOpenapiJson30Request(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) OpenapiYaml30(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewOpenapiYaml30Request(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) OpenapiJson(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewOpenapiJsonRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) OpenapiYaml(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewOpenapiYamlRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) StatsId(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewStatsIdRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SteamBans(ctx context.Context, params *SteamBansParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSteamBansRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SteamFriends(ctx context.Context, params *SteamFriendsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSteamFriendsRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SteamGames(ctx context.Context, params *SteamGamesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSteamGamesRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SteamId(ctx context.Context, params *SteamIdParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSteamIdRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SteamParse(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSteamParseRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SteamSchemaItems(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSteamSchemaItemsRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SteamSummaries(ctx context.Context, params *SteamSummariesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSteamSummariesRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SteamrepQuery(ctx context.Context, params *SteamrepQueryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSteamrepQueryRequest(c.Server, params)
+func (c *Client) MetaSites(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMetaSitesRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1584,7 +1219,7 @@ func NewBansSearchRequest(server string, params *BansSearchParams) (*http.Reques
 			}
 		}
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steam_ids", runtime.ParamLocationQuery, params.SteamIds); err != nil {
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steamids", runtime.ParamLocationQuery, params.Steamids); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -1608,22 +1243,15 @@ func NewBansSearchRequest(server string, params *BansSearchParams) (*http.Reques
 }
 
 // NewBdListRequest generates requests for BdList
-func NewBdListRequest(server string, siteName string) (*http.Request, error) {
+func NewBdListRequest(server string, params *BdListParams) (*http.Request, error) {
 	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "site_name", runtime.ParamLocationPath, siteName)
-	if err != nil {
-		return nil, err
-	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/bd/generate/%s", pathParam0)
+	operationPath := fmt.Sprintf("/api/bd/generate")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1631,6 +1259,24 @@ func NewBdListRequest(server string, siteName string) (*http.Request, error) {
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "site", runtime.ParamLocationQuery, params.Site); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -1975,22 +1621,15 @@ func NewLeaguesTeamsRequest(server string, params *LeaguesTeamsParams) (*http.Re
 }
 
 // NewLogstfChatQueryRequest generates requests for LogstfChatQuery
-func NewLogstfChatQueryRequest(server string, steamId string, params *LogstfChatQueryParams) (*http.Request, error) {
+func NewLogstfChatQueryRequest(server string, params *LogstfChatQueryParams) (*http.Request, error) {
 	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "steam_id", runtime.ParamLocationPath, steamId)
-	if err != nil {
-		return nil, err
-	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/logstf/chat/%s", pathParam0)
+	operationPath := fmt.Sprintf("/api/logstf/chat")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2002,6 +1641,18 @@ func NewLogstfChatQueryRequest(server string, steamId string, params *LogstfChat
 
 	if params != nil {
 		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steamid", runtime.ParamLocationQuery, params.Steamid); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "query", runtime.ParamLocationQuery, params.Query); err != nil {
 			return nil, err
@@ -2061,22 +1712,15 @@ func NewLogstfLogRequest(server string, logid int64) (*http.Request, error) {
 }
 
 // NewLogstfMatchListRequest generates requests for LogstfMatchList
-func NewLogstfMatchListRequest(server string, steamId string) (*http.Request, error) {
+func NewLogstfMatchListRequest(server string, params *LogstfMatchListParams) (*http.Request, error) {
 	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "steam_id", runtime.ParamLocationPath, steamId)
-	if err != nil {
-		return nil, err
-	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/logstf/matches/%s", pathParam0)
+	operationPath := fmt.Sprintf("/api/logstf/matches")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2084,6 +1728,24 @@ func NewLogstfMatchListRequest(server string, steamId string) (*http.Request, er
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steamid", runtime.ParamLocationQuery, params.Steamid); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -2095,22 +1757,15 @@ func NewLogstfMatchListRequest(server string, steamId string) (*http.Request, er
 }
 
 // NewLogstfPlayerSummaryRequest generates requests for LogstfPlayerSummary
-func NewLogstfPlayerSummaryRequest(server string, steamId string) (*http.Request, error) {
+func NewLogstfPlayerSummaryRequest(server string, params *LogstfPlayerSummaryParams) (*http.Request, error) {
 	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "steam_id", runtime.ParamLocationPath, steamId)
-	if err != nil {
-		return nil, err
-	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/logstf/summary/%s", pathParam0)
+	operationPath := fmt.Sprintf("/api/logstf/summary")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2118,6 +1773,24 @@ func NewLogstfPlayerSummaryRequest(server string, steamId string) (*http.Request
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steamid", runtime.ParamLocationQuery, params.Steamid); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -2137,7 +1810,7 @@ func NewMetaProfileRequest(server string, params *MetaProfileParams) (*http.Requ
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/meta")
+	operationPath := fmt.Sprintf("/api/meta/profile")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2173,8 +1846,8 @@ func NewMetaProfileRequest(server string, params *MetaProfileParams) (*http.Requ
 	return req, nil
 }
 
-// NewOpenapiJson30Request generates requests for OpenapiJson30
-func NewOpenapiJson30Request(server string) (*http.Request, error) {
+// NewMetaSitesRequest generates requests for MetaSites
+func NewMetaSitesRequest(server string) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -2182,7 +1855,7 @@ func NewOpenapiJson30Request(server string) (*http.Request, error) {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/openapi/schema-3.0.json")
+	operationPath := fmt.Sprintf("/api/meta/sites")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2190,438 +1863,6 @@ func NewOpenapiJson30Request(server string) (*http.Request, error) {
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewOpenapiYaml30Request generates requests for OpenapiYaml30
-func NewOpenapiYaml30Request(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/openapi/schema-3.0.yaml")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewOpenapiJsonRequest generates requests for OpenapiJson
-func NewOpenapiJsonRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/openapi/schema.json")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewOpenapiYamlRequest generates requests for OpenapiYaml
-func NewOpenapiYamlRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/openapi/schema.yaml")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewStatsIdRequest generates requests for StatsId
-func NewStatsIdRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/stats/overall")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewSteamBansRequest generates requests for SteamBans
-func NewSteamBansRequest(server string, params *SteamBansParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/steam/bans")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steamids", runtime.ParamLocationQuery, params.Steamids); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewSteamFriendsRequest generates requests for SteamFriends
-func NewSteamFriendsRequest(server string, params *SteamFriendsParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/steam/friends")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steamid", runtime.ParamLocationQuery, params.Steamid); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewSteamGamesRequest generates requests for SteamGames
-func NewSteamGamesRequest(server string, params *SteamGamesParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/steam/games")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steamids", runtime.ParamLocationQuery, params.Steamids); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewSteamIdRequest generates requests for SteamId
-func NewSteamIdRequest(server string, params *SteamIdParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/steam/id")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steamid", runtime.ParamLocationQuery, params.Steamid); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewSteamParseRequest generates requests for SteamParse
-func NewSteamParseRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/steam/parse")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewSteamSchemaItemsRequest generates requests for SteamSchemaItems
-func NewSteamSchemaItemsRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/steam/schema-items")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewSteamSummariesRequest generates requests for SteamSummaries
-func NewSteamSummariesRequest(server string, params *SteamSummariesParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/steam/summary")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steamids", runtime.ParamLocationQuery, params.Steamids); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewSteamrepQueryRequest generates requests for SteamrepQuery
-func NewSteamrepQueryRequest(server string, params *SteamrepQueryParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/steamrep/query")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "steam_ids", runtime.ParamLocationQuery, params.SteamIds); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -2679,7 +1920,7 @@ type ClientWithResponsesInterface interface {
 	BansSearchWithResponse(ctx context.Context, params *BansSearchParams, reqEditors ...RequestEditorFn) (*BansSearchResponse, error)
 
 	// BdListWithResponse request
-	BdListWithResponse(ctx context.Context, siteName string, reqEditors ...RequestEditorFn) (*BdListResponse, error)
+	BdListWithResponse(ctx context.Context, params *BdListParams, reqEditors ...RequestEditorFn) (*BdListResponse, error)
 
 	// BdSearchWithResponse request
 	BdSearchWithResponse(ctx context.Context, params *BdSearchParams, reqEditors ...RequestEditorFn) (*BdSearchResponse, error)
@@ -2697,58 +1938,22 @@ type ClientWithResponsesInterface interface {
 	LeaguesTeamsWithResponse(ctx context.Context, params *LeaguesTeamsParams, reqEditors ...RequestEditorFn) (*LeaguesTeamsResponse, error)
 
 	// LogstfChatQueryWithResponse request
-	LogstfChatQueryWithResponse(ctx context.Context, steamId string, params *LogstfChatQueryParams, reqEditors ...RequestEditorFn) (*LogstfChatQueryResponse, error)
+	LogstfChatQueryWithResponse(ctx context.Context, params *LogstfChatQueryParams, reqEditors ...RequestEditorFn) (*LogstfChatQueryResponse, error)
 
 	// LogstfLogWithResponse request
 	LogstfLogWithResponse(ctx context.Context, logid int64, reqEditors ...RequestEditorFn) (*LogstfLogResponse, error)
 
 	// LogstfMatchListWithResponse request
-	LogstfMatchListWithResponse(ctx context.Context, steamId string, reqEditors ...RequestEditorFn) (*LogstfMatchListResponse, error)
+	LogstfMatchListWithResponse(ctx context.Context, params *LogstfMatchListParams, reqEditors ...RequestEditorFn) (*LogstfMatchListResponse, error)
 
 	// LogstfPlayerSummaryWithResponse request
-	LogstfPlayerSummaryWithResponse(ctx context.Context, steamId string, reqEditors ...RequestEditorFn) (*LogstfPlayerSummaryResponse, error)
+	LogstfPlayerSummaryWithResponse(ctx context.Context, params *LogstfPlayerSummaryParams, reqEditors ...RequestEditorFn) (*LogstfPlayerSummaryResponse, error)
 
 	// MetaProfileWithResponse request
 	MetaProfileWithResponse(ctx context.Context, params *MetaProfileParams, reqEditors ...RequestEditorFn) (*MetaProfileResponse, error)
 
-	// OpenapiJson30WithResponse request
-	OpenapiJson30WithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*OpenapiJson30Response, error)
-
-	// OpenapiYaml30WithResponse request
-	OpenapiYaml30WithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*OpenapiYaml30Response, error)
-
-	// OpenapiJsonWithResponse request
-	OpenapiJsonWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*OpenapiJsonResponse, error)
-
-	// OpenapiYamlWithResponse request
-	OpenapiYamlWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*OpenapiYamlResponse, error)
-
-	// StatsIdWithResponse request
-	StatsIdWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*StatsIdResponse, error)
-
-	// SteamBansWithResponse request
-	SteamBansWithResponse(ctx context.Context, params *SteamBansParams, reqEditors ...RequestEditorFn) (*SteamBansResponse, error)
-
-	// SteamFriendsWithResponse request
-	SteamFriendsWithResponse(ctx context.Context, params *SteamFriendsParams, reqEditors ...RequestEditorFn) (*SteamFriendsResponse, error)
-
-	// SteamGamesWithResponse request
-	SteamGamesWithResponse(ctx context.Context, params *SteamGamesParams, reqEditors ...RequestEditorFn) (*SteamGamesResponse, error)
-
-	// SteamIdWithResponse request
-	SteamIdWithResponse(ctx context.Context, params *SteamIdParams, reqEditors ...RequestEditorFn) (*SteamIdResponse, error)
-
-	// SteamParseWithResponse request
-	SteamParseWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SteamParseResponse, error)
-
-	// SteamSchemaItemsWithResponse request
-	SteamSchemaItemsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SteamSchemaItemsResponse, error)
-
-	// SteamSummariesWithResponse request
-	SteamSummariesWithResponse(ctx context.Context, params *SteamSummariesParams, reqEditors ...RequestEditorFn) (*SteamSummariesResponse, error)
-
-	// SteamrepQueryWithResponse request
-	SteamrepQueryWithResponse(ctx context.Context, params *SteamrepQueryParams, reqEditors ...RequestEditorFn) (*SteamrepQueryResponse, error)
+	// MetaSitesWithResponse request
+	MetaSitesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*MetaSitesResponse, error)
 }
 
 type BansSearchResponse struct {
@@ -3027,15 +2232,15 @@ func (r MetaProfileResponse) StatusCode() int {
 	return 0
 }
 
-type OpenapiJson30Response struct {
+type MetaSitesResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	JSON200                       *string
+	JSON200                       *[]SiteInfo
 	ApplicationproblemJSONDefault *ErrorModel
 }
 
 // Status returns HTTPResponse.Status
-func (r OpenapiJson30Response) Status() string {
+func (r MetaSitesResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3043,283 +2248,7 @@ func (r OpenapiJson30Response) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r OpenapiJson30Response) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type OpenapiYaml30Response struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *string
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r OpenapiYaml30Response) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r OpenapiYaml30Response) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type OpenapiJsonResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *string
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r OpenapiJsonResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r OpenapiJsonResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type OpenapiYamlResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *string
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r OpenapiYamlResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r OpenapiYamlResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type StatsIdResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *SiteStats
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r StatsIdResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r StatsIdResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SteamBansResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]SteamBan
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r SteamBansResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SteamBansResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SteamFriendsResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]Friend
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r SteamFriendsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SteamFriendsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SteamGamesResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *map[string]*[]GameOwnedPlayer
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r SteamGamesResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SteamGamesResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SteamIdResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *ResolvedSteamID
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r SteamIdResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SteamIdResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SteamParseResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]string
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r SteamParseResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SteamParseResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SteamSchemaItemsResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]SchemaItem
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r SteamSchemaItemsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SteamSchemaItemsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SteamSummariesResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]PlayerSummaryResponse
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r SteamSummariesResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SteamSummariesResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SteamrepQueryResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]SteamRepEntry
-	ApplicationproblemJSONDefault *ErrorModel
-}
-
-// Status returns HTTPResponse.Status
-func (r SteamrepQueryResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SteamrepQueryResponse) StatusCode() int {
+func (r MetaSitesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3336,8 +2265,8 @@ func (c *ClientWithResponses) BansSearchWithResponse(ctx context.Context, params
 }
 
 // BdListWithResponse request returning *BdListResponse
-func (c *ClientWithResponses) BdListWithResponse(ctx context.Context, siteName string, reqEditors ...RequestEditorFn) (*BdListResponse, error) {
-	rsp, err := c.BdList(ctx, siteName, reqEditors...)
+func (c *ClientWithResponses) BdListWithResponse(ctx context.Context, params *BdListParams, reqEditors ...RequestEditorFn) (*BdListResponse, error) {
+	rsp, err := c.BdList(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -3390,8 +2319,8 @@ func (c *ClientWithResponses) LeaguesTeamsWithResponse(ctx context.Context, para
 }
 
 // LogstfChatQueryWithResponse request returning *LogstfChatQueryResponse
-func (c *ClientWithResponses) LogstfChatQueryWithResponse(ctx context.Context, steamId string, params *LogstfChatQueryParams, reqEditors ...RequestEditorFn) (*LogstfChatQueryResponse, error) {
-	rsp, err := c.LogstfChatQuery(ctx, steamId, params, reqEditors...)
+func (c *ClientWithResponses) LogstfChatQueryWithResponse(ctx context.Context, params *LogstfChatQueryParams, reqEditors ...RequestEditorFn) (*LogstfChatQueryResponse, error) {
+	rsp, err := c.LogstfChatQuery(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -3408,8 +2337,8 @@ func (c *ClientWithResponses) LogstfLogWithResponse(ctx context.Context, logid i
 }
 
 // LogstfMatchListWithResponse request returning *LogstfMatchListResponse
-func (c *ClientWithResponses) LogstfMatchListWithResponse(ctx context.Context, steamId string, reqEditors ...RequestEditorFn) (*LogstfMatchListResponse, error) {
-	rsp, err := c.LogstfMatchList(ctx, steamId, reqEditors...)
+func (c *ClientWithResponses) LogstfMatchListWithResponse(ctx context.Context, params *LogstfMatchListParams, reqEditors ...RequestEditorFn) (*LogstfMatchListResponse, error) {
+	rsp, err := c.LogstfMatchList(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -3417,8 +2346,8 @@ func (c *ClientWithResponses) LogstfMatchListWithResponse(ctx context.Context, s
 }
 
 // LogstfPlayerSummaryWithResponse request returning *LogstfPlayerSummaryResponse
-func (c *ClientWithResponses) LogstfPlayerSummaryWithResponse(ctx context.Context, steamId string, reqEditors ...RequestEditorFn) (*LogstfPlayerSummaryResponse, error) {
-	rsp, err := c.LogstfPlayerSummary(ctx, steamId, reqEditors...)
+func (c *ClientWithResponses) LogstfPlayerSummaryWithResponse(ctx context.Context, params *LogstfPlayerSummaryParams, reqEditors ...RequestEditorFn) (*LogstfPlayerSummaryResponse, error) {
+	rsp, err := c.LogstfPlayerSummary(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -3434,121 +2363,13 @@ func (c *ClientWithResponses) MetaProfileWithResponse(ctx context.Context, param
 	return ParseMetaProfileResponse(rsp)
 }
 
-// OpenapiJson30WithResponse request returning *OpenapiJson30Response
-func (c *ClientWithResponses) OpenapiJson30WithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*OpenapiJson30Response, error) {
-	rsp, err := c.OpenapiJson30(ctx, reqEditors...)
+// MetaSitesWithResponse request returning *MetaSitesResponse
+func (c *ClientWithResponses) MetaSitesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*MetaSitesResponse, error) {
+	rsp, err := c.MetaSites(ctx, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseOpenapiJson30Response(rsp)
-}
-
-// OpenapiYaml30WithResponse request returning *OpenapiYaml30Response
-func (c *ClientWithResponses) OpenapiYaml30WithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*OpenapiYaml30Response, error) {
-	rsp, err := c.OpenapiYaml30(ctx, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseOpenapiYaml30Response(rsp)
-}
-
-// OpenapiJsonWithResponse request returning *OpenapiJsonResponse
-func (c *ClientWithResponses) OpenapiJsonWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*OpenapiJsonResponse, error) {
-	rsp, err := c.OpenapiJson(ctx, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseOpenapiJsonResponse(rsp)
-}
-
-// OpenapiYamlWithResponse request returning *OpenapiYamlResponse
-func (c *ClientWithResponses) OpenapiYamlWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*OpenapiYamlResponse, error) {
-	rsp, err := c.OpenapiYaml(ctx, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseOpenapiYamlResponse(rsp)
-}
-
-// StatsIdWithResponse request returning *StatsIdResponse
-func (c *ClientWithResponses) StatsIdWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*StatsIdResponse, error) {
-	rsp, err := c.StatsId(ctx, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseStatsIdResponse(rsp)
-}
-
-// SteamBansWithResponse request returning *SteamBansResponse
-func (c *ClientWithResponses) SteamBansWithResponse(ctx context.Context, params *SteamBansParams, reqEditors ...RequestEditorFn) (*SteamBansResponse, error) {
-	rsp, err := c.SteamBans(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSteamBansResponse(rsp)
-}
-
-// SteamFriendsWithResponse request returning *SteamFriendsResponse
-func (c *ClientWithResponses) SteamFriendsWithResponse(ctx context.Context, params *SteamFriendsParams, reqEditors ...RequestEditorFn) (*SteamFriendsResponse, error) {
-	rsp, err := c.SteamFriends(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSteamFriendsResponse(rsp)
-}
-
-// SteamGamesWithResponse request returning *SteamGamesResponse
-func (c *ClientWithResponses) SteamGamesWithResponse(ctx context.Context, params *SteamGamesParams, reqEditors ...RequestEditorFn) (*SteamGamesResponse, error) {
-	rsp, err := c.SteamGames(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSteamGamesResponse(rsp)
-}
-
-// SteamIdWithResponse request returning *SteamIdResponse
-func (c *ClientWithResponses) SteamIdWithResponse(ctx context.Context, params *SteamIdParams, reqEditors ...RequestEditorFn) (*SteamIdResponse, error) {
-	rsp, err := c.SteamId(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSteamIdResponse(rsp)
-}
-
-// SteamParseWithResponse request returning *SteamParseResponse
-func (c *ClientWithResponses) SteamParseWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SteamParseResponse, error) {
-	rsp, err := c.SteamParse(ctx, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSteamParseResponse(rsp)
-}
-
-// SteamSchemaItemsWithResponse request returning *SteamSchemaItemsResponse
-func (c *ClientWithResponses) SteamSchemaItemsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SteamSchemaItemsResponse, error) {
-	rsp, err := c.SteamSchemaItems(ctx, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSteamSchemaItemsResponse(rsp)
-}
-
-// SteamSummariesWithResponse request returning *SteamSummariesResponse
-func (c *ClientWithResponses) SteamSummariesWithResponse(ctx context.Context, params *SteamSummariesParams, reqEditors ...RequestEditorFn) (*SteamSummariesResponse, error) {
-	rsp, err := c.SteamSummaries(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSteamSummariesResponse(rsp)
-}
-
-// SteamrepQueryWithResponse request returning *SteamrepQueryResponse
-func (c *ClientWithResponses) SteamrepQueryWithResponse(ctx context.Context, params *SteamrepQueryParams, reqEditors ...RequestEditorFn) (*SteamrepQueryResponse, error) {
-	rsp, err := c.SteamrepQuery(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSteamrepQueryResponse(rsp)
+	return ParseMetaSitesResponse(rsp)
 }
 
 // ParseBansSearchResponse parses an HTTP response from a BansSearchWithResponse call
@@ -3947,418 +2768,22 @@ func ParseMetaProfileResponse(rsp *http.Response) (*MetaProfileResponse, error) 
 	return response, nil
 }
 
-// ParseOpenapiJson30Response parses an HTTP response from a OpenapiJson30WithResponse call
-func ParseOpenapiJson30Response(rsp *http.Response) (*OpenapiJson30Response, error) {
+// ParseMetaSitesResponse parses an HTTP response from a MetaSitesWithResponse call
+func ParseMetaSitesResponse(rsp *http.Response) (*MetaSitesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &OpenapiJson30Response{
+	response := &MetaSitesResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest string
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseOpenapiYaml30Response parses an HTTP response from a OpenapiYaml30WithResponse call
-func ParseOpenapiYaml30Response(rsp *http.Response) (*OpenapiYaml30Response, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &OpenapiYaml30Response{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest string
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseOpenapiJsonResponse parses an HTTP response from a OpenapiJsonWithResponse call
-func ParseOpenapiJsonResponse(rsp *http.Response) (*OpenapiJsonResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &OpenapiJsonResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest string
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseOpenapiYamlResponse parses an HTTP response from a OpenapiYamlWithResponse call
-func ParseOpenapiYamlResponse(rsp *http.Response) (*OpenapiYamlResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &OpenapiYamlResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest string
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseStatsIdResponse parses an HTTP response from a StatsIdWithResponse call
-func ParseStatsIdResponse(rsp *http.Response) (*StatsIdResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &StatsIdResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SiteStats
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseSteamBansResponse parses an HTTP response from a SteamBansWithResponse call
-func ParseSteamBansResponse(rsp *http.Response) (*SteamBansResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SteamBansResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []SteamBan
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseSteamFriendsResponse parses an HTTP response from a SteamFriendsWithResponse call
-func ParseSteamFriendsResponse(rsp *http.Response) (*SteamFriendsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SteamFriendsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []Friend
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseSteamGamesResponse parses an HTTP response from a SteamGamesWithResponse call
-func ParseSteamGamesResponse(rsp *http.Response) (*SteamGamesResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SteamGamesResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest map[string]*[]GameOwnedPlayer
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseSteamIdResponse parses an HTTP response from a SteamIdWithResponse call
-func ParseSteamIdResponse(rsp *http.Response) (*SteamIdResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SteamIdResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ResolvedSteamID
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseSteamParseResponse parses an HTTP response from a SteamParseWithResponse call
-func ParseSteamParseResponse(rsp *http.Response) (*SteamParseResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SteamParseResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []string
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseSteamSchemaItemsResponse parses an HTTP response from a SteamSchemaItemsWithResponse call
-func ParseSteamSchemaItemsResponse(rsp *http.Response) (*SteamSchemaItemsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SteamSchemaItemsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []SchemaItem
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseSteamSummariesResponse parses an HTTP response from a SteamSummariesWithResponse call
-func ParseSteamSummariesResponse(rsp *http.Response) (*SteamSummariesResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SteamSummariesResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []PlayerSummaryResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest ErrorModel
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseSteamrepQueryResponse parses an HTTP response from a SteamrepQueryWithResponse call
-func ParseSteamrepQueryResponse(rsp *http.Response) (*SteamrepQueryResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SteamrepQueryResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []SteamRepEntry
+		var dest []SiteInfo
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
