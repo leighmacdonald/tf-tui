@@ -7,7 +7,6 @@ project_name: tf-tui
 #dockers:
 #  - dockerfile: "docker/Dockerfile"
 #    skip_push: false
-#    goamd64: v2
 #    extra_files:
 #      - LICENSE
 #    ids: ["tf-tui"]
@@ -24,8 +23,6 @@ project_name: tf-tui
 builds:
   - env:
       - CGO_ENABLED=0
-    goamd64:
-      - v2
     goos:
       - linux
       - windows
@@ -39,7 +36,7 @@ builds:
     goarch:
       - amd64
     ldflags:
-      - -s -w -X github.com/leighmacdonald/tf-tui/BuildMode=production -X github.com/leighmacdonald/tf-tui/BuildVersion={{.Version}} -X github.com/leighmacdonald/tf-tui/BuildCommit={{.Commit}} -X github.com/leighmacdonald/tf-tui/BuildDate={{.Date}}
+      - -s -w -X main.BuildMode=production -X main.BuildVersion={{.Version}} -X main.BuildCommit={{.Commit}} -X main.BuildDate={{.Date}}
 
 archives:
   - formats: ['tar.gz']
