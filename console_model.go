@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -29,13 +31,16 @@ type ConsoleModel struct {
 	rowsRendered   string
 	console        *ConsoleLog
 	consoleLogPath string
-	viewPort       viewport.Model
 	width          int
+	viewPort       viewport.Model
+	input          textinput.Model
+	focused        bool
 }
 
 func NewConsoleModel(consoleLogPath string) *ConsoleModel {
 	model := &ConsoleModel{
 		console:        NewConsoleLog(),
+		input:          NewTextInputModel("", ""),
 		consoleLogPath: consoleLogPath,
 		viewPort:       viewport.New(10, 10),
 	}
@@ -56,11 +61,38 @@ type ContentViewPortHeightMsg struct {
 }
 
 func (m *ConsoleModel) Init() tea.Cmd {
-	return m.logTick()
+	return tea.Batch(textinput.Blink, m.logTick())
 }
 
 func (m *ConsoleModel) Update(msg tea.Msg) (*ConsoleModel, tea.Cmd) {
+	cmds := make([]tea.Cmd, 2)
+
+	m.viewPort, cmds[0] = m.viewPort.Update(msg)
+	m.input, cmds[1] = m.input.Update(msg)
+
 	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch {
+		case key.Matches(msg, DefaultKeyMap.consoleInput):
+			if m.focused {
+				m.input.PromptStyle = styles.NoStyle
+				m.input.TextStyle = styles.NoStyle
+				m.input.Blur()
+				m.focused = false
+			} else {
+				m.input.PromptStyle = styles.FocusedStyle
+				m.input.TextStyle = styles.FocusedStyle
+				cmds = append(cmds, m.input.Focus()) // nolint:makezero
+				m.focused = true
+			}
+
+		case key.Matches(msg, DefaultKeyMap.consoleCancel):
+			m.input.Blur()
+			m.input.PromptStyle = styles.NoStyle
+			m.input.TextStyle = styles.NoStyle
+
+			return m, nil
+		}
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
@@ -71,10 +103,7 @@ func (m *ConsoleModel) Update(msg tea.Msg) (*ConsoleModel, tea.Cmd) {
 		return m, m.logTick()
 	}
 
-	var cmd tea.Cmd
-	m.viewPort, cmd = m.viewPort.Update(msg)
-
-	return m, cmd
+	return m, tea.Batch(cmds...)
 }
 
 func (m *ConsoleModel) onLogs(logs []LogEvent) {
@@ -97,14 +126,18 @@ func (m *ConsoleModel) onLogs(logs []LogEvent) {
 		m.rowsMu.Unlock()
 	}
 
+	m.viewPort.PageUp()
 	m.updateView()
 }
 
 func (m *ConsoleModel) View(height int) string {
 	title := renderTitleBar(m.width, "Console Log")
-	m.viewPort.Height = height - lipgloss.Height(title)
+	inputRow := lipgloss.JoinHorizontal(lipgloss.Top, "CONSOLE>", m.input.View())
+	input := lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Width(m.width - 4).Render(inputRow)
 
-	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View())
+	m.viewPort.Height = height - lipgloss.Height(title) - lipgloss.Height(input)
+
+	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View(), input)
 }
 
 func (m *ConsoleModel) updateView() {

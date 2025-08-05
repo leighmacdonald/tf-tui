@@ -32,10 +32,10 @@ type AppModel struct {
 	compTable             *TableCompModel
 	configModel           tea.Model
 	helpModel             tea.Model
-	notesTextArea         tea.Model
-	tabs                  tea.Model
-	statusView            tea.Model
-	chatView              *ChatModel
+	notesModel            tea.Model
+	tabsModel             tea.Model
+	statusModel           tea.Model
+	chatModel             *ChatModel
 	playerDataModel       tea.Model
 	config                Config
 	contentViewPortHeight int
@@ -56,12 +56,12 @@ func New(config Config, doSetup bool, scripting *Scripting, client *ClientWithRe
 		banTable:              NewTableBansModel(),
 		configModel:           NewConfigModal(config),
 		compTable:             NewTableCompModel(),
-		tabs:                  NewTabsModel(),
-		notesTextArea:         NewNotesModel(),
+		tabsModel:             NewTabsModel(),
+		notesModel:            NewNotesModel(),
 		detailPanel:           NewDetailPanelModel(config.Links),
 		consoleView:           NewConsoleModel(config.ConsoleLogPath),
-		statusView:            NewStatusBarModel(BuildVersion),
-		chatView:              NewChatModel(),
+		statusModel:           NewStatusBarModel(BuildVersion),
+		chatModel:             NewChatModel(),
 		playerDataModel:       NewPlayerDataModel(client, config),
 		contentViewPortHeight: 10,
 		hdrHeight:             1,
@@ -80,11 +80,11 @@ func (m AppModel) Init() tea.Cmd {
 		tea.SetWindowTitle("tf-tui"),
 		m.configModel.Init(),
 		textinput.Blink,
-		m.tabs.Init(),
-		m.notesTextArea.Init(),
+		m.tabsModel.Init(),
+		m.notesModel.Init(),
 		m.consoleView.Init(),
-		m.statusView.Init(),
-		m.chatView.Init(),
+		m.statusModel.Init(),
+		m.chatModel.Init(),
 		m.playerDataModel.Init(),
 
 		func() tea.Msg {
@@ -161,8 +161,8 @@ func (m AppModel) View() string {
 	// Early so we can use their size info
 	footer = styles.FooterContainerStyle.
 		Width(m.width).
-		Render(lipgloss.JoinVertical(lipgloss.Top, m.statusView.View()))
-	header = m.tabs.View()
+		Render(lipgloss.JoinVertical(lipgloss.Top, m.statusModel.View()))
+	header = m.tabsModel.View()
 	hdr := styles.HeaderContainerStyle.Width(m.width).Render(header)
 	_, hdrHeight := lipgloss.Size(hdr)
 	// m.hdrHeight = hdrHeight
@@ -192,7 +192,7 @@ func (m AppModel) View() string {
 		case TabNotes:
 			ptContent = "Notes..."
 		case TabChat:
-			ptContent = m.chatView.View(lowerPanelViewportHeight)
+			ptContent = m.chatModel.View(lowerPanelViewportHeight)
 		case TabConsole:
 			ptContent = m.consoleView.View(lowerPanelViewportHeight)
 		}
@@ -222,12 +222,12 @@ func (m *AppModel) propagate(msg tea.Msg, cmd ...tea.Cmd) (tea.Model, tea.Cmd) {
 	m.banTable, cmds[2] = m.banTable.Update(msg)
 	m.helpModel, cmds[3] = m.helpModel.Update(msg)
 	m.detailPanel, cmds[4] = m.detailPanel.Update(msg)
-	m.tabs, cmds[5] = m.tabs.Update(msg)
-	m.notesTextArea, cmds[6] = m.notesTextArea.Update(msg)
+	m.tabsModel, cmds[5] = m.tabsModel.Update(msg)
+	m.notesModel, cmds[6] = m.notesModel.Update(msg)
 	m.compTable, cmds[7] = m.compTable.Update(msg)
 	m.consoleView, cmds[8] = m.consoleView.Update(msg)
-	m.statusView, cmds[9] = m.statusView.Update(msg)
-	m.chatView, cmds[10] = m.chatView.Update(msg)
+	m.statusModel, cmds[9] = m.statusModel.Update(msg)
+	m.chatModel, cmds[10] = m.chatModel.Update(msg)
 	m.playerDataModel, cmds[11] = m.playerDataModel.Update(msg)
 
 	cmds = append(cmds, cmd...) //nolint:makezero

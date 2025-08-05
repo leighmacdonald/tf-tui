@@ -158,9 +158,9 @@ func (m TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseMsg:
 		switch msg.Button { //nolint:exhaustive
 		case tea.MouseButtonWheelUp:
-			return m.moveSelection(Up)
+			// return m.moveSelection(Up)
 		case tea.MouseButtonWheelDown:
-			return m.moveSelection(Down)
+			// return m.moveSelection(Down)
 		default:
 			if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
 				return m, nil

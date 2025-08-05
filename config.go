@@ -88,30 +88,38 @@ var defaultConfig = Config{
 }
 
 type keymap struct {
-	start    key.Binding
-	stop     key.Binding
-	reset    key.Binding
-	quit     key.Binding
-	config   key.Binding
-	chat     key.Binding
-	up       key.Binding
-	down     key.Binding
-	left     key.Binding
-	right    key.Binding
-	accept   key.Binding
-	back     key.Binding
-	prevTab  key.Binding
-	nextTab  key.Binding
-	overview key.Binding
-	bans     key.Binding
-	comp     key.Binding
-	notes    key.Binding
-	console  key.Binding
-	help     key.Binding
+	start         key.Binding
+	stop          key.Binding
+	reset         key.Binding
+	quit          key.Binding
+	config        key.Binding
+	chat          key.Binding
+	up            key.Binding
+	down          key.Binding
+	left          key.Binding
+	right         key.Binding
+	accept        key.Binding
+	back          key.Binding
+	prevTab       key.Binding
+	nextTab       key.Binding
+	overview      key.Binding
+	bans          key.Binding
+	comp          key.Binding
+	notes         key.Binding
+	console       key.Binding
+	help          key.Binding
+	consoleInput  key.Binding
+	consoleCancel key.Binding
 }
 
 // TODO make configurable.
 var DefaultKeyMap = keymap{
+	consoleInput: key.NewBinding(
+		key.WithKeys("return"),
+		key.WithHelp("<return>", "Send command")),
+	consoleCancel: key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("<esc>", "Cancel input")),
 	help: key.NewBinding(
 		key.WithKeys("h", "H"),
 		key.WithHelp("h", "Help"),
