@@ -4,25 +4,28 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"errors"
 )
 
 //go:embed schema.sql
 var ddl string
+
+var errDBConnect = errors.New("db connect error")
 
 func Connect(ctx context.Context, path string) (*sql.DB, error) {
 	if path == "" {
 		path = ":memory:"
 	}
 
-	db, err := sql.Open("sqlite", path)
+	connection, err := sql.Open("sqlite", path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, errDBConnect)
 	}
 
 	// create tables
-	if _, errExec := db.ExecContext(ctx, ddl); errExec != nil {
-		return nil, errExec
+	if _, errExec := connection.ExecContext(ctx, ddl); errExec != nil {
+		return nil, errors.Join(errExec, errDBConnect)
 	}
 
-	return db, nil
+	return connection, nil
 }

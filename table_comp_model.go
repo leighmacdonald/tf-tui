@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
@@ -8,13 +9,15 @@ import (
 )
 
 type TableCompModel struct {
-	player Player
-	table  *table.Table
-	width  int
-	height int
+	player   Player
+	table    *table.Table
+	width    int
+	height   int
+	ready    bool
+	viewport viewport.Model
 }
 
-func NewTableCompModel() tea.Model {
+func NewTableCompModel() *TableCompModel {
 	return &TableCompModel{table: table.New().
 		// Border(lipgloss.NormalBorder()).
 		Height(20).
@@ -43,15 +46,21 @@ func NewTableCompModel() tea.Model {
 		Headers("League", "Competition", "format", "Division", "Team Name")}
 }
 
-func (m TableCompModel) Init() tea.Cmd {
+func (m *TableCompModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TableCompModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *TableCompModel) Update(msg tea.Msg) (*TableCompModel, tea.Cmd) { //nolint:unparam
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.height = msg.Height
-		m.width = msg.Width
+	case ContentViewPortHeightMsg:
+		m.width = msg.width
+		m.height = msg.height
+		if !m.ready {
+			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)
+			m.ready = true
+		} else {
+			m.viewport.Height = msg.contentViewPortHeight
+		}
 	case SelectedPlayerMsg:
 		m.player = msg.player
 		m.table.ClearRows()
@@ -75,10 +84,16 @@ func (m TableCompModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m TableCompModel) View() string {
+func (m *TableCompModel) View(height int) string {
+	titlebar := renderTitleBar(m.width, "League History")
+	var content string
 	if len(m.player.meta.CompetitiveTeams) == 0 {
-		return "No league history found"
+		content = "No league history found"
+	} else {
+		m.table.Width(m.width).Render()
 	}
+	m.viewport.SetContent(content)
+	m.viewport.Height = height - lipgloss.Height(titlebar)
 
-	return m.table.Width(m.width).Render()
+	return lipgloss.JoinVertical(lipgloss.Left, titlebar, m.viewport.View())
 }

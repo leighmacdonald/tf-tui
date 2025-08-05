@@ -19,7 +19,7 @@ type LogRow struct {
 func (r LogRow) View() string {
 	return lipgloss.JoinHorizontal(lipgloss.Top,
 		styles.ConsoleTime.Render(" "+r.CreatedOn.Format(time.TimeOnly)+" "),
-		styles.ConsoleMsg.Render(r.Content))
+		styles.ConsoleMsg.Render(" "+strings.TrimSpace(r.Content)))
 }
 
 type ConsoleModel struct {
@@ -34,12 +34,19 @@ type ConsoleModel struct {
 }
 
 func NewConsoleModel(consoleLogPath string) *ConsoleModel {
-	cm := &ConsoleModel{console: NewConsoleLog(), consoleLogPath: consoleLogPath, viewPort: viewport.New(10, 10)}
-	if consoleLogPath != "" {
-		cm.console.Read(consoleLogPath)
+	model := &ConsoleModel{
+		console:        NewConsoleLog(),
+		consoleLogPath: consoleLogPath,
+		viewPort:       viewport.New(10, 10),
 	}
 
-	return cm
+	if consoleLogPath != "" {
+		if err := model.console.Read(consoleLogPath); err != nil {
+			tea.Println(err.Error())
+		}
+	}
+
+	return model
 }
 
 type ContentViewPortHeightMsg struct {
@@ -52,12 +59,11 @@ func (m *ConsoleModel) Init() tea.Cmd {
 	return m.logTick()
 }
 
-func (m *ConsoleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *ConsoleModel) Update(msg tea.Msg) (*ConsoleModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
-		m.viewPort.Height = msg.contentViewPortHeight
 		m.updateView()
 	case ConsoleLogMsg:
 		m.onLogs(msg.logs)
@@ -81,6 +87,9 @@ func (m *ConsoleModel) onLogs(logs []LogEvent) {
 		if len(parts) != 2 {
 			break
 		}
+		if parts[1] == "" {
+			continue
+		}
 		newRow := LogRow{Content: parts[1], CreatedOn: time.Now()}
 		m.rowsMu.Lock()
 		m.rows = append(m.rows, newRow)
@@ -91,8 +100,11 @@ func (m *ConsoleModel) onLogs(logs []LogEvent) {
 	m.updateView()
 }
 
-func (m *ConsoleModel) View() string {
-	return m.viewPort.View()
+func (m *ConsoleModel) View(height int) string {
+	title := renderTitleBar(m.width, "Console Log")
+	m.viewPort.Height = height - lipgloss.Height(title)
+
+	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View())
 }
 
 func (m *ConsoleModel) updateView() {

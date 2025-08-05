@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/styles"
 )
 
@@ -24,4 +25,17 @@ func NewTextInputPasswordModel(value string, placeholder string) textinput.Model
 	input.EchoMode = textinput.EchoPassword
 
 	return input
+}
+
+func renderTitleBar(width int, value string) string {
+	return lipgloss.
+		NewStyle().
+		Width(width - 2).
+		Bold(true).
+		Align(lipgloss.Center).
+		Background(styles.Black).
+		Foreground(styles.ColourStrange).
+		PaddingLeft(0).
+		PaddingRight(0).
+		Render(value)
 }

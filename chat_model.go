@@ -4,11 +4,14 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/styles"
 )
+
+const MaxTF2MessageLength = 127
 
 type ChatRow struct {
 	steamID   steamid.SteamID
@@ -51,30 +54,51 @@ const (
 )
 
 func NewChatModel() *ChatModel {
-	input := NewTextInputModel("", ">")
-	input.CharLimit = 127
+	input := NewTextInputModel("", "(ALL) >")
+	input.CharLimit = MaxTF2MessageLength
 
 	return &ChatModel{input: input}
 }
 
 type ChatModel struct {
+	viewport     viewport.Model
 	input        textinput.Model
-	team         Team
 	ready        bool
 	rows         []ChatRow
 	rowsRendered string
 	width        int
-	height       int
 	inputOpen    bool
 	chatType     ChatType
 }
 
-func (m ChatModel) Init() tea.Cmd {
+func (m *ChatModel) Placeholder() string {
+	var label string
+	switch m.chatType {
+	case AllChat:
+		label = "All"
+	case TeamChat:
+		label = "Team"
+	case PartyChat:
+		label = "Party"
+	}
+
+	return label + " >"
+}
+
+func (m *ChatModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *ChatModel) Update(msg tea.Msg) (*ChatModel, tea.Cmd) {
 	switch msg := msg.(type) {
+	case ContentViewPortHeightMsg:
+		m.width = msg.width
+		if !m.ready {
+			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)
+			m.ready = true
+		} else {
+			m.viewport.Height = msg.contentViewPortHeight
+		}
 	case LogEvent:
 		if msg.Type != EvtMsg {
 			break
@@ -91,9 +115,9 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.rows = append(m.rows, newRow)
 		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
 	case tea.KeyMsg:
-		k := msg.String()
+		key := msg.String()
 		if m.input.Focused() {
-			switch k {
+			switch key {
 			case "esc":
 				m.input.Blur()
 				m.inputOpen = false
@@ -115,7 +139,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-		switch k {
+		switch key {
 		case "y":
 			m.inputOpen = true
 			m.chatType = AllChat
@@ -132,10 +156,6 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return SetViewMsg{view: viewPlayerTables}
 			}
 		}
-
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
 	}
 
 	cmds := make([]tea.Cmd, 1)
@@ -144,10 +164,13 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m ChatModel) View() string {
-	if m.inputOpen {
-		return lipgloss.JoinVertical(lipgloss.Top, m.rowsRendered, m.input.View())
-	}
+func (m *ChatModel) View(height int) string {
+	titleBar := renderTitleBar(m.width, "Game Chat")
+	content := lipgloss.JoinVertical(lipgloss.Top, m.rowsRendered)
+	m.input.Placeholder = m.Placeholder()
+	input := m.input.View()
+	m.viewport.Height = height - lipgloss.Height(titleBar) - lipgloss.Height(input)
+	m.viewport.SetContent(content)
 
-	return lipgloss.JoinVertical(lipgloss.Top, m.rowsRendered)
+	return lipgloss.JoinVertical(lipgloss.Left, titleBar, m.viewport.View(), input)
 }

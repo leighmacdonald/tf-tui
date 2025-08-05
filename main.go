@@ -1,6 +1,6 @@
 package main
 
-//go:generate go tool oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.yaml
+//go:generate go tool oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.json
 //go:generate go tool sqlc generate -f .sqlc.yaml
 
 import (
@@ -13,6 +13,13 @@ import (
 	"github.com/leighmacdonald/tf-tui/store"
 	zone "github.com/lrstanley/bubblezone"
 	_ "modernc.org/sqlite"
+)
+
+var (
+	BuildVersion = "v0.0.0"
+	BuildCommit  = "none"
+	BuildDate    = "unknown"
+	BuildMode    = "production"
 )
 
 type Team int

@@ -103,6 +103,12 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selectedTab = TabOverview
 			}
 			changed = true
+		case key.Matches(msg, DefaultKeyMap.prevTab):
+			m.selectedTab--
+			if m.selectedTab < TabOverview {
+				m.selectedTab = TabConsole
+			}
+			changed = true
 		case key.Matches(msg, DefaultKeyMap.overview):
 			m.selectedTab = TabOverview
 			changed = true

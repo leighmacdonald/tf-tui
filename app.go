@@ -1,9 +1,6 @@
 package main
 
 import (
-	"strings"
-
-	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -17,28 +14,30 @@ type contentView int
 const (
 	viewPlayerTables contentView = iota
 	viewConfig
+	viewHelp
 )
 
 type AppModel struct {
 	currentView           contentView
+	previousView          contentView
 	quitting              bool
 	height                int
 	width                 int
 	activeTab             tabView
 	scripting             *Scripting
-	listManager           *UserListManager
-	helpView              help.Model
-	consoleView           tea.Model
-	detailPanel           tea.Model
-	banTable              tea.Model
+	consoleView           *ConsoleModel
+	detailPanel           *DetailPanelModel
+	banTable              TableBansModel
 	playerTables          tea.Model
-	compTable             tea.Model
+	compTable             *TableCompModel
 	configModel           tea.Model
+	helpModel             tea.Model
 	notesTextArea         tea.Model
 	tabs                  tea.Model
 	statusView            tea.Model
-	chatView              tea.Model
+	chatView              *ChatModel
 	playerDataModel       tea.Model
+	config                Config
 	contentViewPortHeight int
 	ftrHeight             int
 	hdrHeight             int
@@ -47,10 +46,12 @@ type AppModel struct {
 
 func New(config Config, doSetup bool, scripting *Scripting, client *ClientWithResponses) *AppModel {
 	app := &AppModel{
+		config:                config,
 		currentView:           viewPlayerTables,
+		previousView:          viewPlayerTables,
 		activeTab:             TabOverview,
 		scripting:             scripting,
-		helpView:              help.New(),
+		helpModel:             NewHelpModel(),
 		playerTables:          NewTablePlayersModel(),
 		banTable:              NewTableBansModel(),
 		configModel:           NewConfigModal(config),
@@ -58,9 +59,8 @@ func New(config Config, doSetup bool, scripting *Scripting, client *ClientWithRe
 		tabs:                  NewTabsModel(),
 		notesTextArea:         NewNotesModel(),
 		detailPanel:           NewDetailPanelModel(config.Links),
-		listManager:           NewUserListManager(config.BDLists),
 		consoleView:           NewConsoleModel(config.ConsoleLogPath),
-		statusView:            NewStatusBarModel(),
+		statusView:            NewStatusBarModel(BuildVersion),
 		chatView:              NewChatModel(),
 		playerDataModel:       NewPlayerDataModel(client, config),
 		contentViewPortHeight: 10,
@@ -88,9 +88,12 @@ func (m AppModel) Init() tea.Cmd {
 		m.playerDataModel.Init(),
 
 		func() tea.Msg {
-			m.listManager.Sync()
+			lists, err := downloadUserLists(m.config.BDLists)
+			if err != nil {
+				return err
+			}
 
-			return nil
+			return lists
 		})
 }
 
@@ -109,9 +112,15 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.contentViewPortHeight = m.height - m.hdrHeight - m.ftrHeight
 
-		// return m.propagate(func() tea.Msg {
-		//	return ContentViewPortHeightMsg{contentViewPortHeight: m.contentViewPortHeight, height: msg.Height, width: msg.Width}
-		//})
+		m2, cmd2 := m.propagate(inMsg)
+
+		return m2, tea.Batch(func() tea.Msg {
+			return ContentViewPortHeightMsg{
+				contentViewPortHeight: m.contentViewPortHeight,
+				height:                msg.Height,
+				width:                 msg.Width,
+			}
+		}, cmd2)
 	case TabChangeMsg:
 		m.activeTab = tabView(msg)
 	// Is it a key press?
@@ -119,10 +128,18 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, DefaultKeyMap.quit):
 			return m, tea.Quit
+		case key.Matches(msg, DefaultKeyMap.help):
+			if m.currentView == viewHelp {
+				m.currentView = m.previousView
+			} else {
+				m.previousView = m.currentView
+				m.currentView = viewHelp
+			}
 		case key.Matches(msg, DefaultKeyMap.config):
 			if m.currentView == viewConfig {
-				m.currentView = viewPlayerTables
+				m.currentView = m.previousView
 			} else {
+				m.previousView = m.currentView
 				m.currentView = viewConfig
 			}
 		}
@@ -144,54 +161,49 @@ func (m AppModel) View() string {
 	// Early so we can use their size info
 	footer = styles.FooterContainerStyle.
 		Width(m.width).
-		Render(lipgloss.JoinVertical(lipgloss.Top, m.renderHelp(), m.statusView.View()))
+		Render(lipgloss.JoinVertical(lipgloss.Top, m.statusView.View()))
 	header = m.tabs.View()
 	hdr := styles.HeaderContainerStyle.Width(m.width).Render(header)
 	_, hdrHeight := lipgloss.Size(hdr)
-	m.hdrHeight = hdrHeight
+	// m.hdrHeight = hdrHeight
 
 	ftr := styles.FooterContainerStyle.Width(m.width).Render(footer)
 	_, ftrHeight := lipgloss.Size(ftr)
-	m.ftrHeight = ftrHeight
+	// m.ftrHeight = ftrHeight
 
 	contentViewPortHeight := m.height - hdrHeight - ftrHeight
 	switch m.currentView {
 	case viewConfig:
 		content = m.configModel.View()
+	case viewHelp:
+		content = m.helpModel.View()
 	case viewPlayerTables:
 		tables := m.playerTables.View()
 		playerHeight := m.height - lipgloss.Height(tables) - 5
-
+		lowerPanelViewportHeight := contentViewPortHeight - lipgloss.Height(tables) - 2
 		var ptContent string
 		switch m.activeTab {
 		case TabOverview:
-			ptContent = m.detailPanel.View()
+			ptContent = m.detailPanel.View(lowerPanelViewportHeight)
 		case TabBans:
-			ptContent = m.banTable.View()
+			ptContent = m.banTable.View(lowerPanelViewportHeight)
 		case TabComp:
-			ptContent = m.compTable.View()
+			ptContent = m.compTable.View(lowerPanelViewportHeight)
 		case TabNotes:
 			ptContent = "Notes..."
 		case TabChat:
-			ptContent = m.chatView.View()
+			ptContent = m.chatView.View(lowerPanelViewportHeight)
 		case TabConsole:
-			ptContent = m.consoleView.View()
+			ptContent = m.consoleView.View(lowerPanelViewportHeight)
 		}
 
 		content = lipgloss.JoinVertical(
 			lipgloss.Top,
 			tables,
-			lipgloss.NewStyle().Width(m.width-2).Height(playerHeight).
-				Border(lipgloss.NormalBorder()).
-				BorderForeground(styles.Gray).
+			lipgloss.NewStyle().
+				Width(m.width-2).
+				Height(playerHeight).
 				Render(ptContent))
-
-		// Automatically scroll if we are at the bottom.
-		// wasBottom := m.viewPort.AtBottom()
-		//m.viewPort.SetContent(m.rowsRendered)
-		//if wasBottom {
-		//	m.viewPort.GotoBottom()
-		//}
 	}
 
 	ctr := styles.ContentContainerStyle.Height(contentViewPortHeight).Render(content)
@@ -203,51 +215,12 @@ func (m AppModel) isInitialized() bool {
 	return m.height != 0 && m.width != 0
 }
 
-// func (m AppModel) SelectedPlayer() (Player, bool) {
-//	if !m.selectedSteamID.Valid() {
-//		return Player{}, false
-//	}
-//
-//	player, err := m.cache.Get(m.selectedSteamID)
-//	if err != nil {
-//		return Player{}, false
-//	}
-//
-//	return player, true
-// }
-
-func (m AppModel) renderHelp() string {
-	var builder strings.Builder
-
-	switch m.currentView {
-	case viewConfig:
-		builder.WriteString(m.helpView.ShortHelpView([]key.Binding{
-			DefaultKeyMap.quit,
-			DefaultKeyMap.accept,
-		}))
-	case viewPlayerTables:
-		builder.WriteString(m.helpView.ShortHelpView([]key.Binding{
-			DefaultKeyMap.quit,
-			DefaultKeyMap.config,
-			DefaultKeyMap.up,
-			DefaultKeyMap.down,
-			DefaultKeyMap.left,
-			DefaultKeyMap.right,
-			DefaultKeyMap.nextTab,
-			DefaultKeyMap.console,
-			DefaultKeyMap.chat,
-		}))
-	}
-
-	return builder.String()
-}
-
 func (m *AppModel) propagate(msg tea.Msg, cmd ...tea.Cmd) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 13)
 	m.configModel, cmds[0] = m.configModel.Update(msg)
 	m.playerTables, cmds[1] = m.playerTables.Update(msg)
 	m.banTable, cmds[2] = m.banTable.Update(msg)
-	m.helpView, cmds[3] = m.helpView.Update(msg)
+	m.helpModel, cmds[3] = m.helpModel.Update(msg)
 	m.detailPanel, cmds[4] = m.detailPanel.Update(msg)
 	m.tabs, cmds[5] = m.tabs.Update(msg)
 	m.notesTextArea, cmds[6] = m.notesTextArea.Update(msg)
@@ -257,7 +230,7 @@ func (m *AppModel) propagate(msg tea.Msg, cmd ...tea.Cmd) (tea.Model, tea.Cmd) {
 	m.chatView, cmds[10] = m.chatView.Update(msg)
 	m.playerDataModel, cmds[11] = m.playerDataModel.Update(msg)
 
-	cmds = append(cmds, cmd...)
+	cmds = append(cmds, cmd...) //nolint:makezero
 
 	return m, tea.Batch(cmds...)
 }

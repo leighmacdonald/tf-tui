@@ -109,7 +109,7 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch m.focusIndex {
 		case fieldAddress:
-			cmds = append(cmds, m.inputAddr.Focus())
+			cmds = append(cmds, m.inputAddr.Focus()) //nolint:makezero
 			m.inputAddr.PromptStyle = styles.FocusedStyle
 			m.inputAddr.TextStyle = styles.FocusedStyle
 
@@ -119,7 +119,7 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.consoleLogPath.PromptStyle = styles.NoStyle
 			m.consoleLogPath.TextStyle = styles.NoStyle
 		case fieldPassword:
-			cmds = append(cmds, m.passwordAddr.Focus())
+			cmds = append(cmds, m.passwordAddr.Focus()) //nolint:makezero
 			m.passwordAddr.PromptStyle = styles.FocusedStyle
 			m.passwordAddr.TextStyle = styles.FocusedStyle
 
@@ -130,7 +130,7 @@ func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.consoleLogPath.PromptStyle = styles.NoStyle
 			m.consoleLogPath.TextStyle = styles.NoStyle
 		case fieldConsoleLogPath:
-			cmds = append(cmds, m.consoleLogPath.Focus())
+			cmds = append(cmds, m.consoleLogPath.Focus()) //nolint:makezero
 			m.passwordAddr.Blur()
 			m.passwordAddr.PromptStyle = styles.NoStyle
 			m.passwordAddr.TextStyle = styles.NoStyle

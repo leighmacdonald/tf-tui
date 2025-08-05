@@ -150,7 +150,7 @@ func (m *PlayerDataModel) getMetaProfiles(ctx context.Context, steamIDs steamid.
 		return nil, nil
 	}
 
-	resp, errResp := m.client.MetaProfile(ctx, &MetaProfileParams{Steamids: steamIDs.ToStringSlice()})
+	resp, errResp := m.client.MetaProfile(ctx, &MetaProfileParams{Steamids: strings.Join(steamIDs.ToStringSlice(), ",")})
 	if errResp != nil {
 		return nil, errors.Join(errResp, errFetchMetaProfile)
 	}

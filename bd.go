@@ -10,22 +10,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type UserListManager struct {
-	userLists []UserList
-	lists     []BDSchema
-}
-
-func NewUserListManager(lists []UserList) *UserListManager {
-	return &UserListManager{userLists: lists}
-}
-
-func (m *UserListManager) Sync() {
+func downloadUserLists(userLists []UserList) ([]BDSchema, error) { //nolint:unparam
 	waitGroup := sync.WaitGroup{}
 	mutex := sync.Mutex{}
 	// There is no context passed down to children in tea apps.
 	ctx := context.Background()
 	var lists []BDSchema
-	for _, userList := range m.userLists {
+	for _, userList := range userLists {
 		waitGroup.Add(1)
 
 		go func(list UserList) {
@@ -70,5 +61,5 @@ func (m *UserListManager) Sync() {
 
 	waitGroup.Wait()
 
-	m.lists = lists
+	return lists, nil
 }

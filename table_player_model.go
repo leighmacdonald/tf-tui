@@ -38,8 +38,8 @@ type playerTableColSize int
 const (
 	colUIDSize    playerTableColSize = 6
 	colNameSize   playerTableColSize = 0
-	colScoreSize  playerTableColSize = 5
-	colDeathsSize playerTableColSize = 5
+	colScoreSize  playerTableColSize = 7
+	colDeathsSize playerTableColSize = 7
 	colPingSize   playerTableColSize = 5
 	colMetaSize   playerTableColSize = 8
 )
@@ -79,19 +79,19 @@ func (m PlayerTablesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m PlayerTablesModel) selectedColumnPlayerCount() int {
 	var (
 		model TablePlayerModel
-		ok    bool
+		valid bool
 	)
 
 	switch m.selectedTeam {
 	case RED:
-		model, ok = m.redTable.(TablePlayerModel)
+		model, valid = m.redTable.(TablePlayerModel)
 	case BLU:
-		model, ok = m.bluTable.(TablePlayerModel)
+		model, valid = m.bluTable.(TablePlayerModel)
 	default:
 		return 0
 	}
 
-	if !ok {
+	if !valid {
 		return 0
 	}
 
@@ -104,20 +104,27 @@ func (m PlayerTablesModel) View() string {
 
 func NewPlayerTableModel(team Team) *TablePlayerModel {
 	zoneID := zone.NewPrefix()
-	foreground := styles.Red
-	if team == BLU {
-		foreground = styles.Blu
-	}
+	// foreground := styles.Red
+	// if team == BLU {
+	//	foreground = styles.Blu
+	//}
 	data := NewTablePlayerData(zoneID, []Player{}, team)
+
+	newTable := table.New().
+		// BorderStyle(lipgloss.NewStyle().Foreground(styles.Gray)).
+		BorderColumn(false).
+		BorderBottom(false).
+		BorderLeft(false).
+		BorderRight(false).
+		BorderTop(false).
+		BorderHeader(false)
 
 	return &TablePlayerModel{
 		id:           zoneID,
 		team:         team,
 		selectedTeam: RED,
 		data:         &data,
-		table: table.New().
-			BorderStyle(lipgloss.NewStyle().Foreground(foreground)).
-			BorderHeader(false),
+		table:        newTable,
 	}
 }
 
@@ -251,9 +258,6 @@ func (m TablePlayerModel) moveSelection(direction Direction) (tea.Model, tea.Cmd
 			break
 		}
 		m.selectedTeam = RED
-		if currentRow < 0 {
-			currentRow = 0
-		}
 		if m.team == RED {
 			m.selectedSteamID = m.data.players[len(m.data.players)-1].SteamID
 		}
@@ -262,9 +266,6 @@ func (m TablePlayerModel) moveSelection(direction Direction) (tea.Model, tea.Cmd
 			return m, nil
 		}
 		m.selectedTeam = BLU
-		if currentRow < 0 {
-			currentRow = 0
-		}
 		if m.team == BLU {
 			m.selectedSteamID = m.data.players[len(m.data.players)-1].SteamID
 		}

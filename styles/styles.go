@@ -37,8 +37,8 @@ var (
 	ColourUnusual = lipgloss.Color("#8650ac")
 	ColourVintage = lipgloss.Color("#476291")
 
-	HeaderStyleRed  = lipgloss.NewStyle().Foreground(Red).Bold(true).Align(lipgloss.Center)
-	HeaderStyleBlu  = lipgloss.NewStyle().Foreground(Blu).Bold(true).Align(lipgloss.Center)
+	HeaderStyleRed  = lipgloss.NewStyle().Background(Black).Foreground(Red).Bold(true).Align(lipgloss.Center)
+	HeaderStyleBlu  = lipgloss.NewStyle().Background(Black).Foreground(Blu).Bold(true).Align(lipgloss.Center)
 	CellStyleName   = lipgloss.NewStyle().Padding(0, 1).Width(32)
 	CellStyle       = lipgloss.NewStyle().Padding(0, 1).Width(6)
 	OddRowStyleName = CellStyleName.Foreground(Gray)
@@ -62,7 +62,7 @@ var (
 		Padding(0)
 
 	ConsoleTime = lipgloss.NewStyle().Foreground(Gray).Background(Black)
-	ConsoleMsg  = lipgloss.NewStyle().Foreground(ColourLimited)
+	ConsoleMsg  = lipgloss.NewStyle().Foreground(ColourVintage)
 
 	PanelLabel   = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Align(lipgloss.Right).Width(20)
 	PanelValue   = lipgloss.NewStyle().Width(60)
@@ -79,6 +79,8 @@ var (
 	StatusMessage  = lipgloss.NewStyle().Foreground(ColourGenuine).Background(Black).Align(lipgloss.Right).Bold(true).PaddingRight(2)
 	StatusRedTeam  = lipgloss.NewStyle().Foreground(Red).Background(Black).Bold(true).PaddingLeft(0).Align(lipgloss.Center).PaddingRight(0)
 	StatusBluTeam  = lipgloss.NewStyle().Foreground(Blu).Background(Black).Bold(true).PaddingLeft(0).Align(lipgloss.Center).PaddingRight(0)
+	StatusHelp     = lipgloss.NewStyle().Foreground(Gray).Background(Black).Bold(true).PaddingLeft(1).Align(lipgloss.Center).PaddingRight(0)
+	StatusVersion  = lipgloss.NewStyle().Foreground(ColourGenuine).Background(Black).Bold(true).PaddingLeft(1).Align(lipgloss.Center).PaddingRight(0)
 
 	ChatNameOther = lipgloss.NewStyle().Foreground(ColourLimited).Bold(true).Align(lipgloss.Left)
 	ChatNameBlu   = lipgloss.NewStyle().Width(20).Foreground(Blu).Bold(true).Align(lipgloss.Left)

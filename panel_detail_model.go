@@ -13,42 +13,57 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func NewDetailPanelModel(links []UserLink) DetailPanelModel {
-	return DetailPanelModel{links: links}
+func NewDetailPanelModel(links []UserLink) *DetailPanelModel {
+	return &DetailPanelModel{
+		links:    links,
+		viewport: viewport.New(1, 1),
+	}
 }
 
 type DetailPanelModel struct {
-	links  []UserLink
-	player Player
-	width  int
-	height int
-	viewport.Model
+	links                 []UserLink
+	player                Player
+	width                 int
+	height                int
+	contentViewPortHeight int
+	ready                 bool
+	viewport              viewport.Model
 }
 
-func (m DetailPanelModel) Init() tea.Cmd {
+func (m *DetailPanelModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m DetailPanelModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *DetailPanelModel) Update(msg tea.Msg) (*DetailPanelModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case Config:
 		m.links = msg.Links
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
+	case ContentViewPortHeightMsg:
+		m.width = msg.width
+		m.height = msg.height
+		if !m.ready {
+			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)
+			m.ready = true
+		} else {
+			m.contentViewPortHeight = msg.contentViewPortHeight
+			m.viewport.Height = msg.contentViewPortHeight
+		}
 	case SelectedPlayerMsg:
 		m.player = msg.player
 	}
 
-	return m, nil
+	var cmd tea.Cmd
+	m.viewport, cmd = m.viewport.Update(msg)
+
+	return m, cmd
 }
 
-func (m DetailPanelModel) View() string {
+func (m *DetailPanelModel) View(height int) string {
 	if !m.player.SteamID.Valid() {
 		return ""
 	}
 
-	var rows []string
+	var rows []string //nolint:prealloc
 	rows = append(rows,
 		styles.DetailRow("SteamID", m.player.SteamID.String()),
 		styles.DetailRow("Steam Profile",
@@ -103,5 +118,11 @@ func (m DetailPanelModel) View() string {
 		rows = append(rows, styles.DetailRow("Logs.tf", strconv.Itoa(int(m.player.meta.LogsCount))))
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Top, rows...)
+	m.viewport.SetContent(lipgloss.JoinVertical(lipgloss.Top, rows...))
+
+	titleBar := renderTitleBar(m.width, "Player Overview")
+
+	m.viewport.Height = height - lipgloss.Height(titleBar)
+
+	return lipgloss.JoinVertical(lipgloss.Top, titleBar, m.viewport.View())
 }

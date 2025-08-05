@@ -18,10 +18,11 @@ type StatusBarModel struct {
 	players     []Player
 	redPlayers  int
 	bluPlayers  int
+	version     string
 }
 
-func NewStatusBarModel() *StatusBarModel {
-	return &StatusBarModel{}
+func NewStatusBarModel(version string) *StatusBarModel {
+	return &StatusBarModel{version: version}
 }
 
 func (m StatusBarModel) Init() tea.Cmd {
@@ -73,6 +74,8 @@ func (m StatusBarModel) View() string {
 	return lipgloss.NewStyle().Width(m.width).Background(styles.Black).Render(lipgloss.JoinHorizontal(lipgloss.Top,
 		styles.StatusRedTeam.Render(fmt.Sprintf("%3d", m.redPlayers)),
 		styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.bluPlayers)),
+		styles.StatusVersion.Render(m.version),
+		styles.StatusHelp.Render(fmt.Sprintf("%s %s", DefaultKeyMap.help.Help().Key, DefaultKeyMap.help.Help().Desc)),
 		styles.StatusHostname.Render(m.hostname),
 		styles.StatusMap.Render(m.mapName)))
 }

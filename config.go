@@ -100,16 +100,22 @@ type keymap struct {
 	right    key.Binding
 	accept   key.Binding
 	back     key.Binding
+	prevTab  key.Binding
 	nextTab  key.Binding
 	overview key.Binding
 	bans     key.Binding
 	comp     key.Binding
 	notes    key.Binding
 	console  key.Binding
+	help     key.Binding
 }
 
 // TODO make configurable.
 var DefaultKeyMap = keymap{
+	help: key.NewBinding(
+		key.WithKeys("h", "H"),
+		key.WithHelp("h", "Help"),
+	),
 	accept: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "Select"),
@@ -149,6 +155,10 @@ var DefaultKeyMap = keymap{
 	nextTab: key.NewBinding(
 		key.WithKeys("tab"),
 		key.WithHelp("tab", "Next Tab"),
+	),
+	prevTab: key.NewBinding(
+		key.WithKeys("shift tab"),
+		key.WithHelp("shift tab", "Prev Tab"),
 	),
 	overview: key.NewBinding(
 		key.WithKeys("o"),

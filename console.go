@@ -302,13 +302,13 @@ func newLogParser() *logParser {
 
 func (parser *logParser) parse(msg string, outEvent *LogEvent) error {
 	// the index must match the index of the EventType const values
-	for i, rxMatcher := range parser.rx {
+	for parserIdx, rxMatcher := range parser.rx {
 		match := rxMatcher.FindStringSubmatch(msg)
 		if match == nil {
 			continue
 		}
 		outEvent.Raw = msg
-		outEvent.Type = EventType(i)
+		outEvent.Type = EventType(parserIdx)
 		if outEvent.Type != EvtLobby {
 			if errTS := outEvent.ApplyTimestamp(match[1]); errTS != nil {
 				tea.Println("Failed to parse timestamp: " + errTS.Error())
