@@ -280,14 +280,6 @@ type Float32 struct {
 	Value float32 `json:"Value"`
 }
 
-// Friend defines model for Friend.
-type Friend struct {
-	FriendSince  time.Time `json:"friend_since"`
-	Relationship string    `json:"relationship"`
-	RemovedOn    time.Time `json:"removed_on"`
-	SteamId      string    `json:"steam_id"`
-}
-
 // LeaguePlayerTeamHistory defines model for LeaguePlayerTeamHistory.
 type LeaguePlayerTeamHistory struct {
 	// Alias Short team name alias, if available
@@ -697,7 +689,7 @@ type MetaProfile struct {
 	EconomyBan string `json:"economy_ban"`
 
 	// Friends Last known list of friends
-	Friends []Friend `json:"friends"`
+	Friends []SteamFriend `json:"friends"`
 
 	// LogsCount Number of logs the user has on logs.tf
 	LogsCount int64 `json:"logs_count"`
@@ -789,6 +781,14 @@ type SiteInfo struct {
 
 	// Url URL to the site
 	Url string `json:"url"`
+}
+
+// SteamFriend defines model for SteamFriend.
+type SteamFriend struct {
+	FriendSince  time.Time `json:"friend_since"`
+	Relationship string    `json:"relationship"`
+	RemovedOn    time.Time `json:"removed_on"`
+	SteamId      string    `json:"steam_id"`
 }
 
 // BansSearchParams defines parameters for BansSearch.
