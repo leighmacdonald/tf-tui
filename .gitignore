@@ -35,3 +35,4 @@ __debug*
 .zed
 .idea
 .vscode
+dist/

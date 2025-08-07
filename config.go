@@ -40,13 +40,13 @@ const (
 )
 
 type Config struct {
+	SteamID        steamid.SteamID `yaml:"steam_id"`
 	Address        string          `yaml:"address"`
 	Password       string          `yaml:"password"`
 	ConsoleLogPath string          `yaml:"console_log_path"`
 	APIBaseURL     string          `yaml:"api_base_url,omitempty"`
 	BDLists        []UserList      `yaml:"bd_lists"`
 	Links          []UserLink      `yaml:"links"`
-	SteamID        steamid.SteamID `yaml:"steam_id"`
 }
 
 type SIDFormats string

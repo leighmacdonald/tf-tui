@@ -216,7 +216,7 @@ func (m AppModel) isInitialized() bool {
 }
 
 func (m *AppModel) propagate(msg tea.Msg, cmd ...tea.Cmd) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 13)
+	cmds := make([]tea.Cmd, 12)
 	m.configModel, cmds[0] = m.configModel.Update(msg)
 	m.playerTables, cmds[1] = m.playerTables.Update(msg)
 	m.banTable, cmds[2] = m.banTable.Update(msg)

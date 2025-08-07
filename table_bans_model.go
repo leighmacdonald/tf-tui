@@ -69,20 +69,31 @@ func (m TableBansModel) View(height int) string {
 	m.viewport.Height = height
 	var content string
 	if len(m.player.meta.Bans) == 0 {
-		content = "No bans found " + styles.IconDrCool
+		content = lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).
+			Render("\nNo bans found " + styles.IconDrCool)
 	} else {
-		content = m.table.StyleFunc(func(_, col int) lipgloss.Style {
+		content = m.table.StyleFunc(func(row, col int) lipgloss.Style {
+			var width int
 			switch col {
 			case 0:
-				return styles.CellStyle.Width(20)
+				width = 10
 			case 1:
-				return styles.CellStyle.Width(21)
+				width = 21
 			case 2:
-				return styles.CellStyle.Width(4)
+				width = 4
 			default:
-				return styles.CellStyle.Width(40)
+				width = m.width - 40
 			}
-		}).Width(m.width).Render()
+			switch {
+			case row == table.HeaderRow:
+				return styles.BanTableHeading.Width(width)
+			case row%2 == 0:
+				return styles.BanTableValuesEven.Width(width)
+			default:
+				return styles.BanTableValuesOdd.Width(width)
+			}
+
+		}).Render()
 	}
 
 	m.viewport.SetContent(lipgloss.JoinVertical(lipgloss.Left, renderTitleBar(m.width, "Bans"), content))
@@ -96,18 +107,12 @@ func NewTableBansModel() TableBansModel {
 
 func newTableDetails() *table.Table {
 	return table.New().
-		// Border(lipgloss.NormalBorder()).
-		Height(20).
-		BorderStyle(lipgloss.NewStyle().Foreground(styles.Gray)).
-		StyleFunc(func(row, _ int) lipgloss.Style {
-			switch {
-			case row == table.HeaderRow:
-				return styles.HeaderStyleRed.Padding(0)
-			case row%2 == 0:
-				return styles.EvenRowStyle
-			default:
-				return styles.OddRowStyle
-			}
-		}).
+		Border(lipgloss.NormalBorder()).
+		BorderColumn(false).
+		BorderBottom(false).
+		BorderLeft(false).
+		BorderRight(false).
+		BorderTop(false).
+		BorderHeader(false).
 		Headers("Site", "Date", "Perm", "Reason")
 }

@@ -13,6 +13,7 @@ require (
 	github.com/leighmacdonald/rcon v1.0.10
 	github.com/leighmacdonald/steamid/v4 v4.0.6
 	github.com/lrstanley/bubblezone v1.0.0
+	github.com/muesli/reflow v0.3.0
 	github.com/nxadm/tail v1.4.11
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/traefik/yaegi v0.16.1

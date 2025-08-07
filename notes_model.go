@@ -3,11 +3,13 @@ package main
 import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type NotesModel struct {
 	textarea textarea.Model
 	player   Player
+	width    int
 }
 
 func NewNotesModel() tea.Model {
@@ -24,6 +26,8 @@ func (m NotesModel) Init() tea.Cmd {
 
 func (m NotesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) { //nolint:gocritic
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
 	case SelectedPlayerMsg:
 		m.player = msg.player
 		m.textarea.SetValue(msg.notes)
@@ -33,5 +37,6 @@ func (m NotesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m NotesModel) View() string {
-	return m.textarea.View()
+	title := renderTitleBar(m.width, "Player Notes (doesnt work)")
+	return lipgloss.JoinVertical(lipgloss.Top, title, m.textarea.View())
 }

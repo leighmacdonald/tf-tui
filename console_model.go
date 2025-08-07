@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -11,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 type LogRow struct {
@@ -18,10 +20,11 @@ type LogRow struct {
 	CreatedOn time.Time
 }
 
-func (r LogRow) View() string {
-	return lipgloss.JoinHorizontal(lipgloss.Top,
-		styles.ConsoleTime.Render(" "+r.CreatedOn.Format(time.TimeOnly)+" "),
-		styles.ConsoleMsg.Render(" "+strings.TrimSpace(r.Content)))
+func (r LogRow) View(width int) string {
+	timeStamp := styles.ConsoleTime.Render(" " + r.CreatedOn.Format(time.TimeOnly) + " ")
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, timeStamp,
+		styles.ConsoleMsg.Render(" "+strings.TrimSpace(wordwrap.String(r.Content, width-lipgloss.Width(timeStamp)-2))+" "))
 }
 
 type ConsoleModel struct {
@@ -119,15 +122,22 @@ func (m *ConsoleModel) onLogs(logs []LogEvent) {
 		if parts[1] == "" {
 			continue
 		}
-		newRow := LogRow{Content: parts[1], CreatedOn: time.Now()}
+		newRow := LogRow{Content: safeString(parts[1]), CreatedOn: time.Now()}
 		m.rowsMu.Lock()
 		m.rows = append(m.rows, newRow)
-		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
+		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View(m.width-10))
 		m.rowsMu.Unlock()
 	}
 
 	m.viewPort.PageUp()
 	m.updateView()
+}
+
+func safeString(s string) string {
+	s = strings.TrimFunc(s, func(r rune) bool {
+		return !unicode.IsGraphic(r) || unicode.IsControl(r)
+	})
+	return s
 }
 
 func (m *ConsoleModel) View(height int) string {

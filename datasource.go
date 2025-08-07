@@ -88,6 +88,7 @@ type PlayerDataModel struct {
 }
 
 func (m *PlayerDataModel) Init() tea.Cmd {
+	go m.Start(context.Background())
 	return tea.Batch(m.tickEvery())
 }
 

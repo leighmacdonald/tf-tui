@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 
@@ -22,20 +23,12 @@ var (
 	BuildMode    = "production"
 )
 
-type Team int
-
-const (
-	UNASSIGNED = iota
-	SPEC
-	BLU
-	RED
-)
-
 var errApp = errors.New("application error")
 
 func main() {
 	if err := run(); err != nil {
 		tea.Println(err.Error())
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 }
