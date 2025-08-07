@@ -6,7 +6,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -36,14 +35,12 @@ type ConsoleModel struct {
 	consoleLogPath string
 	width          int
 	viewPort       viewport.Model
-	input          textinput.Model
 	focused        bool
 }
 
 func NewConsoleModel(consoleLogPath string) *ConsoleModel {
 	model := &ConsoleModel{
 		console:        NewConsoleLog(),
-		input:          NewTextInputModel("", ""),
 		consoleLogPath: consoleLogPath,
 		viewPort:       viewport.New(10, 10),
 	}
@@ -71,31 +68,8 @@ func (m *ConsoleModel) Update(msg tea.Msg) (*ConsoleModel, tea.Cmd) {
 	cmds := make([]tea.Cmd, 2)
 
 	m.viewPort, cmds[0] = m.viewPort.Update(msg)
-	m.input, cmds[1] = m.input.Update(msg)
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, DefaultKeyMap.consoleInput):
-			if m.focused {
-				m.input.PromptStyle = styles.NoStyle
-				m.input.TextStyle = styles.NoStyle
-				m.input.Blur()
-				m.focused = false
-			} else {
-				m.input.PromptStyle = styles.FocusedStyle
-				m.input.TextStyle = styles.FocusedStyle
-				cmds = append(cmds, m.input.Focus()) // nolint:makezero
-				m.focused = true
-			}
-
-		case key.Matches(msg, DefaultKeyMap.consoleCancel):
-			m.input.Blur()
-			m.input.PromptStyle = styles.NoStyle
-			m.input.TextStyle = styles.NoStyle
-
-			return m, nil
-		}
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
@@ -142,12 +116,10 @@ func safeString(s string) string {
 
 func (m *ConsoleModel) View(height int) string {
 	title := renderTitleBar(m.width, "Console Log")
-	inputRow := lipgloss.JoinHorizontal(lipgloss.Top, "CONSOLE>", m.input.View())
-	input := lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).Width(m.width - 4).Render(inputRow)
 
-	m.viewPort.Height = height - lipgloss.Height(title) - lipgloss.Height(input)
+	m.viewPort.Height = height - lipgloss.Height(title)
 
-	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View(), input)
+	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View())
 }
 
 func (m *ConsoleModel) updateView() {

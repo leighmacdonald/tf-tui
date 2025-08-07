@@ -3,7 +3,6 @@ package main
 import (
 	"time"
 
-	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -54,15 +53,11 @@ const (
 )
 
 func NewChatModel() *ChatModel {
-	input := NewTextInputModel("", "(ALL) >")
-	input.CharLimit = MaxTF2MessageLength
-
-	return &ChatModel{input: input}
+	return &ChatModel{}
 }
 
 type ChatModel struct {
 	viewport     viewport.Model
-	input        textinput.Model
 	ready        bool
 	rows         []ChatRow
 	rowsRendered string
@@ -114,63 +109,19 @@ func (m *ChatModel) Update(msg tea.Msg) (*ChatModel, tea.Cmd) {
 		}
 		m.rows = append(m.rows, newRow)
 		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
-	case tea.KeyMsg:
-		key := msg.String()
-		if m.input.Focused() {
-			switch key {
-			case "esc":
-				m.input.Blur()
-				m.inputOpen = false
-
-				return m, nil
-			case "return":
-				m.inputOpen = false
-				message := m.input.Value()
-				if message == "" {
-					return m, nil
-				}
-				m.input.SetValue("")
-
-				return m, func() tea.Msg {
-					return ChatMsg{
-						Message:  message,
-						ChatType: m.chatType,
-					}
-				}
-			}
-		}
-		switch key {
-		case "y":
-			m.inputOpen = true
-			m.chatType = AllChat
-		case "u":
-			m.inputOpen = true
-			m.chatType = TeamChat
-		case "p":
-			m.inputOpen = true
-			m.chatType = PartyChat
-		case "c":
-			fallthrough
-		case "esc":
-			return m, func() tea.Msg {
-				return SetViewMsg{view: viewPlayerTables}
-			}
-		}
 	}
 
-	cmds := make([]tea.Cmd, 1)
-	m.input, cmds[0] = m.input.Update(msg)
+	var cmd tea.Cmd
+	m.viewport, cmd = m.viewport.Update(msg)
 
-	return m, tea.Batch(cmds...)
+	return m, cmd
 }
 
 func (m *ChatModel) View(height int) string {
 	titleBar := renderTitleBar(m.width, "Game Chat")
 	content := lipgloss.JoinVertical(lipgloss.Top, m.rowsRendered)
-	m.input.Placeholder = m.Placeholder()
-	input := m.input.View()
-	m.viewport.Height = height - lipgloss.Height(titleBar) - lipgloss.Height(input)
+	m.viewport.Height = height - lipgloss.Height(titleBar)
 	m.viewport.SetContent(content)
 
-	return lipgloss.JoinVertical(lipgloss.Left, titleBar, m.viewport.View(), input)
+	return lipgloss.JoinVertical(lipgloss.Left, titleBar, m.viewport.View())
 }

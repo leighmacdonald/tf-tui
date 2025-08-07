@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/fsnotify/fsnotify"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"gopkg.in/yaml.v3"
 )
@@ -202,6 +204,42 @@ func ConfigPath(name string) string {
 	}
 
 	return fullPath
+}
+
+func ConfigWatcher(ctx context.Context, program tea.Program, name string) {
+	watcher, errWatcher := fsnotify.NewWatcher()
+	if errWatcher != nil {
+		return
+	}
+	defer watcher.Close()
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			// watch for events
+			case event := <-watcher.Events:
+				if event.Op != fsnotify.Rename {
+					continue
+				}
+
+				conf, readOk := ConfigRead(name)
+				if !readOk {
+					tea.Println("error: Failed to read config")
+					continue
+				}
+
+				program.Send(conf)
+			}
+		}
+	}()
+	configPath := ConfigPath(name)
+	if err := watcher.Add(configPath); err != nil {
+		tea.Println("error: " + err.Error())
+	}
+
+	<-ctx.Done()
 }
 
 func ConfigRead(name string) (Config, bool) {
