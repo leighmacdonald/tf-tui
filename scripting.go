@@ -1,15 +1,16 @@
 package main
 
 import (
+	"context"
 	"errors"
-	"fmt"
+	"io/fs"
 	"os"
-	"path"
-	"reflect"
+	"path/filepath"
 	"strings"
 
-	"github.com/traefik/yaegi/interp"
-	"github.com/traefik/yaegi/stdlib"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/knqyf263/go-plugin/types/known/emptypb"
+	"github.com/leighmacdonald/tf-tui/plugins"
 )
 
 type FnNames string
@@ -28,112 +29,104 @@ type OnAdd func(a int, b int) int
 
 type OnPlayerState func(state DumpPlayer) DumpPlayer
 
-var (
-	errInvalidScriptInterpreter = errors.New("invalid interpreter")
-	errInvalidScriptDir         = errors.New("invalid script directory")
-	errInvalidScriptFile        = errors.New("invalid script file")
-	errInvalidScriptNamespace   = errors.New("invalid script namespace")
-)
+var errPluginInterpreter = errors.New("interpreter error")
+
+func NewScripting() *Scripting {
+	return &Scripting{}
+}
 
 type Scripting struct {
-	interpreter   *interp.Interpreter
-	importedFnMap map[string]reflect.Value
-	onAdd         []OnAdd
-	onPlayerState []OnPlayerState
+	logEvents []plugins.LogEvents
 }
 
-func NewScripting() (*Scripting, error) {
-	interpreter := interp.New(interp.Options{Unrestricted: true})
-	if err := interpreter.Use(stdlib.Symbols); err != nil {
-		return nil, errors.Join(err, errInvalidScriptInterpreter)
-	}
-
-	custom := make(map[string]map[string]reflect.Value)
-	custom["tftui/tftui"] = make(map[string]reflect.Value)
-	custom["tftui/tftui"]["PlayerState"] = reflect.ValueOf((*DumpPlayer)(nil))
-	custom["tftui/tftui"]["g15PlayerCount"] = reflect.ValueOf(g15PlayerCount)
-
-	if err := interpreter.Use(custom); err != nil {
-		return nil, errors.Join(err, errInvalidScriptNamespace)
-	}
-
-	return &Scripting{interpreter: interpreter}, nil
+func (s *Scripting) LoadedPluginsCount() int {
+	return len(s.logEvents)
 }
 
-func (s *Scripting) LoadDir(scriptDir string) error {
-	scripts, errScripts := findScripts(scriptDir)
-	if errScripts != nil {
-		return errScripts
+func (s *Scripting) LoadPlugins(ctx context.Context, root string) error {
+	eventsPlugin, err := plugins.NewLogEventsPlugin(ctx)
+	if err != nil {
+		return errors.Join(err, errPluginInterpreter)
 	}
 
-	for _, scriptMeta := range scripts {
-		_, err := s.interpreter.EvalPath(path.Join(scriptDir, scriptMeta.pkg, scriptMeta.filename))
-		if err != nil {
-			return errors.Join(err, errInvalidScriptFile)
+	pluginPaths, errPaths := findPlugins(root)
+	if errPaths != nil {
+		return errPaths
+	}
+
+	for _, pluginPath := range pluginPaths {
+		plugin, errPlugin := eventsPlugin.Load(ctx, pluginPath, NewPluginLogger(pluginPath))
+		if errPlugin != nil {
+			return errors.Join(errPlugin, errPluginInterpreter)
 		}
 
-		for _, name := range CallbackNames {
-			evaluatedFunc, errEval := s.interpreter.Eval(fmt.Sprintf("%s.%s", scriptMeta.pkg, name))
-			if errEval != nil {
-				continue
-			}
-
-			switch name {
-			case onAdd:
-				call, ok := evaluatedFunc.Interface().(func(int, int) int)
-				if !ok {
-					continue
-				}
-
-				s.onAdd = append(s.onAdd, call)
-			case onPlayerState:
-				call, ok := evaluatedFunc.Interface().(func(DumpPlayer) DumpPlayer)
-				if !ok {
-					continue
-				}
-
-				s.onPlayerState = append(s.onPlayerState, call)
-			}
-		}
+		s.logEvents = append(s.logEvents, plugin)
 	}
 
 	return nil
 }
 
-type scriptEntry struct {
-	pkg      string
-	filename string
+func findPlugins(rootPath string) ([]string, error) {
+	var pluginPaths []string
+	if err := filepath.WalkDir(rootPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return errors.Join(err, errPluginInterpreter)
+		}
+
+		if !d.IsDir() {
+			return nil
+		}
+
+		// dirPath := filepath.Join(path, d.Name())
+		dirFiles, errDir := os.ReadDir(path)
+		if errDir != nil {
+			return errors.Join(errDir, errPluginInterpreter)
+		}
+
+		for _, f := range dirFiles {
+			if !strings.HasSuffix(f.Name(), ".wasm") {
+				continue
+			}
+
+			pluginPaths = append(pluginPaths, filepath.Join(path, f.Name()))
+		}
+
+		return nil
+	}); err != nil {
+		return nil, errors.Join(err, errPluginInterpreter)
+	}
+
+	return pluginPaths, nil
 }
 
-func findScripts(rootPath string) ([]scriptEntry, error) {
-	dirList, err := os.ReadDir(rootPath)
-	if err != nil {
-		return nil, errors.Join(err, errInvalidScriptDir)
-	}
+func NewPluginLogger(path string) PluginLogger {
+	return PluginLogger{PluginPath: path}
+}
 
-	var scripts []scriptEntry
-	for _, dir := range dirList {
-		if !dir.IsDir() {
-			continue
-		}
+type PluginLogger struct {
+	PluginPath string
+}
 
-		fileList, errFiles := os.ReadDir(path.Join(rootPath, dir.Name()))
-		if errFiles != nil {
-			return nil, errors.Join(errFiles, errInvalidScriptDir)
-		}
+func (l PluginLogger) Debug(_ context.Context, log *plugins.LogMessage) (*emptypb.Empty, error) {
+	tea.Println("DEBUG: " + log.Message)
 
-		for _, entry := range fileList {
-			if entry.IsDir() {
-				continue
-			}
+	return &emptypb.Empty{}, nil
+}
 
-			if !strings.HasSuffix(entry.Name(), ".go") {
-				continue
-			}
+func (l PluginLogger) Info(_ context.Context, log *plugins.LogMessage) (*emptypb.Empty, error) {
+	tea.Println("INFO: " + log.Message)
 
-			scripts = append(scripts, scriptEntry{pkg: dir.Name(), filename: entry.Name()})
-		}
-	}
+	return &emptypb.Empty{}, nil
+}
 
-	return scripts, nil
+func (l PluginLogger) Warn(_ context.Context, log *plugins.LogMessage) (*emptypb.Empty, error) {
+	tea.Println("WARN: " + log.Message)
+
+	return &emptypb.Empty{}, nil
+}
+
+func (l PluginLogger) Error(_ context.Context, log *plugins.LogMessage) (*emptypb.Empty, error) {
+	tea.Println("ERROR: " + log.Message)
+
+	return &emptypb.Empty{}, nil
 }

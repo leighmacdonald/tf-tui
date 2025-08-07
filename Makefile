@@ -1,3 +1,7 @@
+.PHONY: plugins
+
+all: build
+
 debug:
 	dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient
 
@@ -16,7 +20,14 @@ generate:
 	go generate
 
 race:
+# Have to log to file as we dont really have access to ui
 	GORACE="race.txt" DEBUG=1 go run -race .
 
 test:
 	go test ./...
+
+plugins:
+	make -C plugins
+
+build:
+	goreleaser release --snapshot --clean

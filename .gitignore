@@ -35,3 +35,5 @@ __debug*
 .zed
 .idea
 .vscode
+*.wasm
+dist

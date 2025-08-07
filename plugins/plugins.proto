@@ -1,0 +1,81 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+
+package tftui;
+
+option go_package = "github.com/leighmacdonald/tf-tui/plugins";
+
+message LogMessage {
+    string message = 1;
+}
+
+// The host functions embedded into the plugin
+// go:plugin type=host
+service LoggingFunctions {
+  // Debug log
+  rpc Debug(LogMessage) returns (google.protobuf.Empty) {}
+  // Info log
+  rpc Info(LogMessage) returns (google.protobuf.Empty) {}
+  // Warn log
+  rpc Warn(LogMessage) returns (google.protobuf.Empty) {}
+  // Error log
+  rpc Error(LogMessage) returns (google.protobuf.Empty) {}
+}
+
+// The greeting service definition.
+// go:plugin type=plugin version=1
+service LogEvents {
+  // Sends a greeting
+  rpc OnLogEvent(LogEvent) returns (LogEventResponse) {}
+  rpc Unload(google.protobuf.Empty) returns (ErrorResponse) {}
+}
+
+message ErrorResponse {
+    bool Success = 1;
+    string Message = 2;
+}
+
+enum EventType {
+  EvtKill = 0;
+  EvtMsg = 1;
+  EvtConnect = 2;
+  EvtDisconnect = 3;
+  EvtStatusID = 4 ;
+  EvtHostname = 5;
+  EvtMap = 6;
+  EvtTags = 7;
+  EvtAddress = 8;
+  EvtLobby = 9;
+  EvtAny = -1;
+}
+
+enum Team {
+  UNASSIGNED = 0;
+  SPEC = 1;
+  BLU = 2;
+  RED = 3;
+}
+
+message LogEvent {
+  EventType Type = 1;
+  string Player = 2;
+  uint64 PlayerSID = 3;
+  uint32 PlayerPing = 4;
+  uint32 PlayerConnected = 5;
+  Team Team = 6;
+  uint32 UserID = 7;
+  string Victim = 8;
+  uint64 VictimSID = 9;
+  string Message = 10;
+  uint64 Timestamp = 11;
+  string MetaData = 12;
+  bool Dead = 13;
+  string raw = 14;
+}
+
+message LogEventResponse {
+    bool Success = 1;
+    bool Modified = 2;
+    string Message = 3;
+    LogEvent LogEvent = 4;
+}

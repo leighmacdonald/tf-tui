@@ -82,7 +82,7 @@ func (m *ConsoleModel) Update(msg tea.Msg) (*ConsoleModel, tea.Cmd) {
 			} else {
 				m.input.PromptStyle = styles.FocusedStyle
 				m.input.TextStyle = styles.FocusedStyle
-				cmds = append(cmds, m.input.Focus()) // nolint:makezero
+				cmds = append(cmds, m.input.Focus()) //nolint:makezero
 				m.focused = true
 			}
 

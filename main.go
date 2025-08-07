@@ -10,6 +10,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joho/godotenv"
 	"github.com/leighmacdonald/tf-tui/store"
 	zone "github.com/lrstanley/bubblezone"
 	_ "modernc.org/sqlite"
@@ -44,6 +45,10 @@ func run() error {
 	ctx := context.Background()
 	zone.NewGlobal()
 
+	if errDotEnv := godotenv.Load(); errDotEnv != nil {
+		return errors.Join(errDotEnv, errApp)
+	}
+
 	if len(os.Getenv("DEBUG")) > 0 {
 		logFile, err := tea.LogToFile(ConfigPath(defaultLogName), "debug")
 		if err != nil {
@@ -73,15 +78,11 @@ func run() error {
 		}
 	}()
 
-	scripting, errScripting := NewScripting()
-	if errScripting != nil {
-		return errors.Join(errScripting, errApp)
-	}
+	scripting := NewScripting()
 
-	// if errScripts := scripting.LoadDir("scripts"); errScripts != nil {
-	//	fmt.Println("fatal:", errScripts.Error())
-	//	os.Exit(1)
-	//}
+	if errScripts := scripting.LoadPlugins(ctx, "."); errScripts != nil {
+		return errScripts
+	}
 
 	program := tea.NewProgram(New(config, !configFound, scripting, client),
 		tea.WithMouseCellMotion(), tea.WithAltScreen())
