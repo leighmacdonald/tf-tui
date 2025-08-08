@@ -76,13 +76,13 @@ func (m TableBansModel) View(height int) string {
 			var width int
 			switch col {
 			case 0:
-				width = 10
+				width = 20
 			case 1:
-				width = 21
+				width = 23
 			case 2:
-				width = 4
+				width = 6
 			default:
-				width = m.width - 40
+				width = m.width - 51
 			}
 			switch {
 			case row == table.HeaderRow:
@@ -92,7 +92,6 @@ func (m TableBansModel) View(height int) string {
 			default:
 				return styles.BanTableValuesOdd.Width(width)
 			}
-
 		}).Render()
 	}
 

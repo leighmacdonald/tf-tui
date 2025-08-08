@@ -206,7 +206,9 @@ func ConfigPath(name string) string {
 	return fullPath
 }
 
-func ConfigWatcher(ctx context.Context, program tea.Program, name string) {
+// ConfigWatcher is responsible for monitoring the config file for external changes and
+// subsequently sending the new Config to the *tea.Program to broadcast the changed Config.
+func ConfigWatcher(ctx context.Context, program *tea.Program, name string) {
 	watcher, errWatcher := fsnotify.NewWatcher()
 	if errWatcher != nil {
 		return
@@ -220,13 +222,14 @@ func ConfigWatcher(ctx context.Context, program tea.Program, name string) {
 				return
 			// watch for events
 			case event := <-watcher.Events:
-				if event.Op != fsnotify.Rename {
+				if event.Op != fsnotify.Rename && event.Op != fsnotify.Write {
 					continue
 				}
 
 				conf, readOk := ConfigRead(name)
 				if !readOk {
 					tea.Println("error: Failed to read config")
+
 					continue
 				}
 
@@ -234,6 +237,7 @@ func ConfigWatcher(ctx context.Context, program tea.Program, name string) {
 			}
 		}
 	}()
+
 	configPath := ConfigPath(name)
 	if err := watcher.Add(configPath); err != nil {
 		tea.Println("error: " + err.Error())

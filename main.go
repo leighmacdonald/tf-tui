@@ -79,7 +79,7 @@ func run() error {
 	program := tea.NewProgram(New(config, !configFound, scripting, client),
 		tea.WithMouseCellMotion(), tea.WithAltScreen())
 
-	go ConfigWatcher(ctx, *program, defaultConfigName)
+	go ConfigWatcher(ctx, program, defaultConfigName)
 
 	if _, err := program.Run(); err != nil {
 		return errors.Join(err, errApp)

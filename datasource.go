@@ -89,6 +89,7 @@ type PlayerDataModel struct {
 
 func (m *PlayerDataModel) Init() tea.Cmd {
 	go m.Start(context.Background())
+
 	return tea.Batch(m.tickEvery())
 }
 
@@ -196,6 +197,9 @@ func (m *PlayerDataModel) fetchPlayerState(ctx context.Context, address string, 
 			}
 			if playerIdx == 6 {
 				data.SteamID[playerIdx] = steamid.New(76561198044497183)
+			}
+			if playerIdx == 1 {
+				data.SteamID[playerIdx] = steamid.New(76561198084134025)
 			}
 		}
 

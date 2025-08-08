@@ -89,8 +89,8 @@ var (
 	ChatTime      = lipgloss.NewStyle().Width(14).Foreground(Gray).Background(Black)
 
 	BanTableHeading    = lipgloss.NewStyle().Background(Black).Foreground(Red).Bold(true)
-	BanTableValuesEven = lipgloss.NewStyle().Background(Gray)
-	BanTableValuesOdd  = lipgloss.NewStyle()
+	BanTableValuesEven = lipgloss.NewStyle().Background(Gray).PaddingLeft(1).PaddingRight(1)
+	BanTableValuesOdd  = lipgloss.NewStyle().PaddingLeft(1).PaddingRight(1)
 
 	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️.
 	IconDead    = "💀"

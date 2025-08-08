@@ -111,6 +111,7 @@ func safeString(s string) string {
 	s = strings.TrimFunc(s, func(r rune) bool {
 		return !unicode.IsGraphic(r) || unicode.IsControl(r)
 	})
+
 	return s
 }
 

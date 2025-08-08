@@ -32,7 +32,7 @@ type AppModel struct {
 	compTable             *TableCompModel
 	configModel           tea.Model
 	helpModel             tea.Model
-	notesModel            tea.Model
+	notesModel            NotesModel
 	tabsModel             tea.Model
 	statusModel           tea.Model
 	chatModel             *ChatModel
@@ -190,7 +190,7 @@ func (m AppModel) View() string {
 		case TabComp:
 			ptContent = m.compTable.View(lowerPanelViewportHeight)
 		case TabNotes:
-			ptContent = "Notes..."
+			ptContent = m.notesModel.View(lowerPanelViewportHeight)
 		case TabChat:
 			ptContent = m.chatModel.View(lowerPanelViewportHeight)
 		case TabConsole:
