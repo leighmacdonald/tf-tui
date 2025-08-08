@@ -46,7 +46,7 @@ type TableCompModel struct {
 
 func NewTableCompModel() *TableCompModel {
 	return &TableCompModel{table: table.New().
-		//Height(10).
+		// Height(10).
 		BorderTop(false).
 		BorderRight(false).
 		BorderBottom(false).
@@ -60,7 +60,7 @@ func (m *TableCompModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *TableCompModel) Update(msg tea.Msg) (*TableCompModel, tea.Cmd) { //nolint:unparam
+func (m *TableCompModel) Update(msg tea.Msg) (*TableCompModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width

@@ -16,7 +16,7 @@ type NotesModel struct {
 
 func NewNotesModel() NotesModel {
 	textArea := textarea.New()
-	//textArea.SetHeight(10)
+	// textArea.SetHeight(10)
 	textArea.SetValue("A note...")
 	viewPort := viewport.New(10, 10)
 
@@ -38,7 +38,7 @@ func (m NotesModel) Update(msg tea.Msg) (NotesModel, tea.Cmd) {
 		m.textarea.SetValue(msg.notes)
 	}
 
-	return m, nil
+	return m, tea.Batch()
 }
 
 func (m NotesModel) View(height int) string {
@@ -46,5 +46,6 @@ func (m NotesModel) View(height int) string {
 	title := renderTitleBar(m.width, "Player Notes (doesnt work)")
 
 	m.viewPort.Height = height - lipgloss.Height(title)
+
 	return lipgloss.JoinVertical(lipgloss.Top, title, m.textarea.View())
 }

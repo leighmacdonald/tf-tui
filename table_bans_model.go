@@ -98,7 +98,7 @@ func (m TableBansModel) View(height int) string {
 				width = colDateSize
 			case colPerm:
 				width = colPermSize
-			default:
+			case colReason:
 				width = m.width - colSiteSize - colDateSize - colPermSize - 2
 			}
 			switch {

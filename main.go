@@ -28,7 +28,7 @@ var errApp = errors.New("application error")
 func main() {
 	if err := run(); err != nil {
 		tea.Println(err.Error())
-		fmt.Println(err.Error())
+		fmt.Println(err.Error()) //nolint:forbidigo
 		os.Exit(1)
 	}
 }
