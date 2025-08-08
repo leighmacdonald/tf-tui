@@ -24,9 +24,11 @@ var (
 	BlurredSubmitButton = fmt.Sprintf("[ %s ]", BlurredStyle.Render("Submit"))
 
 	// Tables.
-	Black     = lipgloss.Color("#111111")
-	Gray      = lipgloss.Color("#3e3e3e")
-	LightGray = lipgloss.Color("#9a9280")
+	Black       = lipgloss.Color("#111111")
+	Gray        = lipgloss.Color("#3e3e3e")
+	GrayDark    = lipgloss.Color("#2f3030")
+	GrayDarkAlt = lipgloss.Color("#0f0f0f")
+	LightGray   = lipgloss.Color("#111111")
 
 	Red = lipgloss.Color("#B8383B")
 	Blu = lipgloss.Color("#5885A2")
@@ -37,8 +39,8 @@ var (
 	ColourUnusual = lipgloss.Color("#8650ac")
 	ColourVintage = lipgloss.Color("#476291")
 
-	HeaderStyleRed  = lipgloss.NewStyle().Background(Black).Foreground(Red).Bold(true).Align(lipgloss.Center)
-	HeaderStyleBlu  = lipgloss.NewStyle().Background(Black).Foreground(Blu).Bold(true).Align(lipgloss.Center)
+	HeaderStyleRed  = lipgloss.NewStyle().Background(Black).Foreground(Red).Bold(true).Align(lipgloss.Left).PaddingLeft(0)
+	HeaderStyleBlu  = lipgloss.NewStyle().Background(Black).Foreground(Blu).Bold(true).Align(lipgloss.Left).PaddingLeft(0)
 	CellStyleName   = lipgloss.NewStyle().Padding(0, 1).Width(32)
 	CellStyle       = lipgloss.NewStyle().Padding(0, 1).Width(6)
 	OddRowStyleName = CellStyleName.Foreground(Gray)
@@ -88,9 +90,12 @@ var (
 	ChatMessage   = lipgloss.NewStyle()
 	ChatTime      = lipgloss.NewStyle().Width(14).Foreground(Gray).Background(Black)
 
-	BanTableHeading    = lipgloss.NewStyle().Background(Black).Foreground(Red).Bold(true)
-	BanTableValuesEven = lipgloss.NewStyle().Background(Gray).PaddingLeft(1).PaddingRight(1)
-	BanTableValuesOdd  = lipgloss.NewStyle().PaddingLeft(1).PaddingRight(1)
+	BanTableHeading = lipgloss.NewStyle().Background(Black).Foreground(Red).Bold(true)
+
+	TableRowValuesEven = lipgloss.NewStyle().Background(GrayDark).PaddingLeft(1).PaddingRight(1)
+	TableRowValuesOdd  = lipgloss.NewStyle().Background(GrayDarkAlt).PaddingLeft(1).PaddingRight(1)
+
+	InfoMessage = lipgloss.NewStyle().Align(lipgloss.Center).Padding(1)
 
 	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️.
 	IconDead    = "💀"
@@ -98,11 +103,12 @@ var (
 	IconCheck   = "✅"
 	IconBans    = "🛑"
 	IconVac     = "👮"
-	IconDrCool  = "😎"
 	IconNotes   = "📓"
 	IconInfo    = "💡"
 	IconChat    = "🌮"
-	IconConsole = "🐤" //
+	IconConsole = "🐤"
+	IconNoBans  = "🍕"
+	IconNoComp  = "🍣"
 )
 
 func DetailRow(label string, value string) string {

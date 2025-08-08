@@ -10,6 +10,24 @@ import (
 	"github.com/leighmacdonald/tf-tui/styles"
 )
 
+type banTableCol int
+
+const (
+	colSite banTableCol = iota
+	colDate
+	colPerm
+	colReason
+)
+
+type banTableSize = int
+
+const (
+	colSiteSize   banTableSize = 20
+	colDateSize   banTableSize = 23
+	colPermSize   banTableSize = 6
+	colReasonSize banTableSize = -1
+)
+
 type TableBansModel struct {
 	table                 *table.Table
 	player                Player
@@ -69,28 +87,27 @@ func (m TableBansModel) View(height int) string {
 	m.viewport.Height = height
 	var content string
 	if len(m.player.meta.Bans) == 0 {
-		content = lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).
-			Render("\nNo bans found " + styles.IconDrCool)
+		content = styles.InfoMessage.Width(m.width).Render("No bans found " + styles.IconNoBans)
 	} else {
 		content = m.table.StyleFunc(func(row, col int) lipgloss.Style {
 			var width int
-			switch col {
-			case 0:
-				width = 20
-			case 1:
-				width = 23
-			case 2:
-				width = 6
+			switch banTableCol(col) {
+			case colSite:
+				width = colSiteSize
+			case colDate:
+				width = colDateSize
+			case colPerm:
+				width = colPermSize
 			default:
-				width = m.width - 51
+				width = m.width - colSiteSize - colDateSize - colPermSize - 2
 			}
 			switch {
 			case row == table.HeaderRow:
 				return styles.BanTableHeading.Width(width)
 			case row%2 == 0:
-				return styles.BanTableValuesEven.Width(width)
+				return styles.TableRowValuesEven.Width(width)
 			default:
-				return styles.BanTableValuesOdd.Width(width)
+				return styles.TableRowValuesOdd.Width(width)
 			}
 		}).Render()
 	}
