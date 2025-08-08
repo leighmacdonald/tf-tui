@@ -44,7 +44,7 @@ type AppModel struct {
 	rendered              string
 }
 
-func New(config Config, doSetup bool, scripting *Scripting, client *ClientWithResponses) *AppModel {
+func New(config Config, doSetup bool, scripting *Scripting, client *ClientWithResponses, cache Cache) *AppModel {
 	app := &AppModel{
 		config:                config,
 		currentView:           viewPlayerTables,
@@ -62,7 +62,7 @@ func New(config Config, doSetup bool, scripting *Scripting, client *ClientWithRe
 		consoleView:           NewConsoleModel(config.ConsoleLogPath),
 		statusModel:           NewStatusBarModel(BuildVersion),
 		chatModel:             NewChatModel(),
-		playerDataModel:       NewPlayerDataModel(client, config),
+		playerDataModel:       NewPlayerDataModel(client, config, cache),
 		contentViewPortHeight: 10,
 		hdrHeight:             1,
 		ftrHeight:             1,

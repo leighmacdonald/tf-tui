@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -37,18 +38,13 @@ func run() error {
 	ctx := context.Background()
 	zone.NewGlobal()
 
-	if len(os.Getenv("DEBUG")) > 0 {
-		logFile, err := tea.LogToFile(ConfigPath(defaultLogName), "debug")
-		if err != nil {
-			return errors.Join(err, errApp)
-		}
-
-		defer func(f *os.File) {
-			_ = f.Close()
-		}(logFile)
-	}
-
 	config, configFound := ConfigRead(defaultConfigName)
+	logFile, errLogger := LoggerInit("", slog.LevelDebug)
+	if errLogger != nil {
+		return errLogger
+	}
+	defer logFile.Close()
+
 	client, errClient := NewClientWithResponses(config.APIBaseURL, WithHTTPClient(&http.Client{
 		Timeout: defaultHTTPTimeout,
 	}))
@@ -76,7 +72,12 @@ func run() error {
 	//	os.Exit(1)
 	//}
 
-	program := tea.NewProgram(New(config, !configFound, scripting, client),
+	cache, errCache := NewFilesystemCache()
+	if errCache != nil {
+		return errors.Join(errCache, errApp)
+	}
+
+	program := tea.NewProgram(New(config, !configFound, scripting, client, cache),
 		tea.WithMouseCellMotion(), tea.WithAltScreen())
 
 	go ConfigWatcher(ctx, program, defaultConfigName)

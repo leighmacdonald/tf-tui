@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 	"os/user"
 	"path"
@@ -14,6 +16,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
+	"github.com/joho/godotenv"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"gopkg.in/yaml.v3"
 )
@@ -22,6 +25,7 @@ var (
 	errConfigWrite = errors.New("failed to write config file")
 	errInvalidPath = errors.New("invalid path")
 	errConfigValue = errors.New("failed to validate config")
+	errLoggerInit  = errors.New("failed to initialize logger")
 )
 
 const (
@@ -247,6 +251,11 @@ func ConfigWatcher(ctx context.Context, program *tea.Program, name string) {
 }
 
 func ConfigRead(name string) (Config, bool) {
+	errDotEnv := godotenv.Load()
+	if errDotEnv != nil {
+		slog.Debug("Could not load .env file", slog.String("error", errDotEnv.Error()))
+	}
+
 	var config Config
 	if err := os.MkdirAll(path.Join(xdg.ConfigHome, configDirName), 0o600); err != nil {
 		tea.Println("Failed to make config root: " + err.Error())
@@ -313,4 +322,21 @@ func ConfigWrite(name string, config Config) error {
 	}
 
 	return nil
+}
+
+// LoggerInit sets up the slog global handler to use a log file as we cant print to the console.
+func LoggerInit(logPath string, level slog.Level) (io.Closer, error) {
+	logFile, errLogFile := os.Create(logPath)
+	if errLogFile != nil {
+		return nil, errors.Join(errLogFile, errLoggerInit)
+	}
+
+	logger := slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{
+		AddSource: true,
+		Level:     level,
+	}))
+
+	slog.SetDefault(logger)
+
+	return logFile, nil
 }

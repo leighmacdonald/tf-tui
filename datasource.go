@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -30,6 +32,15 @@ var (
 	errPlayerNotFound   = errors.New("player not found")
 	errFetchMetaProfile = errors.New("failed to fetch meta profile")
 )
+
+func UnmarshalJSON[T any](reader io.Reader) (T, error) {
+	var value T
+	if err := json.NewDecoder(reader).Decode(&value); err != nil {
+		return value, err
+	}
+
+	return value, nil
+}
 
 type Player struct {
 	SteamID       steamid.SteamID
@@ -66,7 +77,7 @@ type DumpPlayer struct {
 	UserID    [g15PlayerCount]int
 }
 
-func NewPlayerDataModel(client *ClientWithResponses, config Config) *PlayerDataModel {
+func NewPlayerDataModel(client *ClientWithResponses, config Config, cache Cache) *PlayerDataModel {
 	return &PlayerDataModel{
 		mu:          &sync.RWMutex{},
 		players:     make(map[steamid.SteamID]*Player),
@@ -74,6 +85,7 @@ func NewPlayerDataModel(client *ClientWithResponses, config Config) *PlayerDataM
 		client:      client,
 		config:      config,
 		g15re:       regexp.MustCompile(`^(m_szName|m_iPing|m_iScore|m_iDeaths|m_bConnected|m_iTeam|m_bAlive|m_iHealth|m_iAccountID|m_bValid|m_iUserID)\[(\d+)]\s(integer|bool|string)\s\((.+?)?\)$`),
+		cache:       cache,
 	}
 }
 
@@ -85,6 +97,7 @@ type PlayerDataModel struct {
 	players     map[steamid.SteamID]*Player
 	mu          *sync.RWMutex
 	updateQueue chan steamid.SteamID
+	cache       Cache
 }
 
 func (m *PlayerDataModel) Init() tea.Cmd {
@@ -152,7 +165,32 @@ func (m *PlayerDataModel) getMetaProfiles(ctx context.Context, steamIDs steamid.
 		return nil, nil
 	}
 
-	resp, errResp := m.client.MetaProfile(ctx, &MetaProfileParams{Steamids: strings.Join(steamIDs.ToStringSlice(), ",")})
+	var missing steamid.Collection
+	var profiles []MetaProfile
+
+	for _, steamID := range steamIDs {
+		body, errGet := m.cache.Get(steamID, CacheMetaProfile)
+		if errGet != nil {
+			if !errors.Is(errGet, errCacheMiss) {
+				return nil, errGet
+			}
+
+			missing = append(missing, steamID)
+
+			continue
+		}
+
+		cached, err := UnmarshalJSON[MetaProfile](bytes.NewReader(body))
+		if err != nil {
+			missing = append(missing, steamID)
+
+			continue
+		}
+
+		profiles = append(profiles, cached)
+	}
+
+	resp, errResp := m.client.MetaProfile(ctx, &MetaProfileParams{Steamids: strings.Join(missing.ToStringSlice(), ",")})
 	if errResp != nil {
 		return nil, errors.Join(errResp, errFetchMetaProfile)
 	}
@@ -160,10 +198,22 @@ func (m *PlayerDataModel) getMetaProfiles(ctx context.Context, steamIDs steamid.
 
 	parsed, errParse := ParseMetaProfileResponse(resp)
 	if errParse != nil {
-		return nil, errors.Join(errResp, errParse)
+		return nil, errors.Join(errParse, errFetchMetaProfile)
 	}
 
-	return *parsed.JSON200, nil
+	for _, profile := range *parsed.JSON200 {
+		var buf bytes.Buffer
+		if errBody := json.NewEncoder(&buf).Encode(profile); errBody != nil {
+			return nil, errors.Join(errBody, errFetchMetaProfile)
+		}
+		if errSet := m.cache.Set(steamid.New(profile.SteamId), CacheMetaProfile, buf.Bytes()); errSet != nil {
+			return nil, errors.Join(errSet, errFetchMetaProfile)
+		}
+
+		profiles = append(profiles, profile)
+	}
+
+	return profiles, nil
 }
 
 func (m *PlayerDataModel) fetchPlayerState(ctx context.Context, address string, password string) (DumpPlayer, error) {
