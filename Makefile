@@ -20,3 +20,9 @@ race:
 
 test:
 	go test ./...
+
+tail:
+	tail -f ~/.config/tf-tui/tf-tui.log
+
+snapshot:
+	goreleaser release --snapshot --clean
