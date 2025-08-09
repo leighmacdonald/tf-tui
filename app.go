@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log/slog"
+
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -106,21 +108,31 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	// Filter out very noisy stuff
+	switch inMsg.(type) {
+	case DumpPlayerMsg:
+		break
+	case ConsoleLogMsg:
+		break
+	case FullStateUpdateMsg:
+		break
+	default:
+		slog.Debug("tea.Msg", slog.Any("msg", inMsg))
+	}
+
 	switch msg := inMsg.(type) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
 		m.contentViewPortHeight = m.height - m.hdrHeight - m.ftrHeight
 
-		m2, cmd2 := m.propagate(inMsg)
-
-		return m2, tea.Batch(func() tea.Msg {
+		return m, func() tea.Msg {
 			return ContentViewPortHeightMsg{
 				contentViewPortHeight: m.contentViewPortHeight,
 				height:                msg.Height,
 				width:                 msg.Width,
 			}
-		}, cmd2)
+		}
 	case TabChangeMsg:
 		m.activeTab = tabView(msg)
 	// Is it a key press?
@@ -217,7 +229,7 @@ func (m AppModel) isInitialized() bool {
 
 func (m *AppModel) propagate(msg tea.Msg, cmd ...tea.Cmd) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 12)
-	m.configModel, cmds[0] = m.configModel.Update(msg)
+	m.playerDataModel, cmds[0] = m.playerDataModel.Update(msg)
 	m.playerTables, cmds[1] = m.playerTables.Update(msg)
 	m.banTable, cmds[2] = m.banTable.Update(msg)
 	m.helpModel, cmds[3] = m.helpModel.Update(msg)
@@ -228,9 +240,7 @@ func (m *AppModel) propagate(msg tea.Msg, cmd ...tea.Cmd) (tea.Model, tea.Cmd) {
 	m.consoleView, cmds[8] = m.consoleView.Update(msg)
 	m.statusModel, cmds[9] = m.statusModel.Update(msg)
 	m.chatModel, cmds[10] = m.chatModel.Update(msg)
-	m.playerDataModel, cmds[11] = m.playerDataModel.Update(msg)
-
-	cmds = append(cmds, cmd...) //nolint:makezero
+	m.configModel, cmds[11] = m.configModel.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }
