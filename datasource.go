@@ -162,19 +162,38 @@ func (m *PlayerDataModel) onPlayerStateMsg(msg DumpPlayerMsg) (tea.Model, tea.Cm
 	return m, tea.Batch(cmds...)
 }
 
-func (m *PlayerDataModel) getMetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]MetaProfile, error) {
+// MetaProfiles handles loading player MetaProfiles. It first attempts to load from a local filesystem cache
+// and if any are missing or expired, they will be fetched from the api, and subsequently cached.
+func (m *PlayerDataModel) MetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]MetaProfile, error) {
 	if len(steamIDs) == 0 {
 		return nil, nil
 	}
 
-	var missing steamid.Collection
-	var profiles []MetaProfile // nolint:prealloc
+	profiles, missing, errCached := m.cachedMetaProfiles(steamIDs)
+	if errCached != nil {
+		return nil, errCached
+	}
 
+	if len(missing) == 0 {
+		return profiles, nil
+	}
+
+	updates, errUpdates := m.fetchMetaProfiles(ctx, missing)
+	if errUpdates != nil {
+		return profiles, errUpdates
+	}
+
+	return append(profiles, updates...), nil
+}
+
+func (m *PlayerDataModel) cachedMetaProfiles(steamIDs steamid.Collection) ([]MetaProfile, steamid.Collection, error) {
+	var profiles []MetaProfile // nolint:prealloc
+	var missing steamid.Collection
 	for _, steamID := range steamIDs {
 		body, errGet := m.cache.Get(steamID, CacheMetaProfile)
 		if errGet != nil {
 			if !errors.Is(errGet, errCacheMiss) {
-				return nil, errors.Join(errGet, errFetchMetaProfile)
+				return nil, nil, errors.Join(errGet, errFetchMetaProfile)
 			}
 
 			missing = append(missing, steamID)
@@ -192,11 +211,12 @@ func (m *PlayerDataModel) getMetaProfiles(ctx context.Context, steamIDs steamid.
 		profiles = append(profiles, cached)
 	}
 
-	if len(missing) == 0 {
-		return profiles, nil
-	}
+	return profiles, missing, nil
+}
 
-	resp, errResp := m.client.MetaProfile(ctx, &MetaProfileParams{Steamids: strings.Join(missing.ToStringSlice(), ",")})
+func (m *PlayerDataModel) fetchMetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]MetaProfile, error) {
+	var profiles []MetaProfile
+	resp, errResp := m.client.MetaProfile(ctx, &MetaProfileParams{Steamids: strings.Join(steamIDs.ToStringSlice(), ",")})
 	if errResp != nil {
 		return nil, errors.Join(errResp, errFetchMetaProfile)
 	}
@@ -338,6 +358,9 @@ func (m *PlayerDataModel) Start(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case update := <-m.updateQueue:
+			if !update.Valid() {
+				continue
+			}
 			if slices.Contains(queue, update) {
 				continue
 			}
@@ -446,7 +469,7 @@ func (m *PlayerDataModel) All() ([]Player, error) {
 }
 
 func (m *PlayerDataModel) updateMeta(ctx context.Context, steamIDs steamid.Collection) {
-	profiles, errProfiles := m.getMetaProfiles(ctx, steamIDs)
+	profiles, errProfiles := m.MetaProfiles(ctx, steamIDs)
 	if errProfiles != nil {
 		slog.Error("Failed to update meta profiles", slog.String("error", errProfiles.Error()))
 
