@@ -56,8 +56,8 @@ func (m StatusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clearStatusMessageMsg:
 		m.statusError = false
 		m.statusMsg = ""
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
+	case ContentViewPortHeightMsg:
+		m.width = msg.width
 	case LogEvent:
 		switch msg.Type {
 		case EvtHostname:

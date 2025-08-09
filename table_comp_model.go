@@ -26,12 +26,12 @@ const (
 type compTableSize int
 
 const (
-	colLeagueSize      compTableSize = 20
-	colCompetitionSize compTableSize = 40
+	colLeagueSize      compTableSize = 16
+	colCompetitionSize compTableSize = 30
 	colJoinedSize      compTableSize = 12
 	colLeftSize        compTableSize = 12
-	colFormatSize      compTableSize = 16
-	colDivisionSize    compTableSize = 30
+	colFormatSize      compTableSize = 12
+	colDivisionSize    compTableSize = 15
 	colTeamNameSize    compTableSize = -1
 )
 
@@ -132,7 +132,7 @@ func (m *TableCompModel) Update(msg tea.Msg) (*TableCompModel, tea.Cmd) {
 				case colTeamName:
 					// consts are just an illusion of course :)
 					width = compTableSize(m.width - int(colLeagueSize) - int(colCompetitionSize) -
-						int(colJoinedSize) - int(colLeftSize) - int(colFormatSize) - int(colDivisionSize) - 2)
+						int(colJoinedSize) - int(colLeftSize) - int(colFormatSize) - int(colDivisionSize) - 4)
 				}
 				switch {
 				case row == table.HeaderRow:

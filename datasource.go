@@ -105,7 +105,7 @@ type PlayerDataModel struct {
 func (m *PlayerDataModel) Init() tea.Cmd {
 	go m.Start(context.Background())
 
-	return tea.Batch(m.tickEvery())
+	return tea.Batch(m.tickDumpPlayerUpdater())
 }
 
 func (m *PlayerDataModel) View() string {
@@ -126,7 +126,7 @@ func (m *PlayerDataModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *PlayerDataModel) tickEvery() tea.Cmd {
+func (m *PlayerDataModel) tickDumpPlayerUpdater() tea.Cmd {
 	return tea.Tick(time.Second, func(lastTime time.Time) tea.Msg {
 		dump, errDump := m.fetchPlayerState(context.Background(), m.config.Address, m.config.Password)
 		if errDump != nil {
@@ -152,10 +152,10 @@ func (m *PlayerDataModel) onPlayerStateMsg(msg DumpPlayerMsg) (tea.Model, tea.Cm
 
 	players, errPlayers := m.All()
 	if errPlayers != nil {
-		return m, tea.Batch(m.tickEvery())
+		return m, tea.Batch(m.tickDumpPlayerUpdater())
 	}
 
-	cmds = append(cmds, m.tickEvery(), func() tea.Msg {
+	cmds = append(cmds, m.tickDumpPlayerUpdater(), func() tea.Msg {
 		return FullStateUpdateMsg{players: players}
 	})
 
@@ -187,7 +187,7 @@ func (m *PlayerDataModel) MetaProfiles(ctx context.Context, steamIDs steamid.Col
 }
 
 func (m *PlayerDataModel) cachedMetaProfiles(steamIDs steamid.Collection) ([]MetaProfile, steamid.Collection, error) {
-	var profiles []MetaProfile // nolint:prealloc
+	var profiles []MetaProfile //nolint:prealloc
 	var missing steamid.Collection
 	for _, steamID := range steamIDs {
 		body, errGet := m.cache.Get(steamID, CacheMetaProfile)
@@ -215,7 +215,7 @@ func (m *PlayerDataModel) cachedMetaProfiles(steamIDs steamid.Collection) ([]Met
 }
 
 func (m *PlayerDataModel) fetchMetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]MetaProfile, error) {
-	var profiles []MetaProfile
+	var profiles []MetaProfile //nolint:prealloc
 	resp, errResp := m.client.MetaProfile(ctx, &MetaProfileParams{Steamids: strings.Join(steamIDs.ToStringSlice(), ",")})
 	if errResp != nil {
 		return nil, errors.Join(errResp, errFetchMetaProfile)

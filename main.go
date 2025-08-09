@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/tf-tui/store"
@@ -43,8 +44,9 @@ func run() error {
 	}
 	defer logFile.Close()
 
-	slog.Info("Starting", slog.String("version", BuildVersion),
-		slog.String("commit", BuildCommit), slog.String("date", BuildDate))
+	slog.Info("Starting tf-tui", slog.String("version", BuildVersion),
+		slog.String("commit", BuildCommit), slog.String("date", BuildDate),
+		slog.String("go", runtime.Version()))
 
 	client, errClient := NewClientWithResponses(config.APIBaseURL, WithHTTPClient(&http.Client{
 		Timeout: defaultHTTPTimeout,

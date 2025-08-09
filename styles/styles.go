@@ -29,6 +29,8 @@ var (
 	GrayDark    = lipgloss.Color("#2f3030")
 	GrayDarkAlt = lipgloss.Color("#0f0f0f")
 	LightGray   = lipgloss.Color("#111111")
+	White       = lipgloss.Color("#cccccc")
+	Whiter      = lipgloss.Color("#aaaaaa")
 
 	Red = lipgloss.Color("#B8383B")
 	Blu = lipgloss.Color("#5885A2")
@@ -39,29 +41,18 @@ var (
 	ColourUnusual = lipgloss.Color("#8650ac")
 	ColourVintage = lipgloss.Color("#476291")
 
-	HeaderStyleRed  = lipgloss.NewStyle().Background(Black).Foreground(Red).Bold(true).Align(lipgloss.Left).PaddingLeft(0)
-	HeaderStyleBlu  = lipgloss.NewStyle().Background(Black).Foreground(Blu).Bold(true).Align(lipgloss.Left).PaddingLeft(0)
-	CellStyleName   = lipgloss.NewStyle().Padding(0, 1).Width(32)
-	CellStyle       = lipgloss.NewStyle().Padding(0, 1).Width(6)
-	OddRowStyleName = CellStyleName.Foreground(Gray)
-	OddRowStyle     = CellStyle.Foreground(Gray)
-	EvenRowStyle    = CellStyle.Foreground(LightGray)
+	HeaderStyleRed = lipgloss.NewStyle().Background(Black).Foreground(Red).Bold(true).Align(lipgloss.Left).PaddingLeft(0)
+	HeaderStyleBlu = lipgloss.NewStyle().Background(Black).Foreground(Blu).Bold(true).Align(lipgloss.Left).PaddingLeft(0)
 
-	SelectedCellStyleRed     = lipgloss.NewStyle().Padding(0, 1).Bold(true).Background(Red).Foreground(Black)
-	SelectedCellStyleNameRed = lipgloss.NewStyle().Padding(0, 1).Bold(true).Width(32).Background(Red).Foreground(Black)
+	SelectedCellStyleRed     = lipgloss.NewStyle().Padding(0).Bold(true).Background(Red).Foreground(Black)
+	SelectedCellStyleNameRed = lipgloss.NewStyle().Padding(0).Bold(true).Width(32).Background(Red).Foreground(Black)
 
-	SelectedCellStyleBlu     = lipgloss.NewStyle().Padding(0, 1).Bold(true).Background(Blu).Foreground(Black)
+	SelectedCellStyleBlu     = lipgloss.NewStyle().Padding(0).Bold(true).Background(Blu).Foreground(Black)
 	SelectedCellStyleNameBlu = SelectedCellStyleBlu.Width(32).Background(Blu).Foreground(Black)
 
-	PanelBorder = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(Red).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(Gray).
-		// BorderBackground(Gray).
-		// BorderTop(true).
-		// BorderLeft(true).
-		Padding(0)
+	PlayerTableRow     = lipgloss.NewStyle().Foreground(White)
+	PlayerTableRowOdd  = lipgloss.NewStyle().Foreground(Whiter)
+	PlayerTableRowSelf = lipgloss.NewStyle().Foreground(ColourGenuine)
 
 	ConsoleTime = lipgloss.NewStyle().Foreground(Gray).Background(Black)
 	ConsoleMsg  = lipgloss.NewStyle().Foreground(ColourVintage)
@@ -92,8 +83,8 @@ var (
 
 	BanTableHeading = lipgloss.NewStyle().Background(Black).Foreground(Red).Bold(true)
 
-	TableRowValuesEven = lipgloss.NewStyle().Background(GrayDark).PaddingLeft(1).PaddingRight(1)
-	TableRowValuesOdd  = lipgloss.NewStyle().Background(GrayDarkAlt).PaddingLeft(1).PaddingRight(1)
+	TableRowValuesEven = lipgloss.NewStyle().Background(GrayDark)
+	TableRowValuesOdd  = lipgloss.NewStyle().Background(GrayDarkAlt)
 
 	InfoMessage = lipgloss.NewStyle().Align(lipgloss.Center).Padding(1)
 

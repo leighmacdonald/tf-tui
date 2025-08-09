@@ -5,15 +5,21 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/leighmacdonald/tf-tui/styles"
 )
 
 func NewHelpModel() HelpModel {
-	return HelpModel{}
+	return HelpModel{
+		configPath: ConfigPath(defaultConfigName),
+		cachePath:  cachePath(),
+	}
 }
 
 type HelpModel struct {
-	helpView help.Model
-	view     contentView
+	helpView   help.Model
+	view       contentView
+	configPath string
+	cachePath  string
 }
 
 func (m HelpModel) Init() tea.Cmd {
@@ -35,6 +41,14 @@ func (m HelpModel) View() string {
 		{DefaultKeyMap.help, DefaultKeyMap.accept, DefaultKeyMap.bans, DefaultKeyMap.reset},
 		{DefaultKeyMap.config, DefaultKeyMap.up, DefaultKeyMap.down, DefaultKeyMap.left, DefaultKeyMap.right},
 	})
+
+	content = lipgloss.JoinVertical(lipgloss.Center, content,
+		styles.DetailRow("Version", BuildVersion),
+		styles.DetailRow("Commit", BuildCommit),
+		styles.DetailRow("Date", BuildDate),
+		styles.DetailRow("Config Path", m.configPath),
+		styles.DetailRow("Cache Path", m.cachePath),
+	)
 
 	return lipgloss.Place(lipgloss.Width(content), lipgloss.Height(content), lipgloss.Center, lipgloss.Center, content)
 }

@@ -56,12 +56,6 @@ func NewConsoleModel(consoleLogPath string) *ConsoleModel {
 	return model
 }
 
-type ContentViewPortHeightMsg struct {
-	contentViewPortHeight int
-	height                int
-	width                 int
-}
-
 func (m *ConsoleModel) Init() tea.Cmd {
 	return tea.Batch(textinput.Blink, m.logTick())
 }

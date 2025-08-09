@@ -227,7 +227,7 @@ func (m AppModel) isInitialized() bool {
 	return m.height != 0 && m.width != 0
 }
 
-func (m *AppModel) propagate(msg tea.Msg, cmd ...tea.Cmd) (tea.Model, tea.Cmd) {
+func (m *AppModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 12)
 	m.playerDataModel, cmds[0] = m.playerDataModel.Update(msg)
 	m.playerTables, cmds[1] = m.playerTables.Update(msg)

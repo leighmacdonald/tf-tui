@@ -330,7 +330,7 @@ func LoggerInit(logPath string, level slog.Level) (io.Closer, error) {
 	}
 
 	logger := slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{
-		AddSource: true,
+		AddSource: false,
 		Level:     level,
 	}))
 

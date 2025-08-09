@@ -91,8 +91,8 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, nil
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
+	case ContentViewPortHeightMsg:
+		m.width = msg.width
 
 		return m, nil
 	case tea.KeyMsg:

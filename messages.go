@@ -7,6 +7,12 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 )
 
+type ContentViewPortHeightMsg struct {
+	contentViewPortHeight int
+	height                int
+	width                 int
+}
+
 type DumpPlayerMsg struct {
 	err  error
 	t    time.Time

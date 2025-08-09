@@ -137,6 +137,7 @@ type TablePlayerModel struct {
 	selectedSteamID steamid.SteamID
 	height          int
 	width           int
+	selfSteamID     steamid.SteamID
 }
 
 func (m TablePlayerModel) Init() tea.Cmd {
@@ -145,10 +146,14 @@ func (m TablePlayerModel) Init() tea.Cmd {
 
 func (m TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.table.Width(msg.Width / 2)
+	case Config:
+		m.selfSteamID = msg.SteamID
+
+		return m, nil
+	case ContentViewPortHeightMsg:
+		m.width = msg.width
+		m.height = msg.height
+		m.table.Width(msg.width / 2)
 
 		return m, nil
 	case SortPlayersMsg:
@@ -314,18 +319,23 @@ func (m TablePlayerModel) updatePlayers(playersUpdate []Player) (tea.Model, tea.
 	m.table.Data(&data)
 
 	if m.selectedTeam == m.team {
+		oldID := m.selectedSteamID
 		if player, ok := m.currentPlayer(); !ok && len(data.players) > 0 {
 			m.selectedSteamID = data.players[0].SteamID
 		} else {
 			m.selectedSteamID = player.SteamID
 		}
 
-		return m, func() tea.Msg {
-			return SelectedTableRowMsg{
-				selectedTeam:    m.selectedTeam,
-				selectedSteamID: m.selectedSteamID,
+		if !oldID.Equal(m.selectedSteamID) {
+			return m, func() tea.Msg {
+				return SelectedTableRowMsg{
+					selectedTeam:    m.selectedTeam,
+					selectedSteamID: m.selectedSteamID,
+				}
 			}
 		}
+
+		return m, nil
 	}
 
 	return m, nil
@@ -337,6 +347,8 @@ func (m TablePlayerModel) View() string {
 	return m.table.
 		Headers(m.data.Headers()...).
 		StyleFunc(func(row, col int) lipgloss.Style {
+			isSelf := row >= 0 && len(m.data.players)-1 <= row && m.data.players[row].SteamID.Equal(m.selfSteamID)
+
 			mappedCol := m.data.enabledColumns[col]
 			width := colNameSize
 			switch playerTableCol(mappedCol) {
@@ -367,25 +379,34 @@ func (m TablePlayerModel) View() string {
 				}
 
 				return styles.HeaderStyleBlu
-			case col != 5 && row == selectedRowIdx && m.team == m.selectedTeam:
+
+			case playerTableCol(col) != colMeta && row == selectedRowIdx && m.team == m.selectedTeam:
 				if m.team == RED {
 					if playerTableCol(col) == colName {
+						if isSelf {
+							return styles.PlayerTableRowSelf.Width(int(width))
+						}
+
 						return styles.SelectedCellStyleNameRed.Width(int(width))
 					}
 
 					return styles.SelectedCellStyleRed.Width(int(width))
 				}
 				if playerTableCol(col) == colName {
+					if isSelf {
+						return styles.PlayerTableRowSelf.Width(int(width))
+					}
+
 					return styles.SelectedCellStyleNameBlu.Width(int(width))
 				}
 
 				return styles.SelectedCellStyleBlu.Width(int(width))
-			case col == 1:
-				return styles.EvenRowStyle.Width(int(width))
+			case playerTableCol(col) == colName:
+				return styles.PlayerTableRow.Width(int(width))
 			case row%2 == 0:
-				return styles.EvenRowStyle.Width(int(width))
+				return styles.PlayerTableRow.Width(int(width))
 			default:
-				return styles.OddRowStyle.Width(int(width))
+				return styles.PlayerTableRowOdd.Width(int(width))
 			}
 		}).
 		String()

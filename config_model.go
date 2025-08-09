@@ -47,7 +47,9 @@ func NewConfigModal(config Config) tea.Model {
 }
 
 func (m configModel) Init() tea.Cmd {
-	return tea.Batch(textinput.Blink, m.inputAddr.Focus())
+	return tea.Batch(textinput.Blink, m.inputAddr.Focus(), func() tea.Msg {
+		return m.config
+	})
 }
 
 func (m configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
