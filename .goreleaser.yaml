@@ -27,6 +27,9 @@ builds:
       - linux
       - windows
       #- darwin
+    mod_timestamp: "{{.CommitTimestamp}}"
+    flags:
+      - -trimpath
     tags:
       - release
     # GOARCH to build for.
@@ -36,7 +39,13 @@ builds:
     goarch:
       - amd64
     ldflags:
-      - -s -w -X main.BuildMode=production -X main.BuildVersion={{.Version}} -X main.BuildCommit={{.Commit}} -X main.BuildDate={{.Date}}
+      - -s
+      - -w
+      - -X main.BuildMode=production
+      - -X main.BuildVersion={{.Version}}
+      - -X main.BuildCommit={{.Commit}}
+      - -X main.BuildDate={{.CommitDate}}
+
 
 archives:
   - formats: ['tar.gz']
