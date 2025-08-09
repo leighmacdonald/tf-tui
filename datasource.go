@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"regexp"
 	"slices"
@@ -31,12 +32,13 @@ const (
 var (
 	errPlayerNotFound   = errors.New("player not found")
 	errFetchMetaProfile = errors.New("failed to fetch meta profile")
+	errDecodeJSON       = errors.New("failed to decode JSON")
 )
 
 func UnmarshalJSON[T any](reader io.Reader) (T, error) {
 	var value T
 	if err := json.NewDecoder(reader).Decode(&value); err != nil {
-		return value, err
+		return value, errors.Join(err, errDecodeJSON)
 	}
 
 	return value, nil
@@ -166,13 +168,13 @@ func (m *PlayerDataModel) getMetaProfiles(ctx context.Context, steamIDs steamid.
 	}
 
 	var missing steamid.Collection
-	var profiles []MetaProfile
+	var profiles []MetaProfile // nolint:prealloc
 
 	for _, steamID := range steamIDs {
 		body, errGet := m.cache.Get(steamID, CacheMetaProfile)
 		if errGet != nil {
 			if !errors.Is(errGet, errCacheMiss) {
-				return nil, errGet
+				return nil, errors.Join(errGet, errFetchMetaProfile)
 			}
 
 			missing = append(missing, steamID)
@@ -188,6 +190,10 @@ func (m *PlayerDataModel) getMetaProfiles(ctx context.Context, steamIDs steamid.
 		}
 
 		profiles = append(profiles, cached)
+	}
+
+	if len(missing) == 0 {
+		return profiles, nil
 	}
 
 	resp, errResp := m.client.MetaProfile(ctx, &MetaProfileParams{Steamids: strings.Join(missing.ToStringSlice(), ",")})
@@ -313,7 +319,7 @@ func (m *PlayerDataModel) parsePlayerState(reader io.Reader) DumpPlayer {
 	}
 
 	if err := scanner.Err(); err != nil {
-		tea.Printf("Error scanning g15 response: %v", err)
+		slog.Error("Error scanning g15 response", slog.String("error", err.Error()))
 
 		return data
 	}
@@ -442,7 +448,7 @@ func (m *PlayerDataModel) All() ([]Player, error) {
 func (m *PlayerDataModel) updateMeta(ctx context.Context, steamIDs steamid.Collection) {
 	profiles, errProfiles := m.getMetaProfiles(ctx, steamIDs)
 	if errProfiles != nil {
-		tea.Printf("errProfiles: %v\n", errProfiles)
+		slog.Error("Failed to update meta profiles", slog.String("error", errProfiles.Error()))
 
 		return
 	}

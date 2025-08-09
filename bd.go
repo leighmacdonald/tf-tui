@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func downloadUserLists(userLists []UserList) ([]BDSchema, error) { //nolint:unparam
@@ -27,14 +25,14 @@ func downloadUserLists(userLists []UserList) ([]BDSchema, error) { //nolint:unpa
 
 			req, errReq := http.NewRequestWithContext(reqContext, http.MethodGet, list.URL, nil)
 			if errReq != nil {
-				tea.Printf("Failed to create request: %v\n", errReq)
+				slog.Error("Failed to create request", slog.String("error", errReq.Error()))
 
 				return
 			}
 
 			resp, errResp := http.DefaultClient.Do(req)
 			if errResp != nil {
-				tea.Printf("Failed to get response: %v\n", errResp)
+				slog.Error("Failed to get response", slog.String("error", errResp.Error()))
 
 				return
 			}
@@ -42,17 +40,18 @@ func downloadUserLists(userLists []UserList) ([]BDSchema, error) { //nolint:unpa
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				tea.Printf("Failed to get response: %v\n", errResp)
+				slog.Error("Failed to get response", slog.Int("status_code", resp.StatusCode))
 
 				return
 			}
 
-			var bdList BDSchema
-			if err := json.NewDecoder(resp.Body).Decode(&bdList); err != nil {
-				tea.Printf("Failed to decode response: %v\n", errResp)
+			bdList, errUnmarshal := UnmarshalJSON[BDSchema](resp.Body)
+			if errUnmarshal != nil {
+				slog.Error("Failed to unmarshal", slog.String("error", errUnmarshal.Error()))
 
 				return
 			}
+
 			mutex.Lock()
 			lists = append(lists, bdList)
 			mutex.Unlock()

@@ -6,7 +6,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -28,8 +27,7 @@ var errApp = errors.New("application error")
 
 func main() {
 	if err := run(); err != nil {
-		tea.Println(err.Error())
-		fmt.Println(err.Error()) //nolint:forbidigo
+		slog.Error("Exited with error", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 }
@@ -39,11 +37,14 @@ func run() error {
 	zone.NewGlobal()
 
 	config, configFound := ConfigRead(defaultConfigName)
-	logFile, errLogger := LoggerInit("", slog.LevelDebug)
+	logFile, errLogger := LoggerInit(defaultLogName, slog.LevelDebug)
 	if errLogger != nil {
 		return errLogger
 	}
 	defer logFile.Close()
+
+	slog.Info("Starting", slog.String("version", BuildVersion),
+		slog.String("commit", BuildCommit), slog.String("date", BuildDate))
 
 	client, errClient := NewClientWithResponses(config.APIBaseURL, WithHTTPClient(&http.Client{
 		Timeout: defaultHTTPTimeout,
@@ -58,7 +59,7 @@ func run() error {
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			tea.Println(err.Error())
+			slog.Error("Error closing database", slog.String("error", err.Error()))
 		}
 	}()
 

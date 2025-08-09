@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/nxadm/tail"
 )
@@ -131,7 +130,7 @@ func (l *ConsoleLog) start() {
 			l.handleLine(msg.Text)
 		case <-l.stopChan:
 			if errStop := l.tail.Stop(); errStop != nil {
-				tea.Println("Failed to stop tailing console.log cleanly: " + errStop.Error())
+				slog.Error("Failed to stop tailing console.log cleanly", slog.String("error", errStop.Error()))
 			}
 
 			return
@@ -311,7 +310,7 @@ func (parser *logParser) parse(msg string, outEvent *LogEvent) error {
 		outEvent.Type = EventType(parserIdx)
 		if outEvent.Type != EvtLobby {
 			if errTS := outEvent.ApplyTimestamp(match[1]); errTS != nil {
-				tea.Println("Failed to parse timestamp: " + errTS.Error())
+				slog.Error("Failed to parse timestamp", slog.String("error", errTS.Error()))
 			}
 		}
 
@@ -346,21 +345,21 @@ func (parser *logParser) parse(msg string, outEvent *LogEvent) error {
 		case EvtStatusID:
 			userID, errUserID := strconv.ParseInt(match[2], 10, 32)
 			if errUserID != nil {
-				tea.Println("Failed to parse status userid: " + errUserID.Error())
+				slog.Error("Failed to parse status userid", slog.String("error", errUserID.Error()))
 
 				continue
 			}
 
 			ping, errPing := strconv.ParseInt(match[7], 10, 32)
 			if errPing != nil {
-				tea.Println("Failed to parse status ping: " + errPing.Error())
+				slog.Error("Failed to parse status ping", slog.String("error", errPing.Error()))
 
 				continue
 			}
 
 			dur, durErr := parseConnected(match[5])
 			if durErr != nil {
-				tea.Println("Failed to parse status duration: " + durErr.Error())
+				slog.Error("Failed to parse status duration", slog.String("error", durErr.Error()))
 
 				continue
 			}

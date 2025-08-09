@@ -232,8 +232,6 @@ func ConfigWatcher(ctx context.Context, program *tea.Program, name string) {
 
 				conf, readOk := ConfigRead(name)
 				if !readOk {
-					tea.Println("error: Failed to read config")
-
 					continue
 				}
 
@@ -244,7 +242,7 @@ func ConfigWatcher(ctx context.Context, program *tea.Program, name string) {
 
 	configPath := ConfigPath(name)
 	if err := watcher.Add(configPath); err != nil {
-		tea.Println("error: " + err.Error())
+		slog.Error("Error adding watch for config", slog.String("error", err.Error()))
 	}
 
 	<-ctx.Done()
@@ -258,7 +256,7 @@ func ConfigRead(name string) (Config, bool) {
 
 	var config Config
 	if err := os.MkdirAll(path.Join(xdg.ConfigHome, configDirName), 0o600); err != nil {
-		tea.Println("Failed to make config root: " + err.Error())
+		slog.Error("Failed to make config root", slog.String("error", err.Error()))
 
 		return defaultConfig, false
 	}
@@ -326,7 +324,7 @@ func ConfigWrite(name string, config Config) error {
 
 // LoggerInit sets up the slog global handler to use a log file as we cant print to the console.
 func LoggerInit(logPath string, level slog.Level) (io.Closer, error) {
-	logFile, errLogFile := os.Create(logPath)
+	logFile, errLogFile := os.Create(path.Join(xdg.ConfigHome, configDirName, logPath))
 	if errLogFile != nil {
 		return nil, errors.Join(errLogFile, errLoggerInit)
 	}

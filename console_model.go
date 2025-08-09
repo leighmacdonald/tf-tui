@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -47,7 +48,8 @@ func NewConsoleModel(consoleLogPath string) *ConsoleModel {
 
 	if consoleLogPath != "" {
 		if err := model.console.Read(consoleLogPath); err != nil {
-			tea.Println(err.Error())
+			slog.Error("Failed to read console file", slog.String("error", err.Error()),
+				slog.String("path", consoleLogPath))
 		}
 	}
 

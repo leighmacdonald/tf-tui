@@ -3,13 +3,13 @@ package main
 import (
 	"errors"
 	"io"
+	"log/slog"
 	"os"
 	"path"
 	"strconv"
 	"time"
 
 	"github.com/adrg/xdg"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 )
 
@@ -21,6 +21,7 @@ const (
 var (
 	errCacheMiss = errors.New("cache miss error")
 	errCacheSet  = errors.New("cache set error")
+	errCacheDir  = errors.New("cache dir error")
 )
 
 type Cache interface {
@@ -49,9 +50,10 @@ func cachePath() string {
 
 func NewFilesystemCache() (*FilesystemCache, error) {
 	if err := os.MkdirAll(cachePath(), 0o700); err != nil {
-		tea.Println("Failed to make config root: " + err.Error())
+		slog.Error("Failed to make config root", slog.String("error", err.Error()),
+			slog.String("path", cachePath()))
 
-		return nil, err
+		return nil, errors.Join(err, errCacheDir)
 	}
 
 	return &FilesystemCache{cacheDir: cachePath()}, nil
@@ -81,6 +83,7 @@ func (c *FilesystemCache) Get(steamID steamid.SteamID, variant CacheItemVariant)
 	stat, errStat := file.Stat()
 	if errStat != nil {
 		file.Close()
+
 		return nil, errors.Join(errCacheMiss, errStat)
 	}
 
@@ -89,12 +92,14 @@ func (c *FilesystemCache) Get(steamID steamid.SteamID, variant CacheItemVariant)
 		if err := os.Remove(cacheName(steamID, variant)); err != nil {
 			return nil, errors.Join(errCacheMiss, err)
 		}
+
 		return nil, errCacheMiss
 	}
 
 	body, errRead := io.ReadAll(file)
 	if errRead != nil {
 		file.Close()
+
 		return nil, errors.Join(errCacheMiss, errRead)
 	}
 
