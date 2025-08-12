@@ -109,6 +109,7 @@ func (m *ChatModel) Update(msg tea.Msg) (*ChatModel, tea.Cmd) {
 		}
 		m.rows = append(m.rows, newRow)
 		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
+		m.viewport.SetContent(m.rowsRendered)
 	}
 
 	var cmd tea.Cmd
@@ -119,9 +120,7 @@ func (m *ChatModel) Update(msg tea.Msg) (*ChatModel, tea.Cmd) {
 
 func (m *ChatModel) View(height int) string {
 	titleBar := renderTitleBar(m.width, "Game Chat")
-	content := lipgloss.JoinVertical(lipgloss.Top, m.rowsRendered)
 	m.viewport.Height = height - lipgloss.Height(titleBar)
-	m.viewport.SetContent(content)
 
 	return lipgloss.JoinVertical(lipgloss.Left, titleBar, m.viewport.View())
 }

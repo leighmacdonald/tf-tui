@@ -30,7 +30,6 @@ func (r LogRow) View(width int) string {
 type ConsoleModel struct {
 	ready          bool
 	rowsMu         sync.RWMutex
-	rows           []LogRow
 	rowsRendered   string
 	console        *ConsoleLog
 	consoleLogPath string
@@ -94,12 +93,10 @@ func (m *ConsoleModel) onLogs(logs []LogEvent) {
 		}
 		newRow := LogRow{Content: safeString(parts[1]), CreatedOn: time.Now()}
 		m.rowsMu.Lock()
-		m.rows = append(m.rows, newRow)
 		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View(m.width-10))
 		m.rowsMu.Unlock()
 	}
 
-	m.viewPort.PageUp()
 	m.updateView()
 }
 

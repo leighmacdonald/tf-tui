@@ -1251,7 +1251,7 @@ func NewBdListRequest(server string, params *BdListParams) (*http.Request, error
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/bd/generate")
+	operationPath := fmt.Sprintf("/api/bd/list")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
