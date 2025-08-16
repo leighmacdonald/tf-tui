@@ -19,13 +19,39 @@ import (
 type LogRow struct {
 	Content   string
 	CreatedOn time.Time
+	EventType EventType
 }
 
 func (r LogRow) View(width int) string {
 	timeStamp := styles.ConsoleTime.Render(" " + r.CreatedOn.Format(time.TimeOnly) + " ")
+	body := " " + strings.TrimSpace(wordwrap.String(r.Content, width-lipgloss.Width(timeStamp)-2)) + " "
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, timeStamp,
-		styles.ConsoleMsg.Render(" "+strings.TrimSpace(wordwrap.String(r.Content, width-lipgloss.Width(timeStamp)-2))+" "))
+	switch r.EventType {
+	case EvtMsg:
+		body = styles.ConsoleMsg.Render(body)
+	case EvtConnect:
+		body = styles.ConsoleConnect.Render(body)
+	case EvtDisconnect:
+		body = styles.ConsoleDisconnect.Render(body)
+	case EvtAddress:
+		body = styles.ConsoleAddress.Render(body)
+	case EvtHostname:
+		body = styles.ConsoleHostname.Render(body)
+	case EvtStatusID:
+		body = styles.ConsoleStatusID.Render(body)
+	case EvtMap:
+		body = styles.ConsoleMap.Render(body)
+	case EvtTags:
+		body = styles.ConsoleTags.Render(body)
+	case EvtLobby:
+		body = styles.ConsoleLobby.Render(body)
+	case EvtKill:
+		body = styles.ConsoleKill.Render(body)
+	default:
+		body = styles.ConsoleOther.Render(body)
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, timeStamp, body)
 }
 
 type ConsoleModel struct {
@@ -44,7 +70,7 @@ func NewConsoleModel(consoleLogPath string) ConsoleModel {
 		rowsMu:         &sync.RWMutex{},
 		console:        NewConsoleLog(),
 		consoleLogPath: consoleLogPath,
-		viewPort:       viewport.New(10, 10),
+		viewPort:       viewport.New(10, 20),
 	}
 
 	if consoleLogPath != "" {
@@ -71,7 +97,7 @@ func (m ConsoleModel) Update(msg tea.Msg) (ConsoleModel, tea.Cmd) {
 		m.width = msg.width
 		m.viewPort.Width = msg.width
 	case ConsoleLogMsg:
-		cmds = append(cmds, m.logTick()) // nolint:makezero
+		cmds = append(cmds, m.logTick()) //nolint:makezero
 
 		return m.onLogs(msg.logs), tea.Batch(cmds...)
 	}
@@ -109,8 +135,10 @@ func (m ConsoleModel) onLogs(logs []LogEvent) ConsoleModel {
 			continue
 		}
 
-		newRow := LogRow{Content: safeString(parts[1]), CreatedOn: time.Now()}
+		newRow := LogRow{Content: safeString(parts[1]), CreatedOn: time.Now(), EventType: msg.Type}
 		m.rowsMu.Lock()
+		// This does not use JoinVertical currently as it takes *way* more and more CPU as time goes on
+		// and the console log fills.
 		m.rowsRendered = m.rowsRendered + "\n" + newRow.View(m.width-10)
 		m.rowsMu.Unlock()
 	}
@@ -127,21 +155,15 @@ func safeString(s string) string {
 }
 
 func (m ConsoleModel) Render(height int) string {
-	m.updateView()
-
 	title := renderTitleBar(m.width, "Console Log")
-
 	m.viewPort.Height = height - lipgloss.Height(title)
-
-	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View())
-}
-
-func (m ConsoleModel) updateView() {
 	wasBottom := m.viewPort.AtBottom()
 	m.viewPort.SetContent(m.rowsRendered)
 	if wasBottom {
 		m.viewPort.GotoBottom()
 	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View())
 }
 
 func (m ConsoleModel) logTick() tea.Cmd {

@@ -44,7 +44,7 @@ const (
 	colMetaSize   playerTableColSize = 8
 )
 
-func NewPlayerTableModel(team Team) TablePlayerModel {
+func NewPlayerTableModel(team Team, selfSID steamid.SteamID) TablePlayerModel {
 	zoneID := zone.NewPrefix()
 
 	newTable := table.New().
@@ -62,6 +62,7 @@ func NewPlayerTableModel(team Team) TablePlayerModel {
 		selectedTeam: RED,
 		data:         NewTablePlayerData(zoneID, Players{}, team),
 		table:        newTable,
+		selfSteamID:  selfSID,
 	}
 }
 

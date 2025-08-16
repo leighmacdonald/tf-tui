@@ -94,21 +94,23 @@ func (m ChatModel) Update(msg tea.Msg) (ChatModel, tea.Cmd) {
 		} else {
 			m.viewport.Height = msg.contentViewPortHeight
 		}
-	case LogEvent:
-		if msg.Type != EvtMsg {
-			break
-		}
+	case ConsoleLogMsg:
+		for _, logEvent := range msg.logs {
+			if logEvent.Type != EvtMsg {
+				break
+			}
 
-		newRow := ChatRow{
-			steamID:   msg.PlayerSID,
-			name:      msg.Player,
-			createdOn: msg.Timestamp,
-			message:   msg.Message,
-			dead:      msg.Dead,
-			team:      msg.Team,
+			newRow := ChatRow{
+				steamID:   logEvent.PlayerSID,
+				name:      logEvent.Player,
+				createdOn: logEvent.Timestamp,
+				message:   logEvent.Message,
+				dead:      logEvent.Dead,
+				team:      logEvent.Team,
+			}
+			m.rows = append(m.rows, newRow)
+			m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
 		}
-		m.rows = append(m.rows, newRow)
-		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
 		m.viewport.SetContent(m.rowsRendered)
 	}
 

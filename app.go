@@ -55,8 +55,8 @@ func New(config Config, doSetup bool, scripting *Scripting, client *ClientWithRe
 		activeTab:             TabOverview,
 		scripting:             scripting,
 		helpModel:             NewHelpModel(),
-		redTable:              NewPlayerTableModel(RED),
-		bluTable:              NewPlayerTableModel(BLU),
+		redTable:              NewPlayerTableModel(RED, config.SteamID),
+		bluTable:              NewPlayerTableModel(BLU, config.SteamID),
 		banTable:              NewTableBansModel(),
 		configModel:           NewConfigModal(config),
 		compTable:             NewTableCompModel(),
@@ -207,8 +207,6 @@ func (m AppModel) View() string {
 			ptContent = m.banTable.Render(lowerPanelViewportHeight)
 		case TabComp:
 			ptContent = m.compTable.Render(lowerPanelViewportHeight)
-		case TabNotes:
-			ptContent = m.notesModel.View(lowerPanelViewportHeight)
 		case TabChat:
 			ptContent = m.chatModel.View(lowerPanelViewportHeight)
 		case TabConsole:
