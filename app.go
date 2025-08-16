@@ -27,18 +27,19 @@ type AppModel struct {
 	width                 int
 	activeTab             tabView
 	scripting             *Scripting
-	consoleView           *ConsoleModel
-	detailPanel           *DetailPanelModel
+	consoleView           ConsoleModel
+	detailPanel           DetailPanelModel
 	banTable              TableBansModel
-	playerTables          tea.Model
-	compTable             *TableCompModel
+	compTable             TableCompModel
 	configModel           tea.Model
 	helpModel             tea.Model
 	notesModel            NotesModel
 	tabsModel             tea.Model
 	statusModel           tea.Model
-	chatModel             *ChatModel
+	chatModel             ChatModel
 	playerDataModel       tea.Model
+	redTable              tea.Model
+	bluTable              tea.Model
 	config                Config
 	contentViewPortHeight int
 	ftrHeight             int
@@ -54,7 +55,8 @@ func New(config Config, doSetup bool, scripting *Scripting, client *ClientWithRe
 		activeTab:             TabOverview,
 		scripting:             scripting,
 		helpModel:             NewHelpModel(),
-		playerTables:          NewTablePlayersModel(),
+		redTable:              NewPlayerTableModel(RED),
+		bluTable:              NewPlayerTableModel(BLU),
 		banTable:              NewTableBansModel(),
 		configModel:           NewConfigModal(config),
 		compTable:             NewTableCompModel(),
@@ -88,7 +90,9 @@ func (m AppModel) Init() tea.Cmd {
 		m.statusModel.Init(),
 		m.chatModel.Init(),
 		m.playerDataModel.Init(),
-
+		m.redTable.Init(), m.bluTable.Init(), func() tea.Msg {
+			return SelectedTableRowMsg{selectedTeam: RED}
+		},
 		func() tea.Msg {
 			lists, err := downloadUserLists(m.config.BDLists)
 			if err != nil {
@@ -99,15 +103,7 @@ func (m AppModel) Init() tea.Cmd {
 		})
 }
 
-func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
-	if !m.isInitialized() {
-		if _, ok := inMsg.(tea.WindowSizeMsg); !ok {
-			return m, nil // return m.propagate(func() tea.Msg {
-			//	return ContentViewPortHeightMsg{contentViewPortHeight: m.contentViewPortHeight, height: msg.Height, width: msg.Width}
-			// })
-		}
-	}
-
+func logMsg(inMsg tea.Msg) {
 	// Filter out very noisy stuff
 	switch inMsg.(type) {
 	case DumpPlayerMsg:
@@ -118,6 +114,16 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		break
 	default:
 		slog.Debug("tea.Msg", slog.Any("msg", inMsg))
+	}
+}
+
+func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
+	logMsg(inMsg)
+
+	if !m.isInitialized() {
+		if _, ok := inMsg.(tea.WindowSizeMsg); !ok {
+			return m, nil
+		}
 	}
 
 	switch msg := inMsg.(type) {
@@ -190,28 +196,28 @@ func (m AppModel) View() string {
 	case viewHelp:
 		content = m.helpModel.View()
 	case viewPlayerTables:
-		tables := m.playerTables.View()
-		playerHeight := m.height - lipgloss.Height(tables) - 5
-		lowerPanelViewportHeight := contentViewPortHeight - lipgloss.Height(tables) - 2
+		playerTables := lipgloss.JoinHorizontal(lipgloss.Top, m.redTable.View(), m.bluTable.View())
+		playerHeight := m.height - lipgloss.Height(playerTables) - 5
+		lowerPanelViewportHeight := contentViewPortHeight - lipgloss.Height(playerTables) - 2
 		var ptContent string
 		switch m.activeTab {
 		case TabOverview:
-			ptContent = m.detailPanel.View(lowerPanelViewportHeight)
+			ptContent = m.detailPanel.Render(lowerPanelViewportHeight)
 		case TabBans:
-			ptContent = m.banTable.View(lowerPanelViewportHeight)
+			ptContent = m.banTable.Render(lowerPanelViewportHeight)
 		case TabComp:
-			ptContent = m.compTable.View(lowerPanelViewportHeight)
+			ptContent = m.compTable.Render(lowerPanelViewportHeight)
 		case TabNotes:
 			ptContent = m.notesModel.View(lowerPanelViewportHeight)
 		case TabChat:
 			ptContent = m.chatModel.View(lowerPanelViewportHeight)
 		case TabConsole:
-			ptContent = m.consoleView.View(lowerPanelViewportHeight)
+			ptContent = m.consoleView.Render(lowerPanelViewportHeight)
 		}
 
 		content = lipgloss.JoinVertical(
 			lipgloss.Top,
-			tables,
+			playerTables,
 			lipgloss.NewStyle().
 				Width(m.width-2).
 				Height(playerHeight).
@@ -227,20 +233,21 @@ func (m AppModel) isInitialized() bool {
 	return m.height != 0 && m.width != 0
 }
 
-func (m *AppModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 12)
+func (m AppModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 13)
 	m.playerDataModel, cmds[0] = m.playerDataModel.Update(msg)
-	m.playerTables, cmds[1] = m.playerTables.Update(msg)
-	m.banTable, cmds[2] = m.banTable.Update(msg)
-	m.helpModel, cmds[3] = m.helpModel.Update(msg)
-	m.detailPanel, cmds[4] = m.detailPanel.Update(msg)
-	m.tabsModel, cmds[5] = m.tabsModel.Update(msg)
-	m.notesModel, cmds[6] = m.notesModel.Update(msg)
-	m.compTable, cmds[7] = m.compTable.Update(msg)
-	m.consoleView, cmds[8] = m.consoleView.Update(msg)
-	m.statusModel, cmds[9] = m.statusModel.Update(msg)
-	m.chatModel, cmds[10] = m.chatModel.Update(msg)
-	m.configModel, cmds[11] = m.configModel.Update(msg)
+	m.redTable, cmds[1] = m.redTable.Update(msg)
+	m.bluTable, cmds[2] = m.bluTable.Update(msg)
+	m.banTable, cmds[3] = m.banTable.Update(msg)
+	m.helpModel, cmds[4] = m.helpModel.Update(msg)
+	m.detailPanel, cmds[5] = m.detailPanel.Update(msg)
+	m.tabsModel, cmds[6] = m.tabsModel.Update(msg)
+	m.notesModel, cmds[7] = m.notesModel.Update(msg)
+	m.compTable, cmds[8] = m.compTable.Update(msg)
+	m.consoleView, cmds[9] = m.consoleView.Update(msg)
+	m.statusModel, cmds[10] = m.statusModel.Update(msg)
+	m.chatModel, cmds[11] = m.chatModel.Update(msg)
+	m.configModel, cmds[12] = m.configModel.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }

@@ -128,7 +128,9 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if changed {
-		return m, func() tea.Msg { return TabChangeMsg(m.selectedTab) }
+		return m, func() tea.Msg {
+			return TabChangeMsg(m.selectedTab)
+		}
 	}
 
 	return m, nil

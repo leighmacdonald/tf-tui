@@ -52,8 +52,8 @@ const (
 	PartyChat
 )
 
-func NewChatModel() *ChatModel {
-	return &ChatModel{}
+func NewChatModel() ChatModel {
+	return ChatModel{}
 }
 
 type ChatModel struct {
@@ -66,7 +66,7 @@ type ChatModel struct {
 	chatType     ChatType
 }
 
-func (m *ChatModel) Placeholder() string {
+func (m ChatModel) Placeholder() string {
 	var label string
 	switch m.chatType {
 	case AllChat:
@@ -80,11 +80,11 @@ func (m *ChatModel) Placeholder() string {
 	return label + " >"
 }
 
-func (m *ChatModel) Init() tea.Cmd {
+func (m ChatModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *ChatModel) Update(msg tea.Msg) (*ChatModel, tea.Cmd) {
+func (m ChatModel) Update(msg tea.Msg) (ChatModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
@@ -118,7 +118,7 @@ func (m *ChatModel) Update(msg tea.Msg) (*ChatModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *ChatModel) View(height int) string {
+func (m ChatModel) View(height int) string {
 	titleBar := renderTitleBar(m.width, "Game Chat")
 	m.viewport.Height = height - lipgloss.Height(titleBar)
 

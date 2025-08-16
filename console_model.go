@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -29,7 +30,7 @@ func (r LogRow) View(width int) string {
 
 type ConsoleModel struct {
 	ready          bool
-	rowsMu         sync.RWMutex
+	rowsMu         *sync.RWMutex
 	rowsRendered   string
 	console        *ConsoleLog
 	consoleLogPath string
@@ -38,8 +39,9 @@ type ConsoleModel struct {
 	focused        bool
 }
 
-func NewConsoleModel(consoleLogPath string) *ConsoleModel {
-	model := &ConsoleModel{
+func NewConsoleModel(consoleLogPath string) ConsoleModel {
+	model := ConsoleModel{
+		rowsMu:         &sync.RWMutex{},
 		console:        NewConsoleLog(),
 		consoleLogPath: consoleLogPath,
 		viewPort:       viewport.New(10, 10),
@@ -55,11 +57,11 @@ func NewConsoleModel(consoleLogPath string) *ConsoleModel {
 	return model
 }
 
-func (m *ConsoleModel) Init() tea.Cmd {
+func (m ConsoleModel) Init() tea.Cmd {
 	return tea.Batch(textinput.Blink, m.logTick())
 }
 
-func (m *ConsoleModel) Update(msg tea.Msg) (*ConsoleModel, tea.Cmd) {
+func (m ConsoleModel) Update(msg tea.Msg) (ConsoleModel, tea.Cmd) {
 	cmds := make([]tea.Cmd, 2)
 
 	m.viewPort, cmds[0] = m.viewPort.Update(msg)
@@ -68,22 +70,24 @@ func (m *ConsoleModel) Update(msg tea.Msg) (*ConsoleModel, tea.Cmd) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
-		m.updateView()
 	case ConsoleLogMsg:
-		m.onLogs(msg.logs)
-
-		return m, m.logTick()
+		cmds = append(cmds, m.logTick())
+		return m.onLogs(msg.logs), tea.Batch(cmds...)
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m *ConsoleModel) onLogs(logs []LogEvent) {
+func (m ConsoleModel) onLogs(logs []LogEvent) ConsoleModel {
 	if len(logs) == 0 {
-		return
+		return m
 	}
 
 	for _, msg := range logs {
+		if slices.Contains([]EventType{EvtStatusID, EvtHostname, EvtMsg, EvtTags, EvtAddress, EvtLobby}, msg.Type) {
+			continue
+		}
+
 		parts := strings.SplitN(msg.Raw, ": ", 2)
 		if len(parts) != 2 {
 			break
@@ -91,13 +95,25 @@ func (m *ConsoleModel) onLogs(logs []LogEvent) {
 		if parts[1] == "" {
 			continue
 		}
+
+		valid := true
+		for _, prefix := range []string{"# ", "version ", "steamid ", "players ", "map ", "account ", "edicts "} {
+			if strings.HasPrefix(parts[1], prefix) {
+				valid = false
+				break
+			}
+		}
+		if !valid {
+			continue
+		}
+
 		newRow := LogRow{Content: safeString(parts[1]), CreatedOn: time.Now()}
 		m.rowsMu.Lock()
-		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View(m.width-10))
+		m.rowsRendered = m.rowsRendered + "\n" + newRow.View(m.width-10)
 		m.rowsMu.Unlock()
 	}
 
-	m.updateView()
+	return m
 }
 
 func safeString(s string) string {
@@ -108,7 +124,9 @@ func safeString(s string) string {
 	return s
 }
 
-func (m *ConsoleModel) View(height int) string {
+func (m ConsoleModel) Render(height int) string {
+	m.updateView()
+
 	title := renderTitleBar(m.width, "Console Log")
 
 	m.viewPort.Height = height - lipgloss.Height(title)
@@ -116,7 +134,7 @@ func (m *ConsoleModel) View(height int) string {
 	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View())
 }
 
-func (m *ConsoleModel) updateView() {
+func (m ConsoleModel) updateView() {
 	wasBottom := m.viewPort.AtBottom()
 	m.viewPort.SetContent(m.rowsRendered)
 	if wasBottom {
@@ -124,7 +142,7 @@ func (m *ConsoleModel) updateView() {
 	}
 }
 
-func (m *ConsoleModel) logTick() tea.Cmd {
+func (m ConsoleModel) logTick() tea.Cmd {
 	return tea.Tick(time.Second, func(lastTime time.Time) tea.Msg {
 		return ConsoleLogMsg{t: lastTime, logs: m.console.Dequeue()}
 	})

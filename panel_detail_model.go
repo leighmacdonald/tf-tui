@@ -13,8 +13,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func NewDetailPanelModel(links []UserLink) *DetailPanelModel {
-	return &DetailPanelModel{
+func NewDetailPanelModel(links []UserLink) DetailPanelModel {
+	return DetailPanelModel{
 		links:    links,
 		viewport: viewport.New(1, 1),
 	}
@@ -22,6 +22,7 @@ func NewDetailPanelModel(links []UserLink) *DetailPanelModel {
 
 type DetailPanelModel struct {
 	links                 []UserLink
+	players               Players
 	player                Player
 	width                 int
 	height                int
@@ -30,14 +31,16 @@ type DetailPanelModel struct {
 	viewport              viewport.Model
 }
 
-func (m *DetailPanelModel) Init() tea.Cmd {
+func (m DetailPanelModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *DetailPanelModel) Update(msg tea.Msg) (*DetailPanelModel, tea.Cmd) {
+func (m DetailPanelModel) Update(msg tea.Msg) (DetailPanelModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case Config:
 		m.links = msg.Links
+	case FullStateUpdateMsg:
+		m.players = msg.players
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 		m.height = msg.height
@@ -58,7 +61,7 @@ func (m *DetailPanelModel) Update(msg tea.Msg) (*DetailPanelModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *DetailPanelModel) View(height int) string {
+func (m DetailPanelModel) Render(height int) string {
 	if !m.player.SteamID.Valid() {
 		return ""
 	}
@@ -118,10 +121,14 @@ func (m *DetailPanelModel) View(height int) string {
 		rows = append(rows, styles.DetailRow("Logs.tf", strconv.Itoa(int(m.player.meta.LogsCount))))
 	}
 
+	rows = append(rows, styles.DetailRow("Friends (Steam)", strconv.Itoa(len(m.player.meta.Friends))))
+
+	friends := m.players.FindFriends(m.player.SteamID)
+	rows = append(rows, styles.DetailRow("Friends (In Game)", strconv.Itoa(len(friends))))
+
 	m.viewport.SetContent(lipgloss.JoinVertical(lipgloss.Top, rows...))
 
 	titleBar := renderTitleBar(m.width, "Player Overview")
-
 	m.viewport.Height = height - lipgloss.Height(titleBar)
 
 	return lipgloss.JoinVertical(lipgloss.Top, titleBar, m.viewport.View())

@@ -65,6 +65,24 @@ func (p Player) Expired() bool {
 	return time.Since(p.g15UpdatedOn) > playerExpiration
 }
 
+type Players []Player
+
+// FindFriends searches through all players in the server for friend relationships. This means
+// as long as at least one of the friends has their friends list public it should link them.
+func (p Players) FindFriends(steamID steamid.SteamID) steamid.Collection {
+	var friends steamid.Collection
+
+	for _, player := range p {
+		for _, friend := range player.meta.Friends {
+			if friend.SteamId == steamID.String() && !slices.Contains(friends, steamID) {
+				friends = append(friends, steamID)
+			}
+		}
+	}
+
+	return friends
+}
+
 type DumpPlayer struct {
 	Names     [g15PlayerCount]string
 	Ping      [g15PlayerCount]int
@@ -450,11 +468,11 @@ func (m *PlayerDataModel) Get(steamID steamid.SteamID) (Player, error) {
 	return *player, nil
 }
 
-func (m *PlayerDataModel) All() ([]Player, error) {
+func (m *PlayerDataModel) All() (Players, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	var profiles []Player //nolint:prealloc
+	var profiles Players //nolint:prealloc
 	for _, player := range m.players {
 		// Remove the expired player entries from the active player list
 		if player.Expired() {
