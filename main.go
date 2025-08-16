@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"runtime/pprof"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/tf-tui/store"
@@ -36,6 +37,18 @@ func main() {
 func run() error {
 	ctx := context.Background()
 	zone.NewGlobal()
+
+	if len(os.Getenv("PROFILE")) > 0 {
+		f, err := os.Create(os.Getenv("PROFILE"))
+		if err != nil {
+			return errors.Join(err, errApp)
+		}
+
+		if errStart := pprof.StartCPUProfile(f); errStart != nil {
+			return errors.Join(errStart, errApp)
+		}
+		defer pprof.StopCPUProfile()
+	}
 
 	config, configFound := ConfigRead(defaultConfigName)
 	logFile, errLogger := LoggerInit(defaultLogName, slog.LevelDebug)

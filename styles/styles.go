@@ -54,8 +54,18 @@ var (
 	PlayerTableRowOdd  = lipgloss.NewStyle().Foreground(Whiter)
 	PlayerTableRowSelf = lipgloss.NewStyle().Foreground(ColourGenuine)
 
-	ConsoleTime = lipgloss.NewStyle().Foreground(Gray).Background(Black)
-	ConsoleMsg  = lipgloss.NewStyle().Foreground(ColourVintage)
+	ConsoleTime       = lipgloss.NewStyle().Foreground(Gray).Background(Black)
+	ConsoleOther      = lipgloss.NewStyle().Foreground(ColourVintage)
+	ConsoleMsg        = lipgloss.NewStyle().Foreground(ColourLimited)
+	ConsoleKill       = lipgloss.NewStyle().Foreground(Red)
+	ConsoleConnect    = lipgloss.NewStyle().Foreground(ColourStrange)
+	ConsoleDisconnect = lipgloss.NewStyle().Foreground(ColourStrange)
+	ConsoleStatusID   = lipgloss.NewStyle().Foreground(ColourVintage)
+	ConsoleHostname   = lipgloss.NewStyle().Foreground(ColourGenuine)
+	ConsoleMap        = lipgloss.NewStyle().Foreground(ColourUnusual)
+	ConsoleTags       = lipgloss.NewStyle().Foreground(Red)
+	ConsoleAddress    = lipgloss.NewStyle().Foreground(Blu)
+	ConsoleLobby      = lipgloss.NewStyle().Foreground(ColourVintage)
 
 	PanelLabel   = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Align(lipgloss.Right).Width(20)
 	PanelValue   = lipgloss.NewStyle().Width(60)
@@ -76,8 +86,8 @@ var (
 	StatusVersion  = lipgloss.NewStyle().Foreground(ColourGenuine).Background(Black).Bold(true).PaddingLeft(1).Align(lipgloss.Center).PaddingRight(0)
 
 	ChatNameOther = lipgloss.NewStyle().Foreground(ColourLimited).Bold(true).Align(lipgloss.Left)
-	ChatNameBlu   = lipgloss.NewStyle().Width(20).Foreground(Blu).Bold(true).Align(lipgloss.Left)
-	ChatNameRed   = lipgloss.NewStyle().Width(20).Foreground(Red).Bold(true).Align(lipgloss.Left)
+	ChatNameBlu   = lipgloss.NewStyle().Width(38).Foreground(Blu).Bold(true).Align(lipgloss.Left)
+	ChatNameRed   = lipgloss.NewStyle().Width(38).Foreground(Red).Bold(true).Align(lipgloss.Left)
 	ChatMessage   = lipgloss.NewStyle()
 	ChatTime      = lipgloss.NewStyle().Width(14).Foreground(Gray).Background(Black)
 

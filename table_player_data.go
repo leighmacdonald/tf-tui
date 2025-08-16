@@ -21,7 +21,7 @@ const (
 	playerMeta
 )
 
-func NewTablePlayerData(parentZoneID string, playersUpdate []Player, team Team, cols ...playerTableColumn) TablePlayerData {
+func NewTablePlayerData(parentZoneID string, playersUpdate Players, team Team, cols ...playerTableColumn) *TablePlayerData {
 	data := TablePlayerData{
 		zoneID:         parentZoneID,
 		enabledColumns: []playerTableColumn{playerMeta, playerName, playerScore, playerDeaths, playerPing},
@@ -42,12 +42,12 @@ func NewTablePlayerData(parentZoneID string, playersUpdate []Player, team Team, 
 		data.players = append(data.players, player)
 	}
 
-	return data
+	return &data
 }
 
 // TablePlayerData implements the table.Data interface to provide table data.
 type TablePlayerData struct {
-	players []Player
+	players Players
 	zoneID  string
 	// Defines both the columns shown and the order they are rendered.
 	enabledColumns []playerTableColumn

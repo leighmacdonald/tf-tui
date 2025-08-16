@@ -15,7 +15,7 @@ type StatusBarModel struct {
 	mapName     string
 	statusMsg   string
 	statusError bool
-	players     []Player
+	players     Players
 	redPlayers  int
 	bluPlayers  int
 	version     string

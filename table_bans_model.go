@@ -83,7 +83,7 @@ func (m TableBansModel) Update(msg tea.Msg) (TableBansModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m TableBansModel) View(height int) string {
+func (m TableBansModel) Render(height int) string {
 	m.viewport.Height = height
 	var content string
 	if len(m.player.meta.Bans) == 0 {

@@ -52,8 +52,8 @@ const (
 	PartyChat
 )
 
-func NewChatModel() *ChatModel {
-	return &ChatModel{}
+func NewChatModel() ChatModel {
+	return ChatModel{}
 }
 
 type ChatModel struct {
@@ -66,7 +66,7 @@ type ChatModel struct {
 	chatType     ChatType
 }
 
-func (m *ChatModel) Placeholder() string {
+func (m ChatModel) Placeholder() string {
 	var label string
 	switch m.chatType {
 	case AllChat:
@@ -80,11 +80,11 @@ func (m *ChatModel) Placeholder() string {
 	return label + " >"
 }
 
-func (m *ChatModel) Init() tea.Cmd {
+func (m ChatModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *ChatModel) Update(msg tea.Msg) (*ChatModel, tea.Cmd) {
+func (m ChatModel) Update(msg tea.Msg) (ChatModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
@@ -94,21 +94,24 @@ func (m *ChatModel) Update(msg tea.Msg) (*ChatModel, tea.Cmd) {
 		} else {
 			m.viewport.Height = msg.contentViewPortHeight
 		}
-	case LogEvent:
-		if msg.Type != EvtMsg {
-			break
-		}
+	case ConsoleLogMsg:
+		for _, logEvent := range msg.logs {
+			if logEvent.Type != EvtMsg {
+				break
+			}
 
-		newRow := ChatRow{
-			steamID:   msg.PlayerSID,
-			name:      msg.Player,
-			createdOn: msg.Timestamp,
-			message:   msg.Message,
-			dead:      msg.Dead,
-			team:      msg.Team,
+			newRow := ChatRow{
+				steamID:   logEvent.PlayerSID,
+				name:      logEvent.Player,
+				createdOn: logEvent.Timestamp,
+				message:   logEvent.Message,
+				dead:      logEvent.Dead,
+				team:      logEvent.Team,
+			}
+			m.rows = append(m.rows, newRow)
+			m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
 		}
-		m.rows = append(m.rows, newRow)
-		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
+		m.viewport.SetContent(m.rowsRendered)
 	}
 
 	var cmd tea.Cmd
@@ -117,11 +120,9 @@ func (m *ChatModel) Update(msg tea.Msg) (*ChatModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *ChatModel) View(height int) string {
+func (m ChatModel) View(height int) string {
 	titleBar := renderTitleBar(m.width, "Game Chat")
-	content := lipgloss.JoinVertical(lipgloss.Top, m.rowsRendered)
 	m.viewport.Height = height - lipgloss.Height(titleBar)
-	m.viewport.SetContent(content)
 
 	return lipgloss.JoinVertical(lipgloss.Left, titleBar, m.viewport.View())
 }

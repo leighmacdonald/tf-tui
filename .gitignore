@@ -36,3 +36,5 @@ __debug*
 .idea
 .vscode
 dist/
+*.prof
+*.svg

@@ -44,8 +44,8 @@ type TableCompModel struct {
 	viewport viewport.Model
 }
 
-func NewTableCompModel() *TableCompModel {
-	return &TableCompModel{table: table.New().
+func NewTableCompModel() TableCompModel {
+	return TableCompModel{table: table.New().
 		// Height(10).
 		BorderTop(false).
 		BorderRight(false).
@@ -56,11 +56,11 @@ func NewTableCompModel() *TableCompModel {
 		Headers("League", "Competition", "Joined", "Left", "Format", "Division", "Team Name")}
 }
 
-func (m *TableCompModel) Init() tea.Cmd {
+func (m TableCompModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *TableCompModel) Update(msg tea.Msg) (*TableCompModel, tea.Cmd) {
+func (m TableCompModel) Update(msg tea.Msg) (TableCompModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
@@ -74,7 +74,6 @@ func (m *TableCompModel) Update(msg tea.Msg) (*TableCompModel, tea.Cmd) {
 		}
 	case SelectedPlayerMsg:
 		m.player = msg.player
-
 		m.table.ClearRows()
 
 		var rows [][]string
@@ -108,41 +107,43 @@ func (m *TableCompModel) Update(msg tea.Msg) (*TableCompModel, tea.Cmd) {
 				})
 			}
 		}
-		m.table.Height(len(rows))
+		// m.table.Height(len(rows))
 		m.table.Rows(rows...)
 		var content string
 		if len(m.player.meta.CompetitiveTeams) == 0 {
 			content = styles.InfoMessage.Width(m.width).Render("No league history found " + styles.IconNoComp)
 		} else {
-			content = m.table.StyleFunc(func(row int, col int) lipgloss.Style {
-				var width compTableSize
-				switch compTableCol(col) {
-				case colLeague:
-					width = colLeagueSize
-				case colCompetition:
-					width = colCompetitionSize
-				case colJoined:
-					width = colJoinedSize
-				case colLeft:
-					width = colLeftSize
-				case colFormat:
-					width = colFormatSize
-				case colDivision:
-					width = colDivisionSize
-				case colTeamName:
-					// consts are just an illusion of course :)
-					width = compTableSize(m.width - int(colLeagueSize) - int(colCompetitionSize) -
-						int(colJoinedSize) - int(colLeftSize) - int(colFormatSize) - int(colDivisionSize) - 4)
-				}
-				switch {
-				case row == table.HeaderRow:
-					return styles.HeaderStyleRed.Padding(0).Width(int(width))
-				case row%2 == 0:
-					return styles.TableRowValuesEven.Width(int(width))
-				default:
-					return styles.TableRowValuesOdd.Width(int(width))
-				}
-			}).Render()
+			content = m.table.
+				StyleFunc(func(row int, col int) lipgloss.Style {
+					var width compTableSize
+					switch compTableCol(col) {
+					case colLeague:
+						width = colLeagueSize
+					case colCompetition:
+						width = colCompetitionSize
+					case colJoined:
+						width = colJoinedSize
+					case colLeft:
+						width = colLeftSize
+					case colFormat:
+						width = colFormatSize
+					case colDivision:
+						width = colDivisionSize
+					case colTeamName:
+						// consts are just an illusion of course :)
+						width = compTableSize(m.width - int(colLeagueSize) - int(colCompetitionSize) -
+							int(colJoinedSize) - int(colLeftSize) - int(colFormatSize) - int(colDivisionSize) - 4)
+					}
+					switch {
+					case row == table.HeaderRow:
+						return styles.HeaderStyleRed.Padding(0).Width(int(width))
+					case row%2 == 0:
+						return styles.TableRowValuesEven.Width(int(width))
+					default:
+						return styles.TableRowValuesOdd.Width(int(width))
+					}
+				}).
+				Render()
 		}
 		m.viewport.SetContent(content)
 	}
@@ -153,7 +154,7 @@ func (m *TableCompModel) Update(msg tea.Msg) (*TableCompModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *TableCompModel) View(height int) string {
+func (m TableCompModel) Render(height int) string {
 	titlebar := renderTitleBar(m.width, "League History")
 	m.viewport.Height = height - lipgloss.Height(titlebar)
 

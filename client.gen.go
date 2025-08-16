@@ -703,7 +703,7 @@ type MetaProfile struct {
 	// PersonaName The current alias of the user
 	PersonaName string `json:"persona_name"`
 
-	// ProfileState Has the profile been setup
+	// ProfileState Has the profile been set up
 	ProfileState MetaProfileProfileState `json:"profile_state"`
 
 	// RealName Real name of the user
@@ -719,7 +719,7 @@ type MetaProfile struct {
 // MetaProfileCommunityVisibilityState Represents whether the profile is visible or not and why.
 type MetaProfileCommunityVisibilityState int64
 
-// MetaProfileProfileState Has the profile been setup
+// MetaProfileProfileState Has the profile been set up
 type MetaProfileProfileState int64
 
 // PlayerTeamHistoryResponse defines model for PlayerTeamHistoryResponse.
@@ -1251,7 +1251,7 @@ func NewBdListRequest(server string, params *BdListParams) (*http.Request, error
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/bd/generate")
+	operationPath := fmt.Sprintf("/api/bd/list")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}

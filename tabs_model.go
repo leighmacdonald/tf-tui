@@ -14,7 +14,6 @@ const (
 	TabOverview tabView = iota
 	TabBans
 	TabComp
-	TabNotes
 	TabChat
 	TabConsole
 )
@@ -41,11 +40,6 @@ func NewTabsModel() tea.Model {
 			{
 				label: styles.IconComp + " Comp",
 				tab:   TabComp,
-				id:    zone.NewPrefix(),
-			},
-			{
-				label: styles.IconNotes + " Notes",
-				tab:   TabNotes,
 				id:    zone.NewPrefix(),
 			},
 			{
@@ -118,9 +112,6 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, DefaultKeyMap.comp):
 			m.selectedTab = TabComp
 			changed = true
-		case key.Matches(msg, DefaultKeyMap.notes):
-			m.selectedTab = TabNotes
-			changed = true
 		case key.Matches(msg, DefaultKeyMap.chat):
 			m.selectedTab = TabChat
 			changed = true
@@ -128,7 +119,9 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if changed {
-		return m, func() tea.Msg { return TabChangeMsg(m.selectedTab) }
+		return m, func() tea.Msg {
+			return TabChangeMsg(m.selectedTab)
+		}
 	}
 
 	return m, nil
