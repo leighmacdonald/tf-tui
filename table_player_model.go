@@ -85,14 +85,17 @@ func (m TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case Config:
 		m.selfSteamID = msg.SteamID
+
 		return m, nil
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 		m.height = msg.height
 		m.table.Width(msg.width / 2)
+
 		return m, nil
 	case SortPlayersMsg:
 		m.data.Sort(msg.sortColumn, msg.asc)
+
 		return m, nil
 	case tea.MouseMsg:
 		switch msg.Button { //nolint:exhaustive
@@ -149,21 +152,26 @@ func (m TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, DefaultKeyMap.up):
 			m, cmd = m.moveSelection(Up)
+
 			return m, cmd
 		case key.Matches(msg, DefaultKeyMap.down):
 			m, cmd = m.moveSelection(Down)
+
 			return m, cmd
 		case key.Matches(msg, DefaultKeyMap.left):
 			m, cmd = m.moveSelection(Left)
+
 			return m, cmd
 		case key.Matches(msg, DefaultKeyMap.right):
 			m, cmd = m.moveSelection(Right)
+
 			return m, cmd
 		}
 
 	case SelectedTableRowMsg:
 		m.selectedTeam = msg.selectedTeam
 		m.selectedSteamID = msg.selectedSteamID
+
 		return m, nil
 	case FullStateUpdateMsg:
 		return m.updatePlayers(msg.players)

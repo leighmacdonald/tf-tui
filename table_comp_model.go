@@ -107,7 +107,7 @@ func (m TableCompModel) Update(msg tea.Msg) (TableCompModel, tea.Cmd) {
 				})
 			}
 		}
-		//m.table.Height(len(rows))
+		// m.table.Height(len(rows))
 		m.table.Rows(rows...)
 		var content string
 		if len(m.player.meta.CompetitiveTeams) == 0 {

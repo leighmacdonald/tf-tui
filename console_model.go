@@ -71,7 +71,8 @@ func (m ConsoleModel) Update(msg tea.Msg) (ConsoleModel, tea.Cmd) {
 		m.width = msg.width
 		m.viewPort.Width = msg.width
 	case ConsoleLogMsg:
-		cmds = append(cmds, m.logTick())
+		cmds = append(cmds, m.logTick()) // nolint:makezero
+
 		return m.onLogs(msg.logs), tea.Batch(cmds...)
 	}
 
@@ -100,6 +101,7 @@ func (m ConsoleModel) onLogs(logs []LogEvent) ConsoleModel {
 		for _, prefix := range []string{"# ", "version ", "steamid ", "players ", "map ", "account ", "edicts "} {
 			if strings.HasPrefix(parts[1], prefix) {
 				valid = false
+
 				break
 			}
 		}

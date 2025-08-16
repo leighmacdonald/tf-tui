@@ -41,11 +41,11 @@ func run() error {
 	if len(os.Getenv("PROFILE")) > 0 {
 		f, err := os.Create(os.Getenv("PROFILE"))
 		if err != nil {
-			return err
+			return errors.Join(err, errApp)
 		}
 
 		if errStart := pprof.StartCPUProfile(f); errStart != nil {
-			return errStart
+			return errors.Join(errStart, errApp)
 		}
 		defer pprof.StopCPUProfile()
 	}
