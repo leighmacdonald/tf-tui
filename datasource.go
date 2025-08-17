@@ -513,18 +513,20 @@ func (m *PlayerDataModel) updateUserLists() []BDSchema {
 				return
 			}
 
-			bdList.Players = append(bdList.Players, BDPlayer{
-				Attributes: []string{"cheater", "liar"},
-				LastSeen: BDLastSeen{
-					PlayerName: "Evil Player",
-					Time:       time.Now().Unix(),
-				},
-				Proof: []string{
-					"Some proof that can easily be manipulated.",
-					"Some more nonsense",
-				},
-				Steamid: steamid.New("76561197960265749"),
-			})
+			if len(os.Getenv("DEBUG")) > 0 {
+				bdList.Players = append(bdList.Players, BDPlayer{
+					Attributes: []string{"cheater", "liar"},
+					LastSeen: BDLastSeen{
+						PlayerName: "Evil Player",
+						Time:       time.Now().Unix(),
+					},
+					Proof: []string{
+						"Some proof that can easily be manipulated.",
+						"Some more nonsense",
+					},
+					Steamid: steamid.New("76561197960265749"),
+				})
+			}
 
 			mutex.Lock()
 			lists = append(lists, bdList)
