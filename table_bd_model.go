@@ -71,6 +71,7 @@ func (m TableBDModel) Update(msg tea.Msg) (TableBDModel, tea.Cmd) { //nolint:unp
 		m.table.Rows(rows...)
 		m.table.Height(len(m.matched))
 	}
+
 	return m, nil
 }
 
