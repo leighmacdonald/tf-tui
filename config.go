@@ -255,7 +255,7 @@ func ConfigRead(name string) (Config, bool) {
 	}
 
 	var config Config
-	if err := os.MkdirAll(path.Join(xdg.ConfigHome, configDirName), 0o600); err != nil {
+	if err := os.MkdirAll(path.Join(xdg.ConfigHome, configDirName), 0o700); err != nil {
 		slog.Error("Failed to make config root", slog.String("error", err.Error()))
 
 		return defaultConfig, false
