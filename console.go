@@ -140,18 +140,6 @@ func (l *ConsoleLog) start() {
 
 var ErrNoMatch = errors.New("no match found")
 
-type hostnameEvent struct {
-	hostname string
-}
-
-type mapEvent struct {
-	mapName string
-}
-
-type tagsEvent struct {
-	tags []string
-}
-
 const logTimestampFormat = "01/02/2006 - 15:04:05"
 
 // parseTimestamp will convert the source formatted log timestamps into a time.Time value.
@@ -193,11 +181,6 @@ func (e *LogEvent) ApplyTimestamp(tsString string) error {
 	return nil
 }
 
-type Event struct {
-	Name  EventType
-	Value any
-}
-
 type updateType int
 
 const (
@@ -235,33 +218,6 @@ func (ut updateType) String() string {
 	default:
 		return "unknown"
 	}
-}
-
-type killEvent struct {
-	sourceName string
-	victimName string
-}
-
-type statusEvent struct {
-	ping      int
-	userID    int
-	name      string
-	connected time.Duration
-}
-
-type updateStateEvent struct {
-	kind   updateType
-	source steamid.SteamID
-	data   any
-}
-
-type messageEvent struct {
-	steamID   steamid.SteamID
-	name      string
-	createdAt time.Time
-	message   string
-	teamOnly  bool
-	dead      bool
 }
 
 type Parser interface {
@@ -387,6 +343,7 @@ func (parser *logParser) parse(msg string, outEvent *LogEvent) error {
 			} else {
 				outEvent.Team = RED
 			}
+		case EvtAny:
 		}
 
 		return nil

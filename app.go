@@ -26,11 +26,11 @@ type AppModel struct {
 	height                int
 	width                 int
 	activeTab             tabView
-	scripting             *Scripting
 	consoleView           ConsoleModel
 	detailPanel           DetailPanelModel
 	banTable              TableBansModel
 	compTable             TableCompModel
+	bdTable               TableBDModel
 	configModel           tea.Model
 	helpModel             tea.Model
 	notesModel            NotesModel
@@ -47,19 +47,19 @@ type AppModel struct {
 	rendered              string
 }
 
-func New(config Config, doSetup bool, scripting *Scripting, client *ClientWithResponses, cache Cache) *AppModel {
+func New(config Config, doSetup bool, client *ClientWithResponses, cache Cache) *AppModel {
 	app := &AppModel{
 		config:                config,
 		currentView:           viewPlayerTables,
 		previousView:          viewPlayerTables,
 		activeTab:             TabOverview,
-		scripting:             scripting,
 		helpModel:             NewHelpModel(),
 		redTable:              NewPlayerTableModel(RED, config.SteamID),
 		bluTable:              NewPlayerTableModel(BLU, config.SteamID),
 		banTable:              NewTableBansModel(),
 		configModel:           NewConfigModal(config),
 		compTable:             NewTableCompModel(),
+		bdTable:               NewTableBDModel(),
 		tabsModel:             NewTabsModel(),
 		notesModel:            NewNotesModel(),
 		detailPanel:           NewDetailPanelModel(config.Links),
@@ -90,16 +90,9 @@ func (m AppModel) Init() tea.Cmd {
 		m.statusModel.Init(),
 		m.chatModel.Init(),
 		m.playerDataModel.Init(),
+		m.bdTable.Init(),
 		m.redTable.Init(), m.bluTable.Init(), func() tea.Msg {
 			return SelectedTableRowMsg{selectedTeam: RED}
-		},
-		func() tea.Msg {
-			lists, err := downloadUserLists(m.config.BDLists)
-			if err != nil {
-				return err
-			}
-
-			return lists
 		})
 }
 
@@ -205,6 +198,8 @@ func (m AppModel) View() string {
 			ptContent = m.detailPanel.Render(lowerPanelViewportHeight)
 		case TabBans:
 			ptContent = m.banTable.Render(lowerPanelViewportHeight)
+		case TabBD:
+			ptContent = m.bdTable.Render(lowerPanelViewportHeight)
 		case TabComp:
 			ptContent = m.compTable.Render(lowerPanelViewportHeight)
 		case TabChat:
@@ -232,7 +227,7 @@ func (m AppModel) isInitialized() bool {
 }
 
 func (m AppModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 13)
+	cmds := make([]tea.Cmd, 14)
 	m.playerDataModel, cmds[0] = m.playerDataModel.Update(msg)
 	m.redTable, cmds[1] = m.redTable.Update(msg)
 	m.bluTable, cmds[2] = m.bluTable.Update(msg)
@@ -246,6 +241,7 @@ func (m AppModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
 	m.statusModel, cmds[10] = m.statusModel.Update(msg)
 	m.chatModel, cmds[11] = m.chatModel.Update(msg)
 	m.configModel, cmds[12] = m.configModel.Update(msg)
+	m.bdTable, cmds[13] = m.bdTable.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }

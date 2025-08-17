@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/leighmacdonald/tf-tui/styles"
 )
 
@@ -38,4 +39,16 @@ func renderTitleBar(width int, value string) string {
 		PaddingLeft(0).
 		PaddingRight(0).
 		Render(value)
+}
+
+func NewUnstyledTable(headers ...string) *table.Table {
+	return table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderColumn(false).
+		BorderBottom(false).
+		BorderLeft(false).
+		BorderRight(false).
+		BorderTop(false).
+		BorderHeader(false).
+		Headers(headers...)
 }

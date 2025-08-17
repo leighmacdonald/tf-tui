@@ -13,12 +13,11 @@ var (
 	ContentContainerStyle = lipgloss.NewStyle().Align(lipgloss.Center)
 	FooterContainerStyle  = lipgloss.NewStyle().Align(lipgloss.Center)
 
-	FocusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	BlurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Background(Black)
-	CursorStyle         = FocusedStyle
-	NoStyle             = lipgloss.NewStyle()
-	HelpStyle           = BlurredStyle
-	CursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	FocusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	BlurredStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Background(Black)
+	CursorStyle  = FocusedStyle
+	NoStyle      = lipgloss.NewStyle()
+	HelpStyle    = BlurredStyle
 
 	FocusedSubmitButton = lipgloss.NewStyle().Foreground(Accent).Render("[ Submit ]")
 	BlurredSubmitButton = fmt.Sprintf("[ %s ]", BlurredStyle.Render("Submit"))
@@ -28,9 +27,9 @@ var (
 	Gray        = lipgloss.Color("#3e3e3e")
 	GrayDark    = lipgloss.Color("#2f3030")
 	GrayDarkAlt = lipgloss.Color("#0f0f0f")
-	LightGray   = lipgloss.Color("#111111")
-	White       = lipgloss.Color("#cccccc")
-	Whiter      = lipgloss.Color("#aaaaaa")
+	// LightGray   = lipgloss.Color("#111111").
+	White  = lipgloss.Color("#cccccc")
+	Whiter = lipgloss.Color("#aaaaaa")
 
 	Red = lipgloss.Color("#B8383B")
 	Blu = lipgloss.Color("#5885A2")
@@ -67,7 +66,7 @@ var (
 	ConsoleAddress    = lipgloss.NewStyle().Foreground(Blu)
 	ConsoleLobby      = lipgloss.NewStyle().Foreground(ColourVintage)
 
-	PanelLabel   = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Align(lipgloss.Right).Width(20)
+	PanelLabel   = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Align(lipgloss.Right).Width(24)
 	PanelValue   = lipgloss.NewStyle().Width(60)
 	TabContainer = lipgloss.NewStyle().Align(lipgloss.Center).Background(Black)
 	TabsInactive = lipgloss.NewStyle().Background(Black).Bold(true).
@@ -99,17 +98,18 @@ var (
 	InfoMessage = lipgloss.NewStyle().Align(lipgloss.Center).Padding(1)
 
 	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️.
-	IconDead    = "💀"
-	IconComp    = "🏁"
-	IconCheck   = "✅"
-	IconBans    = "🛑"
-	IconVac     = "👮"
-	IconNotes   = "📓"
+	IconDead  = "💀"
+	IconComp  = "🏁"
+	IconCheck = "✅"
+	IconBans  = "🛑"
+	IconVac   = "👮"
+	// IconNotes   = "📓".
 	IconInfo    = "💡"
 	IconChat    = "🌮"
 	IconConsole = "🐤"
 	IconNoBans  = "🍕"
 	IconNoComp  = "🍣"
+	IconBD      = "🕵️"
 )
 
 func DetailRow(label string, value string) string {

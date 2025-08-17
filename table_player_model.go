@@ -47,21 +47,12 @@ const (
 func NewPlayerTableModel(team Team, selfSID steamid.SteamID) TablePlayerModel {
 	zoneID := zone.NewPrefix()
 
-	newTable := table.New().
-		// BorderStyle(lipgloss.NewStyle().Foreground(styles.Gray)).
-		BorderColumn(false).
-		BorderBottom(false).
-		BorderLeft(false).
-		BorderRight(false).
-		BorderTop(false).
-		BorderHeader(false)
-
 	return TablePlayerModel{
 		id:           zoneID,
 		team:         team,
 		selectedTeam: RED,
 		data:         NewTablePlayerData(zoneID, Players{}, team),
-		table:        newTable,
+		table:        NewUnstyledTable(),
 		selfSteamID:  selfSID,
 	}
 }

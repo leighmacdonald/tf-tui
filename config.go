@@ -217,7 +217,11 @@ func ConfigWatcher(ctx context.Context, program *tea.Program, name string) {
 	if errWatcher != nil {
 		return
 	}
-	defer watcher.Close()
+	defer func(closer io.Closer) {
+		if err := closer.Close(); err != nil {
+			slog.Error("watcher close error", slog.String("err", err.Error()))
+		}
+	}(watcher)
 
 	go func() {
 		for {
@@ -265,7 +269,11 @@ func ConfigRead(name string) (Config, bool) {
 	if errOpen != nil {
 		return defaultConfig, false
 	}
-	defer inFile.Close()
+	defer func(closer io.Closer) {
+		if err := closer.Close(); err != nil {
+			slog.Error("Failed to close config file", slog.String("error", err.Error()))
+		}
+	}(inFile)
 
 	if err := yaml.NewDecoder(inFile).Decode(&config); err != nil {
 		return Config{}, false
@@ -313,7 +321,11 @@ func ConfigWrite(name string, config Config) error {
 		return errors.Join(errOpen, errConfigWrite)
 	}
 
-	defer outFile.Close()
+	defer func(file io.Closer) {
+		if err := file.Close(); err != nil {
+			slog.Error("Failed to close config file", slog.String("error", err.Error()))
+		}
+	}(outFile)
 
 	if err := yaml.NewEncoder(outFile).Encode(&config); err != nil {
 		return errors.Join(err, errConfigWrite)

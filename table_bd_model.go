@@ -1,0 +1,104 @@
+package main
+
+import (
+	"strings"
+	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
+	"github.com/leighmacdonald/tf-tui/styles"
+)
+
+type bdTableCol int
+
+const (
+	colBDListName bdTableCol = iota
+	colBDAttributes
+	colBDLastName
+	colBDLastSeen
+	colBDProof
+)
+
+type bdTableSize int
+
+const (
+	colBDListNameSize   bdTableSize = 20
+	colBDLastNameSize   bdTableSize = 20
+	colBDLastSeenSize   bdTableSize = 10
+	colBDAttributesSize bdTableSize = 30
+	colBDProofSize      bdTableSize = -1
+)
+
+type MatchedBDPlayer struct {
+	player   BDPlayer
+	listName string
+}
+
+func NewTableBDModel() TableBDModel {
+	return TableBDModel{
+		table: NewUnstyledTable("List Name", "Last Name", "Last Seen", "Attributes", "Proof"),
+	}
+}
+
+type TableBDModel struct {
+	table   *table.Table
+	matched []MatchedBDPlayer
+	width   int
+}
+
+func (m TableBDModel) Init() tea.Cmd {
+	return nil
+}
+
+func (m TableBDModel) Update(msg tea.Msg) (TableBDModel, tea.Cmd) { //nolint:unparam
+	switch msg := msg.(type) {
+	case ContentViewPortHeightMsg:
+		m.width = msg.width
+	case SelectedPlayerMsg:
+		var rows [][]string
+		for _, match := range msg.player.BDMatches {
+			lastSeen := time.Unix(match.player.LastSeen.Time, 0)
+			rows = append(rows, []string{
+				match.listName,
+				match.player.LastSeen.PlayerName,
+				lastSeen.Format("2006-01-02"),
+				strings.Join(match.player.Attributes, ", "),
+				strings.Join(match.player.Proof, "\n"),
+			})
+		}
+		m.table.ClearRows()
+		m.table.Rows(rows...)
+		m.table.Height(len(m.matched))
+	}
+	return m, nil
+}
+
+func (m TableBDModel) Render(height int) string {
+	titleBar := renderTitleBar(m.width, "Bot Detector Matches")
+	renderedTable := m.table.Height(height).StyleFunc(func(row, col int) lipgloss.Style {
+		var width int
+		switch bdTableCol(col) {
+		case colBDListName:
+			width = int(colBDListNameSize)
+		case colBDLastSeen:
+			width = int(colBDLastSeenSize)
+		case colBDLastName:
+			width = int(colBDLastNameSize)
+		case colBDAttributes:
+			width = int(colBDAttributesSize)
+		case colBDProof:
+			width = m.width - int(colBDListNameSize) - int(colBDLastSeenSize) - int(colBDAttributesSize) - int(colBDLastNameSize) - 2
+		}
+		switch {
+		case row == table.HeaderRow:
+			return styles.BanTableHeading.Width(width)
+		case row%2 == 0:
+			return styles.TableRowValuesEven.Width(width)
+		default:
+			return styles.TableRowValuesOdd.Width(width)
+		}
+	}).Render()
+
+	return lipgloss.JoinVertical(lipgloss.Top, titleBar, renderedTable)
+}

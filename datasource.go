@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"regexp"
 	"slices"
@@ -21,12 +22,8 @@ import (
 )
 
 const (
-	// How long we wait until a player should be ejected from our tracking.
-	// This should be long enough to last through map changes without dropping the
-	// known players.
-	playerExpiration = time.Second * 30
-	maxQueueSize     = 100
-	g15PlayerCount   = 102
+	maxQueueSize   = 100
+	g15PlayerCount = 102
 )
 
 var (
@@ -42,45 +39,6 @@ func UnmarshalJSON[T any](reader io.Reader) (T, error) {
 	}
 
 	return value, nil
-}
-
-type Player struct {
-	SteamID       steamid.SteamID
-	Name          string
-	Ping          int
-	Score         int
-	Deaths        int
-	Connected     bool
-	Team          Team
-	Alive         bool
-	Health        int
-	Valid         bool
-	UserID        int
-	meta          MetaProfile
-	metaUpdatedOn time.Time
-	g15UpdatedOn  time.Time
-}
-
-func (p Player) Expired() bool {
-	return time.Since(p.g15UpdatedOn) > playerExpiration
-}
-
-type Players []Player
-
-// FindFriends searches through all players in the server for friend relationships. This means
-// as long as at least one of the friends has their friends list public it should link them.
-func (p Players) FindFriends(steamID steamid.SteamID) steamid.Collection {
-	var friends steamid.Collection
-
-	for _, player := range p {
-		for _, friend := range player.meta.Friends {
-			if friend.SteamId == steamID.String() && !slices.Contains(friends, steamID) {
-				friends = append(friends, steamID)
-			}
-		}
-	}
-
-	return friends
 }
 
 type DumpPlayer struct {
@@ -118,12 +76,15 @@ type PlayerDataModel struct {
 	mu          *sync.RWMutex
 	updateQueue chan steamid.SteamID
 	cache       Cache
+	lists       []BDSchema
 }
 
 func (m *PlayerDataModel) Init() tea.Cmd {
 	go m.Start(context.Background())
 
-	return tea.Batch(m.tickDumpPlayerUpdater())
+	return tea.Batch(m.tickDumpPlayerUpdater(), func() tea.Msg {
+		return m.updateUserLists()
+	})
 }
 
 func (m *PlayerDataModel) View() string {
@@ -139,6 +100,8 @@ func (m *PlayerDataModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case DumpPlayerMsg:
 		return m.onPlayerStateMsg(msg)
+	case []BDSchema:
+		m.lists = msg
 	}
 
 	return m, nil
@@ -238,7 +201,11 @@ func (m *PlayerDataModel) fetchMetaProfiles(ctx context.Context, steamIDs steami
 	if errResp != nil {
 		return nil, errors.Join(errResp, errFetchMetaProfile)
 	}
-	defer resp.Body.Close()
+	defer func(closer io.Closer) {
+		if err := closer.Close(); err != nil {
+			slog.Error("Failed to close response body", slog.String("error", err.Error()))
+		}
+	}(resp.Body)
 
 	parsed, errParse := ParseMetaProfileResponse(resp)
 	if errParse != nil {
@@ -389,6 +356,7 @@ func (m *PlayerDataModel) Start(ctx context.Context) {
 			}
 
 			m.updateMeta(ctx, queue)
+			m.updateUserListMatches()
 			queue = nil
 		}
 	}
@@ -472,7 +440,7 @@ func (m *PlayerDataModel) All() (Players, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	var profiles Players //nolint:prealloc
+	var profiles Players
 	for _, player := range m.players {
 		// Remove the expired player entries from the active player list
 		if player.Expired() {
@@ -495,4 +463,117 @@ func (m *PlayerDataModel) updateMeta(ctx context.Context, steamIDs steamid.Colle
 	}
 
 	m.setProfiles(profiles...)
+}
+
+func (m *PlayerDataModel) updateUserLists() []BDSchema {
+	waitGroup := sync.WaitGroup{}
+	mutex := sync.Mutex{}
+	// There is no context passed down to children in tea apps... :(
+	ctx := context.Background()
+	var lists []BDSchema
+	for _, userList := range m.config.BDLists {
+		waitGroup.Add(1)
+
+		go func(list UserList) {
+			defer waitGroup.Done()
+
+			reqContext, cancel := context.WithTimeout(ctx, time.Second*10)
+			defer cancel()
+
+			req, errReq := http.NewRequestWithContext(reqContext, http.MethodGet, list.URL, nil)
+			if errReq != nil {
+				slog.Error("Failed to create request", slog.String("error", errReq.Error()))
+
+				return
+			}
+
+			resp, errResp := http.DefaultClient.Do(req) //nolint:bodyclose
+			if errResp != nil {
+				slog.Error("Failed to get response", slog.String("error", errResp.Error()))
+
+				return
+			}
+
+			defer func(body io.ReadCloser) {
+				if err := body.Close(); err != nil {
+					slog.Error("Failed to close response body", slog.String("error", err.Error()))
+				}
+			}(resp.Body)
+
+			if resp.StatusCode != http.StatusOK {
+				slog.Error("Failed to get response", slog.Int("status_code", resp.StatusCode))
+
+				return
+			}
+
+			bdList, errUnmarshal := UnmarshalJSON[BDSchema](resp.Body)
+			if errUnmarshal != nil {
+				slog.Error("Failed to unmarshal", slog.String("error", errUnmarshal.Error()))
+
+				return
+			}
+
+			bdList.Players = append(bdList.Players, BDPlayer{
+				Attributes: []string{"cheater", "liar"},
+				LastSeen: BDLastSeen{
+					PlayerName: "Evil Player",
+					Time:       time.Now().Unix(),
+				},
+				Proof: []string{
+					"Some proof that can easily be manipulated.",
+					"Some more nonsense",
+				},
+				Steamid: steamid.New("76561197960265749"),
+			})
+
+			mutex.Lock()
+			lists = append(lists, bdList)
+			mutex.Unlock()
+		}(userList)
+	}
+
+	waitGroup.Wait()
+
+	return lists
+}
+
+func (m *PlayerDataModel) updateUserListMatches() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for _, player := range m.players {
+		player.BDMatches = m.findBDPlayerMatches(player.SteamID)
+	}
+}
+
+func (m *PlayerDataModel) findBDPlayerMatches(steamID steamid.SteamID) []MatchedBDPlayer {
+	var matched []MatchedBDPlayer
+	for _, list := range m.lists {
+		for _, player := range list.Players {
+			var sid steamid.SteamID
+			switch value := player.Steamid.(type) {
+			case string:
+				sid = steamid.New(value)
+			case int64:
+				sid = steamid.New(value)
+			case steamid.SteamID:
+				sid = value
+			default:
+				sid = steamid.New(value)
+			}
+			if !sid.Valid() {
+				continue
+			}
+			if steamID.Equal(sid) {
+				matched = append(matched, MatchedBDPlayer{
+					player:   player,
+					listName: list.FileInfo.Title,
+				})
+
+				break
+			}
+		}
+	}
+
+	return matched
 }

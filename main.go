@@ -6,11 +6,13 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/tf-tui/store"
@@ -19,22 +21,21 @@ import (
 )
 
 var (
-	BuildVersion = "v0.0.0"
-	BuildCommit  = "none"
-	BuildDate    = "unknown"
-	BuildMode    = "production"
+	BuildVersion = "master"
+	BuildCommit  = "00000000"
+	BuildDate    = time.Now().Format("2006-01-02T15:04:05Z")
 )
 
 var errApp = errors.New("application error")
 
 func main() {
-	if err := run(); err != nil {
+	if err := Run(); err != nil {
 		slog.Error("Exited with error", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 }
 
-func run() error {
+func Run() error {
 	ctx := context.Background()
 	zone.NewGlobal()
 
@@ -53,9 +54,13 @@ func run() error {
 	config, configFound := ConfigRead(defaultConfigName)
 	logFile, errLogger := LoggerInit(defaultLogName, slog.LevelDebug)
 	if errLogger != nil {
-		return errLogger
+		return errors.Join(errLogger, errApp)
 	}
-	defer logFile.Close()
+	defer func(closer io.Closer) {
+		if err := closer.Close(); err != nil {
+			slog.Error("Failed to close log file", slog.String("error", err.Error()))
+		}
+	}(logFile)
 
 	slog.Info("Starting tf-tui", slog.String("version", BuildVersion),
 		slog.String("commit", BuildCommit), slog.String("date", BuildDate),
@@ -78,22 +83,12 @@ func run() error {
 		}
 	}()
 
-	scripting, errScripting := NewScripting()
-	if errScripting != nil {
-		return errors.Join(errScripting, errApp)
-	}
-
-	// if errScripts := scripting.LoadDir("scripts"); errScripts != nil {
-	//	fmt.Println("fatal:", errScripts.Error())
-	//	os.Exit(1)
-	//}
-
 	cache, errCache := NewFilesystemCache()
 	if errCache != nil {
 		return errors.Join(errCache, errApp)
 	}
 
-	program := tea.NewProgram(New(config, !configFound, scripting, client, cache),
+	program := tea.NewProgram(New(config, !configFound, client, cache),
 		tea.WithMouseCellMotion(), tea.WithAltScreen())
 
 	go ConfigWatcher(ctx, program, defaultConfigName)
