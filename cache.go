@@ -65,7 +65,11 @@ func (c *FilesystemCache) Set(steamID steamid.SteamID, variant CacheItemVariant,
 		return errors.Join(errCacheSet, errFile)
 	}
 
-	defer file.Close()
+	defer func(file io.Closer) {
+		if err := file.Close(); err != nil {
+			slog.Error("Failed to close cache file", slog.String("error", err.Error()))
+		}
+	}(file)
 
 	if _, err := file.Write(content); err != nil {
 		return errors.Join(errCacheSet, err)
@@ -82,13 +86,18 @@ func (c *FilesystemCache) Get(steamID steamid.SteamID, variant CacheItemVariant)
 
 	stat, errStat := file.Stat()
 	if errStat != nil {
-		file.Close()
+		if err := file.Close(); err != nil {
+			return nil, errors.Join(errCacheMiss, err, errStat)
+		}
 
 		return nil, errors.Join(errCacheMiss, errStat)
 	}
 
 	if time.Since(stat.ModTime()) > maxCacheAge {
-		file.Close()
+		if err := file.Close(); err != nil {
+			return nil, errors.Join(errCacheMiss, err)
+		}
+
 		if err := os.Remove(cacheName(steamID, variant)); err != nil {
 			return nil, errors.Join(errCacheMiss, err)
 		}
@@ -98,12 +107,16 @@ func (c *FilesystemCache) Get(steamID steamid.SteamID, variant CacheItemVariant)
 
 	body, errRead := io.ReadAll(file)
 	if errRead != nil {
-		file.Close()
+		if err := file.Close(); err != nil {
+			return nil, errors.Join(errCacheMiss, err)
+		}
 
 		return nil, errors.Join(errCacheMiss, errRead)
 	}
 
-	file.Close()
+	if err := file.Close(); err != nil {
+		return nil, errors.Join(errCacheMiss, err)
+	}
 
 	return body, nil
 }

@@ -117,6 +117,11 @@ func (m DetailPanelModel) Render(height int) string {
 		rows = append(rows, styles.DetailRow("Game Bans", strconv.Itoa(int(m.player.meta.NumberOfGameBans))))
 	}
 
+	if len(m.player.BDMatches) > 0 {
+		rows = append(rows, styles.DetailRow("Bot Detector Entries",
+			strconv.Itoa(len(m.player.BDMatches))))
+	}
+
 	if m.player.meta.LogsCount > 0 {
 		rows = append(rows, styles.DetailRow("Logs.tf", strconv.Itoa(int(m.player.meta.LogsCount))))
 	}

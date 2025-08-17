@@ -45,15 +45,9 @@ type TableCompModel struct {
 }
 
 func NewTableCompModel() TableCompModel {
-	return TableCompModel{table: table.New().
-		// Height(10).
-		BorderTop(false).
-		BorderRight(false).
-		BorderBottom(false).
-		BorderLeft(false).
-		BorderColumn(false).
-		BorderHeader(false).
-		Headers("League", "Competition", "Joined", "Left", "Format", "Division", "Team Name")}
+	return TableCompModel{
+		table: NewUnstyledTable("League", "Competition", "Joined", "Left", "Format", "Division", "Team Name"),
+	}
 }
 
 func (m TableCompModel) Init() tea.Cmd {

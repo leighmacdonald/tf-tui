@@ -13,6 +13,7 @@ type tabView int
 const (
 	TabOverview tabView = iota
 	TabBans
+	TabBD
 	TabComp
 	TabChat
 	TabConsole
@@ -35,6 +36,11 @@ func NewTabsModel() tea.Model {
 			{
 				label: styles.IconBans + " Bans",
 				tab:   TabBans,
+				id:    zone.NewPrefix(),
+			},
+			{
+				label: styles.IconBD + " Bot Det.",
+				tab:   TabBD,
 				id:    zone.NewPrefix(),
 			},
 			{

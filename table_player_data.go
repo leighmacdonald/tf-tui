@@ -169,5 +169,9 @@ func (m *TablePlayerData) metaColumn(player Player) string {
 		afflictions = append(afflictions, styles.IconComp)
 	}
 
+	if len(player.BDMatches) > 0 {
+		afflictions = append(afflictions, styles.IconBD)
+	}
+
 	return strings.Join(afflictions, " ")
 }

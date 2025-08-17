@@ -118,17 +118,5 @@ func (m TableBansModel) Render(height int) string {
 }
 
 func NewTableBansModel() TableBansModel {
-	return TableBansModel{table: newTableDetails()}
-}
-
-func newTableDetails() *table.Table {
-	return table.New().
-		Border(lipgloss.NormalBorder()).
-		BorderColumn(false).
-		BorderBottom(false).
-		BorderLeft(false).
-		BorderRight(false).
-		BorderTop(false).
-		BorderHeader(false).
-		Headers("Site", "Date", "Perm", "Reason")
+	return TableBansModel{table: NewUnstyledTable("Site", "Date", "Perm", "Reason")}
 }
