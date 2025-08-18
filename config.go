@@ -36,15 +36,6 @@ const (
 	defaultHTTPTimeout = 15 * time.Second
 )
 
-type configIdx int
-
-const (
-	fieldAddress configIdx = iota
-	fieldPassword
-	fieldConsoleLogPath
-	fieldSave
-)
-
 type Config struct {
 	SteamID        steamid.SteamID `yaml:"steam_id"`
 	Address        string          `yaml:"address"`
