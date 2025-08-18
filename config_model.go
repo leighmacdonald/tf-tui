@@ -110,6 +110,12 @@ func (m *ConfigModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case fieldTFAPIBaseURL:
 				cmds = append(cmds, m.changeInput(Down)) //nolint:makezero
 			case fieldSave:
+				for _, field := range m.fields {
+					if field.input.Err != nil {
+						return m, func() tea.Msg { return StatusMsg{message: "Config is not valid, cannot save", error: true} }
+					}
+				}
+
 				cfg := m.config
 				cfg.SteamID = steamid.New(m.fields[fieldSteamID].input.Value())
 				cfg.Address = m.fields[fieldAddress].input.Value()
@@ -157,10 +163,6 @@ func (m *ConfigModel) changeInput(direction Direction) tea.Cmd {
 }
 
 func (m *ConfigModel) View() string {
-	return m.renderConfig()
-}
-
-func (m *ConfigModel) renderConfig() string {
 	fields := []string{
 		m.fields[fieldSteamID].View(),
 		m.fields[fieldAddress].View(),
