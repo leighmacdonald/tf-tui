@@ -138,6 +138,10 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, DefaultKeyMap.quit):
+			if m.currentView != viewPlayerTables {
+				break
+			}
+
 			return m, tea.Quit
 		case key.Matches(msg, DefaultKeyMap.help):
 			if m.currentView == viewHelp {
