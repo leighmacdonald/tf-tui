@@ -85,11 +85,12 @@ var defaultConfig = Config{
 }
 
 type keymap struct {
-	start         key.Binding
-	stop          key.Binding
-	reset         key.Binding
-	quit          key.Binding
-	config        key.Binding
+	start  key.Binding
+	stop   key.Binding
+	reset  key.Binding
+	quit   key.Binding
+	config key.Binding
+
 	chat          key.Binding
 	up            key.Binding
 	down          key.Binding
@@ -101,6 +102,7 @@ type keymap struct {
 	nextTab       key.Binding
 	overview      key.Binding
 	bans          key.Binding
+	bd            key.Binding
 	comp          key.Binding
 	notes         key.Binding
 	console       key.Binding
@@ -173,6 +175,10 @@ var DefaultKeyMap = keymap{
 		key.WithKeys("b"),
 		key.WithHelp("b", "Bans"),
 	),
+	bd: key.NewBinding(
+		key.WithKeys("d"),
+		key.WithHelp("d", "Bot Detector"),
+	),
 	comp: key.NewBinding(
 		key.WithKeys("c"),
 		key.WithHelp("c", "Comp"),
@@ -182,8 +188,8 @@ var DefaultKeyMap = keymap{
 		key.WithHelp("n", "Notes"),
 	),
 	console: key.NewBinding(
-		key.WithKeys("~"),
-		key.WithHelp("~", "Console"),
+		key.WithKeys("`"),
+		key.WithHelp("`", "Console"),
 	),
 	chat: key.NewBinding(
 		key.WithKeys("t"),

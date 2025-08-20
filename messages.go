@@ -56,6 +56,12 @@ type SetViewMsg struct {
 	view contentView
 }
 
+func setContentView(view contentView) tea.Cmd {
+	return func() tea.Msg {
+		return SetViewMsg{view: view}
+	}
+}
+
 type TabChangeMsg tabView
 
 type ConsoleLogMsg struct {

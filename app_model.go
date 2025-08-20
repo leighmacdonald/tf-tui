@@ -91,7 +91,8 @@ func (m AppModel) Init() tea.Cmd {
 		m.chatModel.Init(),
 		m.playerDataModel.Init(),
 		m.bdTable.Init(),
-		m.redTable.Init(), m.bluTable.Init(), func() tea.Msg {
+		m.redTable.Init(),
+		m.bluTable.Init(), func() tea.Msg {
 			return SelectedTableRowMsg{selectedTeam: RED}
 		})
 }

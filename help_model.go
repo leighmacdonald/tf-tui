@@ -27,7 +27,17 @@ func (m HelpModel) Init() tea.Cmd {
 }
 
 func (m HelpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) { //nolint:gocritic
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch { //nolint:gocritic
+		case key.Matches(msg, DefaultKeyMap.back):
+			// go back to main view
+			if m.view == viewHelp {
+				m.view = viewPlayerTables
+
+				return m, setContentView(viewPlayerTables)
+			}
+		}
 	case SetViewMsg:
 		m.view = msg.view
 	}
@@ -36,15 +46,51 @@ func (m HelpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m HelpModel) View() string {
-	content := m.helpView.FullHelpView([][]key.Binding{
-		{DefaultKeyMap.start, DefaultKeyMap.stop, DefaultKeyMap.reset, DefaultKeyMap.quit},
-		{DefaultKeyMap.help, DefaultKeyMap.accept, DefaultKeyMap.bans, DefaultKeyMap.reset},
-		{DefaultKeyMap.config, DefaultKeyMap.up, DefaultKeyMap.down, DefaultKeyMap.left, DefaultKeyMap.right},
+	left := m.helpView.FullHelpView([][]key.Binding{
+		{
+			DefaultKeyMap.config,
+			DefaultKeyMap.start,
+			DefaultKeyMap.stop,
+			DefaultKeyMap.reset,
+			DefaultKeyMap.quit,
+			DefaultKeyMap.help,
+			DefaultKeyMap.accept,
+		},
 	})
 
-	content = lipgloss.JoinVertical(lipgloss.Center, content,
+	middle := m.helpView.FullHelpView([][]key.Binding{
+		{
+			DefaultKeyMap.overview,
+			DefaultKeyMap.bans,
+			DefaultKeyMap.bd,
+			DefaultKeyMap.comp,
+			DefaultKeyMap.chat,
+			DefaultKeyMap.console,
+		},
+	})
+
+	right := m.helpView.FullHelpView([][]key.Binding{
+		{
+			DefaultKeyMap.nextTab,
+			DefaultKeyMap.up,
+			DefaultKeyMap.down,
+			DefaultKeyMap.left,
+			DefaultKeyMap.right,
+		},
+	})
+
+	helpContent := lipgloss.JoinHorizontal(lipgloss.Top,
+		styles.HelpBox.Render(left), styles.HelpBox.Render(middle), styles.HelpBox.Render(right))
+
+	commit := BuildCommit
+	//goland:noinspection GoBoolExpressions
+	if len(commit) > 8 {
+		commit = BuildCommit[0:8]
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Center, helpContent,
 		styles.DetailRow("Version", BuildVersion),
-		styles.DetailRow("Commit", BuildCommit),
+		styles.DetailRow("Commit", commit),
 		styles.DetailRow("Date", BuildDate),
 		styles.DetailRow("Config Path", m.configPath),
 		styles.DetailRow("Cache Path", m.cachePath),

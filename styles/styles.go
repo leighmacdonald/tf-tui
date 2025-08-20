@@ -97,6 +97,8 @@ var (
 
 	InfoMessage = lipgloss.NewStyle().Align(lipgloss.Center).Padding(1)
 
+	HelpBox = lipgloss.NewStyle().Padding(3)
+
 	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️.
 	IconDead  = "💀"
 	IconComp  = "🏁"
