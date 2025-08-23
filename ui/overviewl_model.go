@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fmt"
@@ -9,11 +9,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dustin/go-humanize"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/config"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 	"golang.org/x/exp/slices"
 )
 
-func NewDetailPanelModel(links []UserLink) DetailPanelModel {
+func NewDetailPanelModel(links []config.UserLink) DetailPanelModel {
 	return DetailPanelModel{
 		links:    links,
 		viewport: viewport.New(1, 1),
@@ -21,7 +22,7 @@ func NewDetailPanelModel(links []UserLink) DetailPanelModel {
 }
 
 type DetailPanelModel struct {
-	links                 []UserLink
+	links                 []config.UserLink
 	players               Players
 	player                Player
 	width                 int
@@ -37,7 +38,7 @@ func (m DetailPanelModel) Init() tea.Cmd {
 
 func (m DetailPanelModel) Update(msg tea.Msg) (DetailPanelModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case Config:
+	case config.Config:
 		m.links = msg.Links
 	case FullStateUpdateMsg:
 		m.players = msg.players
@@ -76,9 +77,9 @@ func (m DetailPanelModel) Render(height int) string {
 		rows = append(rows, styles.DetailRow(link.Name, link.Generate(m.player.SteamID)))
 	}
 
-	if len(m.player.meta.CompetitiveTeams) > 0 {
+	if len(m.player.Meta.CompetitiveTeams) > 0 {
 		var leagues []string
-		for _, team := range m.player.meta.CompetitiveTeams {
+		for _, team := range m.player.Meta.CompetitiveTeams {
 			if !slices.Contains(leagues, team.League) {
 				leagues = append(leagues, team.League)
 			}
@@ -95,38 +96,38 @@ func (m DetailPanelModel) Render(height int) string {
 		}
 	}
 
-	if m.player.meta.TimeCreated > 0 {
+	if m.player.Meta.TimeCreated > 0 {
 		rows = append(rows, styles.DetailRow("Acct. Age",
-			humanize.RelTime(time.Unix(m.player.meta.TimeCreated, 0), time.Now(), "", "")))
+			humanize.RelTime(time.Unix(m.player.Meta.TimeCreated, 0), time.Now(), "", "")))
 	}
 
-	if m.player.meta.EconomyBan != "none" && m.player.meta.EconomyBan != "" {
-		rows = append(rows, styles.DetailRow("Econ Ban", m.player.meta.EconomyBan))
+	if m.player.Meta.EconomyBan != "none" && m.player.Meta.EconomyBan != "" {
+		rows = append(rows, styles.DetailRow("Econ Ban", m.player.Meta.EconomyBan))
 	}
 
-	if m.player.meta.CommunityBanned {
+	if m.player.Meta.CommunityBanned {
 		rows = append(rows, styles.DetailRow("Comm Ban", "true"))
 	}
 
-	if m.player.meta.NumberOfVacBans > 0 {
+	if m.player.Meta.NumberOfVacBans > 0 {
 		rows = append(rows, styles.DetailRow("Vac Bans",
-			fmt.Sprintf("%d (%d days)", m.player.meta.NumberOfVacBans, m.player.meta.DaysSinceLastBan)))
+			fmt.Sprintf("%d (%d days)", m.player.Meta.NumberOfVacBans, m.player.Meta.DaysSinceLastBan)))
 	}
 
-	if m.player.meta.NumberOfGameBans > 0 {
-		rows = append(rows, styles.DetailRow("Game Bans", strconv.Itoa(int(m.player.meta.NumberOfGameBans))))
+	if m.player.Meta.NumberOfGameBans > 0 {
+		rows = append(rows, styles.DetailRow("Game Bans", strconv.Itoa(int(m.player.Meta.NumberOfGameBans))))
+	}
+	// FIXME
+	// if len(m.player.BDMatches) > 0 {
+	// 	rows = append(rows, styles.DetailRow("Bot Detector Entries",
+	// 		strconv.Itoa(len(m.player.BDMatches))))
+	// }
+
+	if m.player.Meta.LogsCount > 0 {
+		rows = append(rows, styles.DetailRow("Logs.tf", strconv.Itoa(int(m.player.Meta.LogsCount))))
 	}
 
-	if len(m.player.BDMatches) > 0 {
-		rows = append(rows, styles.DetailRow("Bot Detector Entries",
-			strconv.Itoa(len(m.player.BDMatches))))
-	}
-
-	if m.player.meta.LogsCount > 0 {
-		rows = append(rows, styles.DetailRow("Logs.tf", strconv.Itoa(int(m.player.meta.LogsCount))))
-	}
-
-	rows = append(rows, styles.DetailRow("Friends (Steam)", strconv.Itoa(len(m.player.meta.Friends))))
+	rows = append(rows, styles.DetailRow("Friends (Steam)", strconv.Itoa(len(m.player.Meta.Friends))))
 
 	friends := m.players.FindFriends(m.player.SteamID)
 	rows = append(rows, styles.DetailRow("Friends (In Game)", strconv.Itoa(len(friends))))

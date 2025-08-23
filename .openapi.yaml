@@ -1,5 +1,5 @@
-package: main
-output: client.gen.go
+package: tfapi
+output: tfapi/tfapi.gen.go
 output-options:
   prefer-skip-optional-pointer: true
 generate:

@@ -1,13 +1,11 @@
-package main
+package ui
 
 import (
-	"strings"
-	"time"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/tfapi"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
 type bdTableCol int
@@ -31,8 +29,8 @@ const (
 )
 
 type MatchedBDPlayer struct {
-	player   BDPlayer
-	listName string
+	Player   tfapi.BDPlayer
+	ListName string
 }
 
 func NewTableBDModel() TableBDModel {
@@ -57,16 +55,17 @@ func (m TableBDModel) Update(msg tea.Msg) (TableBDModel, tea.Cmd) { //nolint:unp
 		m.width = msg.width
 	case SelectedPlayerMsg:
 		var rows [][]string
-		for _, match := range msg.player.BDMatches {
-			lastSeen := time.Unix(match.player.LastSeen.Time, 0)
-			rows = append(rows, []string{
-				match.listName,
-				match.player.LastSeen.PlayerName,
-				lastSeen.Format("2006-01-02"),
-				strings.Join(match.player.Attributes, ", "),
-				strings.Join(match.player.Proof, "\n"),
-			})
-		}
+		// FIXME
+		// for _, match := range msg.player.BDMatches {
+		// 	lastSeen := time.Unix(match.Player.LastSeen.Time, 0)
+		// 	rows = append(rows, []string{
+		// 		match.ListName,
+		// 		match.Player.LastSeen.PlayerName,
+		// 		lastSeen.Format("2006-01-02"),
+		// 		strings.Join(match.Player.Attributes, ", "),
+		// 		strings.Join(match.Player.Proof, "\n"),
+		// 	})
+		// }
 		m.table.ClearRows()
 		m.table.Rows(rows...)
 		m.table.Height(len(m.matched))

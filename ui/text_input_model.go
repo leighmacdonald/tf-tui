@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
 var (
@@ -20,6 +20,7 @@ var (
 	errFilePath       = errors.New("invalid file path")
 	errSteamIDInvalid = errors.New("invalid steamid")
 	errInvalidURL     = errors.New("invalid URL")
+	errConfigValue    = errors.New("failed to validate config")
 )
 
 type InputValidator interface {

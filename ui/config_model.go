@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"os"
@@ -9,7 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/config"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
 type configIdx int
@@ -26,13 +27,13 @@ const (
 type ConfigModel struct {
 	fields     []*ValidatingTextInputModel
 	focusIndex configIdx
-	config     Config
+	config     config.Config
 	activeView contentView
 	width      int
 	height     int
 }
 
-func NewConfigModal(config Config) tea.Model {
+func NewConfigModal(config config.Config) tea.Model {
 	homedir, err := os.UserHomeDir()
 	if err != nil {
 		homedir = "/"
@@ -129,7 +130,7 @@ func (m *ConfigModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cfg.ConsoleLogPath = m.fields[fieldConsoleLogPath].input.Value()
 				cfg.APIBaseURL = m.fields[fieldTFAPIBaseURL].input.Value()
 
-				if err := ConfigWrite(defaultConfigName, cfg); err != nil {
+				if err := config.Write(config.DefaultConfigName, cfg); err != nil {
 					return m, func() tea.Msg { return StatusMsg{message: err.Error(), error: true} }
 				}
 

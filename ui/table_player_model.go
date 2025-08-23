@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"github.com/charmbracelet/bubbles/key"
@@ -6,7 +6,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/config"
+	"github.com/leighmacdonald/tf-tui/tf"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
 
@@ -24,12 +26,12 @@ const (
 type playerTableCol int
 
 const (
-	colUID playerTableCol = iota
-	colName
-	colScore
-	colDeaths
-	colPing
-	colMeta
+	ColUID playerTableCol = iota
+	ColName
+	ColScore
+	ColDeaths
+	ColPing
+	ColMeta
 )
 
 // playerTableColSize defines the sizes of the player columns.
@@ -44,13 +46,13 @@ const (
 	colMetaSize   playerTableColSize = 8
 )
 
-func NewPlayerTableModel(team Team, selfSID steamid.SteamID) TablePlayerModel {
+func NewPlayerTableModel(team tf.Team, selfSID steamid.SteamID) TablePlayerModel {
 	zoneID := zone.NewPrefix()
 
 	return TablePlayerModel{
 		id:           zoneID,
 		team:         team,
-		selectedTeam: RED,
+		selectedTeam: tf.RED,
 		data:         NewTablePlayerData(zoneID, Players{}, team),
 		table:        NewUnstyledTable(),
 		selfSteamID:  selfSID,
@@ -61,8 +63,8 @@ type TablePlayerModel struct {
 	id              string
 	table           *table.Table
 	data            *TablePlayerData
-	team            Team
-	selectedTeam    Team
+	team            tf.Team
+	selectedTeam    tf.Team
 	selectedSteamID steamid.SteamID
 	height          int
 	width           int
@@ -75,7 +77,7 @@ func (m TablePlayerModel) Init() tea.Cmd {
 
 func (m TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case Config:
+	case config.Config:
 		m.selfSteamID = msg.SteamID
 
 		return m, nil
@@ -116,20 +118,20 @@ func (m TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			for _, markID := range []string{"name", "uid", "score", "meta", "deaths", "ping"} {
 				if zone.Get(m.id + markID).InBounds(msg) {
-					var col playerTableColumn
+					var col playerTableCol
 					switch markID {
 					case "uid":
-						col = playerUID
+						col = ColUID
 					case "score":
-						col = playerScore
+						col = ColScore
 					case "deaths":
-						col = playerDeaths
+						col = ColDeaths
 					case "ping":
-						col = playerPing
+						col = ColPing
 					case "meta":
-						col = playerMeta
+						col = ColMeta
 					default:
-						col = playerName
+						col = ColName
 					}
 					m.data.Sort(col, !m.data.asc)
 
@@ -198,19 +200,19 @@ func (m TablePlayerModel) moveSelection(direction Direction) (TablePlayerModel, 
 		}
 		m.selectedSteamID = m.data.players[currentRow+1].SteamID
 	case Left:
-		if m.team == RED {
+		if m.team == tf.RED {
 			break
 		}
-		m.selectedTeam = RED
-		if m.team == RED {
+		m.selectedTeam = tf.RED
+		if m.team == tf.RED {
 			m.selectedSteamID = m.data.players[len(m.data.players)-1].SteamID
 		}
 	case Right:
-		if m.team == BLU {
+		if m.team == tf.BLU {
 			break
 		}
-		m.selectedTeam = BLU
-		if m.team == BLU {
+		m.selectedTeam = tf.BLU
+		if m.team == tf.BLU {
 			m.selectedSteamID = m.data.players[len(m.data.players)-1].SteamID
 		}
 	}
@@ -290,23 +292,23 @@ func (m TablePlayerModel) View() string {
 			mappedCol := m.data.enabledColumns[col]
 			width := colNameSize
 			switch playerTableCol(mappedCol) {
-			case colUID:
+			case ColUID:
 				width = colUIDSize
-			case colName:
+			case ColName:
 				width = colNameSize
-			case colScore:
+			case ColScore:
 				width = colScoreSize
-			case colDeaths:
+			case ColDeaths:
 				width = colDeathsSize
-			case colPing:
+			case ColPing:
 				width = colPingSize
-			case colMeta:
+			case ColMeta:
 				width = colMetaSize
 			}
 			switch {
 			case row == table.HeaderRow:
-				if m.team == RED {
-					if playerTableCol(col) == colName {
+				if m.team == tf.RED {
+					if playerTableCol(col) == ColName {
 						return styles.HeaderStyleRed.Width(int(width))
 					}
 
@@ -318,9 +320,9 @@ func (m TablePlayerModel) View() string {
 
 				return styles.HeaderStyleBlu
 
-			case playerTableCol(col) != colMeta && row == selectedRowIdx && m.team == m.selectedTeam:
-				if m.team == RED {
-					if playerTableCol(col) == colName {
+			case playerTableCol(col) != ColMeta && row == selectedRowIdx && m.team == m.selectedTeam:
+				if m.team == tf.RED {
+					if playerTableCol(col) == ColName {
 						if isSelf {
 							return styles.PlayerTableRowSelf.Width(int(width))
 						}
@@ -330,7 +332,7 @@ func (m TablePlayerModel) View() string {
 
 					return styles.SelectedCellStyleRed.Width(int(width))
 				}
-				if playerTableCol(col) == colName {
+				if playerTableCol(col) == ColName {
 					if isSelf {
 						return styles.PlayerTableRowSelf.Width(int(width))
 					}
@@ -339,7 +341,7 @@ func (m TablePlayerModel) View() string {
 				}
 
 				return styles.SelectedCellStyleBlu.Width(int(width))
-			case playerTableCol(col) == colName:
+			case playerTableCol(col) == ColName:
 				return styles.PlayerTableRow.Width(int(width))
 			case row%2 == 0:
 				return styles.PlayerTableRow.Width(int(width))

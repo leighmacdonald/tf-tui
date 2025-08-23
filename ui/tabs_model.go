@@ -1,10 +1,10 @@
-package main
+package ui
 
 import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
 

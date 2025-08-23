@@ -14,8 +14,9 @@ import (
 	"runtime/pprof"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/leighmacdonald/tf-tui/config"
 	"github.com/leighmacdonald/tf-tui/store"
+	"github.com/leighmacdonald/tf-tui/tfapi"
 	zone "github.com/lrstanley/bubblezone"
 	_ "modernc.org/sqlite"
 )
@@ -51,8 +52,11 @@ func Run() error {
 		defer pprof.StopCPUProfile()
 	}
 
-	config, configFound := ConfigRead(defaultConfigName)
-	logFile, errLogger := LoggerInit(defaultLogName, slog.LevelDebug)
+	userConfig, errConfig := config.Read(config.DefaultConfigName)
+	if errConfig != nil {
+		slog.Error("Failed to load config", slog.String("error", errConfig.Error()))
+	}
+	logFile, errLogger := config.LoggerInit(config.DefaultLogName, slog.LevelDebug)
 	if errLogger != nil {
 		return errors.Join(errLogger, errApp)
 	}
@@ -66,17 +70,17 @@ func Run() error {
 		slog.String("commit", BuildCommit), slog.String("date", BuildDate),
 		slog.String("go", runtime.Version()))
 
-	client, errClient := NewClientWithResponses(config.APIBaseURL, WithHTTPClient(&http.Client{
-		Timeout: defaultHTTPTimeout,
-	}))
+	httpClient := &http.Client{Timeout: config.DefaultHTTPTimeout}
+	client, errClient := tfapi.NewClientWithResponses(userConfig.APIBaseURL, tfapi.WithHTTPClient(httpClient))
 	if errClient != nil {
 		return errors.Join(errClient, errApp)
 	}
 
-	db, errDB := store.Connect(ctx, ConfigPath(defaultDBName))
+	db, errDB := store.Connect(ctx, config.PathConfig(config.DefaultDBName))
 	if errDB != nil {
 		return errors.Join(errDB, errApp)
 	}
+
 	defer func() {
 		if err := db.Close(); err != nil {
 			slog.Error("Error closing database", slog.String("error", err.Error()))
@@ -88,14 +92,20 @@ func Run() error {
 		return errors.Join(errCache, errApp)
 	}
 
-	program := tea.NewProgram(New(config, !configFound, client, cache),
-		tea.WithMouseCellMotion(), tea.WithAltScreen())
+	app := NewApp(userConfig, cache, client)
 
-	go ConfigWatcher(ctx, program, defaultConfigName)
-
-	if _, err := program.Run(); err != nil {
-		return errors.Join(err, errApp)
+	tui, errTUI := app.createUI(ctx)
+	if errTUI != nil {
+		return errTUI
 	}
 
-	return nil
+	errChan := make(chan error)
+
+	go func() {
+		if _, err := tui.Run(); err != nil {
+			<-errChan
+		}
+	}()
+
+	return app.Start(ctx)
 }

@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fmt"
@@ -6,7 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/tf"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
 type StatusBarModel struct {
@@ -39,9 +40,9 @@ func (m StatusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		for _, player := range msg.players {
 			switch player.Team {
-			case RED:
+			case tf.RED:
 				red++
-			case BLU:
+			case tf.BLU:
 				blu++
 			}
 		}
@@ -58,11 +59,11 @@ func (m StatusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusMsg = ""
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
-	case LogEvent:
+	case tf.LogEvent:
 		switch msg.Type {
-		case EvtHostname:
+		case tf.EvtHostname:
 			m.hostname = msg.MetaData
-		case EvtMap:
+		case tf.EvtMap:
 			m.mapName = msg.MetaData
 		}
 	}

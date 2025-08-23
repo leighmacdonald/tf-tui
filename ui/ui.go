@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"log/slog"
@@ -7,7 +7,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/config"
+	"github.com/leighmacdonald/tf-tui/tf"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
 
@@ -19,54 +21,53 @@ const (
 	viewHelp
 )
 
-type AppModel struct {
-	currentView           contentView
-	previousView          contentView
-	quitting              bool
-	height                int
-	width                 int
-	activeTab             tabView
-	consoleView           ConsoleModel
-	detailPanel           DetailPanelModel
-	banTable              TableBansModel
-	compTable             TableCompModel
-	bdTable               TableBDModel
-	configModel           tea.Model
-	helpModel             tea.Model
-	notesModel            NotesModel
-	tabsModel             tea.Model
-	statusModel           tea.Model
-	chatModel             ChatModel
-	playerDataModel       tea.Model
-	redTable              tea.Model
-	bluTable              tea.Model
-	config                Config
+// UI is the root model for the UI side of the app.
+type UI struct {
+	currentView  contentView
+	previousView contentView
+	quitting     bool
+	height       int
+	width        int
+	activeTab    tabView
+	consoleView  ConsoleModel
+	detailPanel  DetailPanelModel
+	banTable     TableBansModel
+	compTable    TableCompModel
+	bdTable      TableBDModel
+	configModel  tea.Model
+	helpModel    tea.Model
+	notesModel   NotesModel
+	tabsModel    tea.Model
+	statusModel  tea.Model
+	chatModel    ChatModel
+	redTable     tea.Model
+	bluTable     tea.Model
+
 	contentViewPortHeight int
 	ftrHeight             int
 	hdrHeight             int
 	rendered              string
 }
 
-func New(config Config, doSetup bool, client *ClientWithResponses, cache Cache) *AppModel {
-	app := &AppModel{
-		config:                config,
-		currentView:           viewPlayerTables,
-		previousView:          viewPlayerTables,
-		activeTab:             TabOverview,
-		helpModel:             NewHelpModel(),
-		redTable:              NewPlayerTableModel(RED, config.SteamID),
-		bluTable:              NewPlayerTableModel(BLU, config.SteamID),
-		banTable:              NewTableBansModel(),
-		configModel:           NewConfigModal(config),
-		compTable:             NewTableCompModel(),
-		bdTable:               NewTableBDModel(),
-		tabsModel:             NewTabsModel(),
-		notesModel:            NewNotesModel(),
-		detailPanel:           NewDetailPanelModel(config.Links),
-		consoleView:           NewConsoleModel(config.ConsoleLogPath),
-		statusModel:           NewStatusBarModel(BuildVersion),
-		chatModel:             NewChatModel(),
-		playerDataModel:       NewPlayerDataModel(client, config, cache),
+func New(config config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string) *UI {
+	app := &UI{
+		currentView:  viewPlayerTables,
+		previousView: viewPlayerTables,
+		activeTab:    TabOverview,
+		helpModel:    NewHelpModel(buildVersion, buildDate, buildCommit),
+		redTable:     NewPlayerTableModel(tf.RED, config.SteamID),
+		bluTable:     NewPlayerTableModel(tf.BLU, config.SteamID),
+		banTable:     NewTableBansModel(),
+		configModel:  NewConfigModal(config),
+		compTable:    NewTableCompModel(),
+		bdTable:      NewTableBDModel(),
+		tabsModel:    NewTabsModel(),
+		notesModel:   NewNotesModel(),
+		detailPanel:  NewDetailPanelModel(config.Links),
+		consoleView:  NewConsoleModel(config.ConsoleLogPath),
+		statusModel:  NewStatusBarModel(buildVersion),
+		chatModel:    NewChatModel(),
+
 		contentViewPortHeight: 10,
 		hdrHeight:             1,
 		ftrHeight:             1,
@@ -79,7 +80,7 @@ func New(config Config, doSetup bool, client *ClientWithResponses, cache Cache) 
 	return app
 }
 
-func (m AppModel) Init() tea.Cmd {
+func (m UI) Init() tea.Cmd {
 	return tea.Batch(
 		tea.SetWindowTitle("tf-tui"),
 		m.configModel.Init(),
@@ -89,19 +90,16 @@ func (m AppModel) Init() tea.Cmd {
 		m.consoleView.Init(),
 		m.statusModel.Init(),
 		m.chatModel.Init(),
-		m.playerDataModel.Init(),
 		m.bdTable.Init(),
 		m.redTable.Init(),
 		m.bluTable.Init(), func() tea.Msg {
-			return SelectedTableRowMsg{selectedTeam: RED}
+			return SelectedTableRowMsg{selectedTeam: tf.RED}
 		})
 }
 
 func logMsg(inMsg tea.Msg) {
 	// Filter out very noisy stuff
 	switch inMsg.(type) {
-	case DumpPlayerMsg:
-		break
 	case ConsoleLogMsg:
 		break
 	case FullStateUpdateMsg:
@@ -111,7 +109,7 @@ func logMsg(inMsg tea.Msg) {
 	}
 }
 
-func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
+func (m UI) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	logMsg(inMsg)
 
 	if !m.isInitialized() {
@@ -167,7 +165,7 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	return m.propagate(inMsg)
 }
 
-func (m AppModel) View() string {
+func (m UI) View() string {
 	var (
 		header  string
 		content string
@@ -227,13 +225,12 @@ func (m AppModel) View() string {
 	return zone.Scan(lipgloss.JoinVertical(lipgloss.Center, hdr, ctr, ftr))
 }
 
-func (m AppModel) isInitialized() bool {
+func (m UI) isInitialized() bool {
 	return m.height != 0 && m.width != 0
 }
 
-func (m AppModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
+func (m UI) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 14)
-	m.playerDataModel, cmds[0] = m.playerDataModel.Update(msg)
 	m.redTable, cmds[1] = m.redTable.Update(msg)
 	m.bluTable, cmds[2] = m.bluTable.Update(msg)
 	m.banTable, cmds[3] = m.banTable.Update(msg)

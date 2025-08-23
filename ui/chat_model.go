@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"time"
@@ -7,7 +7,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/tf"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
 const MaxTF2MessageLength = 127
@@ -17,16 +18,16 @@ type ChatRow struct {
 	name      string
 	createdOn time.Time
 	message   string
-	team      Team
+	team      tf.Team
 	dead      bool
 }
 
 func (m ChatRow) View() string {
 	var name string
 	switch m.team {
-	case RED:
+	case tf.RED:
 		name = styles.ChatNameRed.Render(m.name)
-	case BLU:
+	case tf.BLU:
 		name = styles.ChatNameBlu.Render(m.name)
 	default:
 		name = styles.ChatNameOther.Render(m.name)
@@ -94,23 +95,9 @@ func (m ChatModel) Update(msg tea.Msg) (ChatModel, tea.Cmd) {
 		} else {
 			m.viewport.Height = msg.contentViewPortHeight
 		}
-	case ConsoleLogMsg:
-		for _, logEvent := range msg.logs {
-			if logEvent.Type != EvtMsg {
-				break
-			}
-
-			newRow := ChatRow{
-				steamID:   logEvent.PlayerSID,
-				name:      logEvent.Player,
-				createdOn: logEvent.Timestamp,
-				message:   logEvent.Message,
-				dead:      logEvent.Dead,
-				team:      logEvent.Team,
-			}
-			m.rows = append(m.rows, newRow)
-			m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
-		}
+	case ChatRow:
+		m.rows = append(m.rows, msg)
+		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, msg.View())
 		m.viewport.SetContent(m.rowsRendered)
 	}
 

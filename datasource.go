@@ -17,13 +17,21 @@ import (
 	"sync"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/config"
+	"github.com/leighmacdonald/tf-tui/tf"
+	"github.com/leighmacdonald/tf-tui/tfapi"
+	"github.com/leighmacdonald/tf-tui/ui"
 )
 
 const (
 	maxQueueSize   = 100
 	g15PlayerCount = 102
+
+	// How long we wait until a player should be ejected from our tracking.
+	// This should be long enough to last through map changes without dropping the
+	// known players.
+	playerExpiration = time.Second * 30
 )
 
 var (
@@ -41,6 +49,29 @@ func UnmarshalJSON[T any](reader io.Reader) (T, error) {
 	return value, nil
 }
 
+type Player struct {
+	SteamID       steamid.SteamID
+	Name          string
+	Ping          int
+	Score         int
+	Deaths        int
+	Connected     bool
+	Team          tf.Team
+	Alive         bool
+	Health        int
+	Valid         bool
+	UserID        int
+	Meta          tfapi.MetaProfile
+	MetaUpdatedOn time.Time
+	G15UpdatedOn  time.Time
+}
+
+func (p Player) Expired() bool {
+	return time.Since(p.G15UpdatedOn) > playerExpiration
+}
+
+type Players []Player
+
 type DumpPlayer struct {
 	Names     [g15PlayerCount]string
 	Ping      [g15PlayerCount]int
@@ -55,7 +86,7 @@ type DumpPlayer struct {
 	UserID    [g15PlayerCount]int
 }
 
-func NewPlayerDataModel(client *ClientWithResponses, config Config, cache Cache) *PlayerDataModel {
+func NewPlayerDataModel(client *tfapi.ClientWithResponses, config config.Config, cache Cache) *PlayerDataModel {
 	return &PlayerDataModel{
 		mu:          &sync.RWMutex{},
 		players:     make(map[steamid.SteamID]*Player),
@@ -68,84 +99,20 @@ func NewPlayerDataModel(client *ClientWithResponses, config Config, cache Cache)
 }
 
 type PlayerDataModel struct {
-	client      *ClientWithResponses
+	client      *tfapi.ClientWithResponses
 	lastUpdate  DumpPlayer
 	g15re       *regexp.Regexp
-	config      Config
+	config      config.Config
 	players     map[steamid.SteamID]*Player
 	mu          *sync.RWMutex
 	updateQueue chan steamid.SteamID
 	cache       Cache
-	lists       []BDSchema
-}
-
-func (m *PlayerDataModel) Init() tea.Cmd {
-	go m.Start(context.Background())
-
-	return tea.Batch(m.tickDumpPlayerUpdater(), func() tea.Msg {
-		return m.updateUserLists()
-	})
-}
-
-func (m *PlayerDataModel) View() string {
-	// Data only
-	return ""
-}
-
-func (m *PlayerDataModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case Config:
-		m.config = msg
-
-		return m, nil
-	case DumpPlayerMsg:
-		return m.onPlayerStateMsg(msg)
-	case []BDSchema:
-		m.lists = msg
-	}
-
-	return m, nil
-}
-
-func (m *PlayerDataModel) tickDumpPlayerUpdater() tea.Cmd {
-	return tea.Tick(time.Second, func(lastTime time.Time) tea.Msg {
-		dump, errDump := m.fetchPlayerState(context.Background(), m.config.Address, m.config.Password)
-		if errDump != nil {
-			return DumpPlayerMsg{err: errDump, t: lastTime}
-		}
-
-		return DumpPlayerMsg{t: lastTime, dump: dump}
-	})
-}
-
-func (m *PlayerDataModel) onPlayerStateMsg(msg DumpPlayerMsg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-	if msg.err != nil {
-		cmds = append(cmds, func() tea.Msg {
-			return StatusMsg{
-				message: msg.err.Error(),
-				error:   true,
-			}
-		})
-	}
-
-	m.SetStats(msg.dump)
-
-	players, errPlayers := m.All()
-	if errPlayers != nil {
-		return m, tea.Batch(m.tickDumpPlayerUpdater())
-	}
-
-	cmds = append(cmds, m.tickDumpPlayerUpdater(), func() tea.Msg {
-		return FullStateUpdateMsg{players: players}
-	})
-
-	return m, tea.Batch(cmds...)
+	lists       []tfapi.BDSchema
 }
 
 // MetaProfiles handles loading player MetaProfiles. It first attempts to load from a local filesystem cache
 // and if any are missing or expired, they will be fetched from the api, and subsequently cached.
-func (m *PlayerDataModel) MetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]MetaProfile, error) {
+func (m *PlayerDataModel) MetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]tfapi.MetaProfile, error) {
 	if len(steamIDs) == 0 {
 		return nil, nil
 	}
@@ -167,8 +134,8 @@ func (m *PlayerDataModel) MetaProfiles(ctx context.Context, steamIDs steamid.Col
 	return append(profiles, updates...), nil
 }
 
-func (m *PlayerDataModel) cachedMetaProfiles(steamIDs steamid.Collection) ([]MetaProfile, steamid.Collection, error) {
-	var profiles []MetaProfile //nolint:prealloc
+func (m *PlayerDataModel) cachedMetaProfiles(steamIDs steamid.Collection) ([]tfapi.MetaProfile, steamid.Collection, error) {
+	var profiles []tfapi.MetaProfile //nolint:prealloc
 	var missing steamid.Collection
 	for _, steamID := range steamIDs {
 		body, errGet := m.cache.Get(steamID, CacheMetaProfile)
@@ -182,7 +149,7 @@ func (m *PlayerDataModel) cachedMetaProfiles(steamIDs steamid.Collection) ([]Met
 			continue
 		}
 
-		cached, err := UnmarshalJSON[MetaProfile](bytes.NewReader(body))
+		cached, err := UnmarshalJSON[tfapi.MetaProfile](bytes.NewReader(body))
 		if err != nil {
 			missing = append(missing, steamID)
 
@@ -195,9 +162,9 @@ func (m *PlayerDataModel) cachedMetaProfiles(steamIDs steamid.Collection) ([]Met
 	return profiles, missing, nil
 }
 
-func (m *PlayerDataModel) fetchMetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]MetaProfile, error) {
-	var profiles []MetaProfile //nolint:prealloc
-	resp, errResp := m.client.MetaProfile(ctx, &MetaProfileParams{Steamids: strings.Join(steamIDs.ToStringSlice(), ",")})
+func (m *PlayerDataModel) fetchMetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]tfapi.MetaProfile, error) {
+	var profiles []tfapi.MetaProfile //nolint:prealloc
+	resp, errResp := m.client.MetaProfile(ctx, &tfapi.MetaProfileParams{Steamids: strings.Join(steamIDs.ToStringSlice(), ",")})
 	if errResp != nil {
 		return nil, errors.Join(errResp, errFetchMetaProfile)
 	}
@@ -207,7 +174,7 @@ func (m *PlayerDataModel) fetchMetaProfiles(ctx context.Context, steamIDs steami
 		}
 	}(resp.Body)
 
-	parsed, errParse := ParseMetaProfileResponse(resp)
+	parsed, errParse := tfapi.ParseMetaProfileResponse(resp)
 	if errParse != nil {
 		return nil, errors.Join(errParse, errFetchMetaProfile)
 	}
@@ -246,9 +213,9 @@ func (m *PlayerDataModel) fetchPlayerState(ctx context.Context, address string, 
 			data.Ping[playerIdx] = playerIdx
 			data.Deaths[playerIdx] = playerIdx
 			if playerIdx%2 == 0 {
-				data.Team[playerIdx] = BLU
+				data.Team[playerIdx] = tf.BLU
 			} else {
-				data.Team[playerIdx] = RED
+				data.Team[playerIdx] = tf.RED
 			}
 			if playerIdx == 0 {
 				data.SteamID[0] = steamid.New(76561197960265730)
@@ -362,7 +329,7 @@ func (m *PlayerDataModel) Start(ctx context.Context) {
 	}
 }
 
-func (m *PlayerDataModel) setProfiles(profiles ...MetaProfile) {
+func (m *PlayerDataModel) setProfiles(profiles ...tfapi.MetaProfile) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -377,8 +344,8 @@ func (m *PlayerDataModel) setProfiles(profiles ...MetaProfile) {
 			player = &Player{SteamID: sid}
 		}
 
-		player.meta = profile
-		player.metaUpdatedOn = time.Now()
+		player.Meta = profile
+		player.MetaUpdatedOn = time.Now()
 
 		m.players[sid] = player
 	}
@@ -397,7 +364,7 @@ func (m *PlayerDataModel) SetStats(stats DumpPlayer) {
 
 		player, found := m.players[sid]
 		if !found {
-			player = &Player{SteamID: sid, meta: MetaProfile{Bans: []Ban{}}}
+			player = &Player{SteamID: sid, Meta: tfapi.MetaProfile{Bans: []tfapi.Ban{}}}
 			m.players[sid] = player
 		}
 
@@ -410,11 +377,11 @@ func (m *PlayerDataModel) SetStats(stats DumpPlayer) {
 		player.Score = stats.Score[idx]
 		player.Connected = stats.Connected[idx]
 		player.Name = stats.Names[idx]
-		player.Team = Team(stats.Team[idx])
+		player.Team = tf.Team(stats.Team[idx])
 		player.UserID = stats.UserID[idx]
-		player.g15UpdatedOn = time.Now()
+		player.G15UpdatedOn = time.Now()
 
-		if !found || time.Since(player.metaUpdatedOn) > time.Hour*24 {
+		if !found || time.Since(player.MetaUpdatedOn) > time.Hour*24 {
 			// Queue for a meta profile update
 			select {
 			case m.updateQueue <- sid:
@@ -465,16 +432,16 @@ func (m *PlayerDataModel) updateMeta(ctx context.Context, steamIDs steamid.Colle
 	m.setProfiles(profiles...)
 }
 
-func (m *PlayerDataModel) updateUserLists() []BDSchema {
+func (m *PlayerDataModel) updateUserLists() []tfapi.BDSchema {
 	waitGroup := sync.WaitGroup{}
 	mutex := sync.Mutex{}
 	// There is no context passed down to children in tea apps... :(
 	ctx := context.Background()
-	var lists []BDSchema
+	var lists []tfapi.BDSchema
 	for _, userList := range m.config.BDLists {
 		waitGroup.Add(1)
 
-		go func(list UserList) {
+		go func(list config.UserList) {
 			defer waitGroup.Done()
 
 			reqContext, cancel := context.WithTimeout(ctx, time.Second*10)
@@ -506,7 +473,7 @@ func (m *PlayerDataModel) updateUserLists() []BDSchema {
 				return
 			}
 
-			bdList, errUnmarshal := UnmarshalJSON[BDSchema](resp.Body)
+			bdList, errUnmarshal := UnmarshalJSON[tfapi.BDSchema](resp.Body)
 			if errUnmarshal != nil {
 				slog.Error("Failed to unmarshal", slog.String("error", errUnmarshal.Error()))
 
@@ -514,9 +481,9 @@ func (m *PlayerDataModel) updateUserLists() []BDSchema {
 			}
 
 			if len(os.Getenv("DEBUG")) > 0 {
-				bdList.Players = append(bdList.Players, BDPlayer{
+				bdList.Players = append(bdList.Players, tfapi.BDPlayer{
 					Attributes: []string{"cheater", "liar"},
-					LastSeen: BDLastSeen{
+					LastSeen: tfapi.BDLastSeen{
 						PlayerName: "Evil Player",
 						Time:       time.Now().Unix(),
 					},
@@ -543,13 +510,14 @@ func (m *PlayerDataModel) updateUserListMatches() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	for _, player := range m.players {
-		player.BDMatches = m.findBDPlayerMatches(player.SteamID)
-	}
+	// for _, player := range m.players {
+	// FIXME
+	// player.BDMatches = m.findBDPlayerMatches(player.SteamID)
+	// }
 }
 
-func (m *PlayerDataModel) findBDPlayerMatches(steamID steamid.SteamID) []MatchedBDPlayer {
-	var matched []MatchedBDPlayer
+func (m *PlayerDataModel) findBDPlayerMatches(steamID steamid.SteamID) []ui.MatchedBDPlayer {
+	var matched []ui.MatchedBDPlayer
 	for _, list := range m.lists {
 		for _, player := range list.Players {
 			var sid steamid.SteamID
@@ -567,9 +535,9 @@ func (m *PlayerDataModel) findBDPlayerMatches(steamID steamid.SteamID) []Matched
 				continue
 			}
 			if steamID.Equal(sid) {
-				matched = append(matched, MatchedBDPlayer{
-					player:   player,
-					listName: list.FileInfo.Title,
+				matched = append(matched, ui.MatchedBDPlayer{
+					Player:   player,
+					ListName: list.FileInfo.Title,
 				})
 
 				break

@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"time"
@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
 type banTableCol int
@@ -59,8 +59,8 @@ func (m TableBansModel) Update(msg tea.Msg) (TableBansModel, tea.Cmd) {
 		m.table.ClearRows()
 
 		var rows [][]string
-		if m.player.meta.Bans != nil {
-			for _, ban := range m.player.meta.Bans {
+		if m.player.Meta.Bans != nil {
+			for _, ban := range m.player.Meta.Bans {
 				perm := styles.IconCheck
 				if !ban.Permanent {
 					perm = ""
@@ -86,7 +86,7 @@ func (m TableBansModel) Update(msg tea.Msg) (TableBansModel, tea.Cmd) {
 func (m TableBansModel) Render(height int) string {
 	m.viewport.Height = height
 	var content string
-	if len(m.player.meta.Bans) == 0 {
+	if len(m.player.Meta.Bans) == 0 {
 		content = styles.InfoMessage.Width(m.width).Render("No bans found " + styles.IconNoBans)
 	} else {
 		content = m.table.StyleFunc(func(row, col int) lipgloss.Style {

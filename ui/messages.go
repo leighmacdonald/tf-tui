@@ -1,10 +1,11 @@
-package main
+package ui
 
 import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/tf"
 )
 
 type ContentViewPortHeightMsg struct {
@@ -13,14 +14,8 @@ type ContentViewPortHeightMsg struct {
 	width                 int
 }
 
-type DumpPlayerMsg struct {
-	err  error
-	t    time.Time
-	dump DumpPlayer
-}
-
 type SortPlayersMsg struct {
-	sortColumn playerTableColumn
+	sortColumn playerTableCol
 	asc        bool
 }
 
@@ -30,7 +25,7 @@ type SelectedPlayerMsg struct {
 }
 
 type SelectedTableRowMsg struct {
-	selectedTeam    Team
+	selectedTeam    tf.Team
 	selectedSteamID steamid.SteamID
 }
 
@@ -65,7 +60,7 @@ func setContentView(view contentView) tea.Cmd {
 type TabChangeMsg tabView
 
 type ConsoleLogMsg struct {
-	logs []LogEvent
+	logs []tf.LogEvent
 	t    time.Time
 }
 

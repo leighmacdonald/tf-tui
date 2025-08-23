@@ -9,13 +9,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/adrg/xdg"
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/config"
 )
 
 const (
-	maxCacheAge  = time.Hour * 24
-	cacheDirName = "cache"
+	maxCacheAge = time.Hour * 24
 )
 
 var (
@@ -39,24 +38,16 @@ type FilesystemCache struct {
 	cacheDir string
 }
 
-func cachePath() string {
-	cacheDir, found := os.LookupEnv("CACHE_DIR")
-	if found && cacheDir != "" {
-		return cacheDir
-	}
-
-	return path.Join(xdg.CacheHome, configDirName, cacheDirName)
-}
-
 func NewFilesystemCache() (*FilesystemCache, error) {
-	if err := os.MkdirAll(cachePath(), 0o700); err != nil {
+	cachePath := config.PathCache(config.CacheDirName)
+	if err := os.MkdirAll(cachePath, 0o700); err != nil {
 		slog.Error("Failed to make config root", slog.String("error", err.Error()),
-			slog.String("path", cachePath()))
+			slog.String("path", cachePath))
 
 		return nil, errors.Join(err, errCacheDir)
 	}
 
-	return &FilesystemCache{cacheDir: cachePath()}, nil
+	return &FilesystemCache{cacheDir: cachePath}, nil
 }
 
 func (c *FilesystemCache) Set(steamID steamid.SteamID, variant CacheItemVariant, content []byte) error {

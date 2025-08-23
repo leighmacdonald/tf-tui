@@ -1,10 +1,10 @@
-package main
+package ui
 
 import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
 func NewTextInputModel(value string, placeholder string) textinput.Model {

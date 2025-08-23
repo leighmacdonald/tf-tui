@@ -1,30 +1,20 @@
-package main
+package ui
 
 import (
 	"cmp"
 	"fmt"
 	"strings"
 
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/tf"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 	"golang.org/x/exp/slices"
 )
 
-type playerTableColumn int
-
-const (
-	playerUID playerTableColumn = iota
-	playerName
-	playerScore
-	playerDeaths
-	playerPing
-	playerMeta
-)
-
-func NewTablePlayerData(parentZoneID string, playersUpdate Players, team Team, cols ...playerTableColumn) *TablePlayerData {
+func NewTablePlayerData(parentZoneID string, playersUpdate Players, team tf.Team, cols ...playerTableCol) *TablePlayerData {
 	data := TablePlayerData{
 		zoneID:         parentZoneID,
-		enabledColumns: []playerTableColumn{playerMeta, playerName, playerScore, playerDeaths, playerPing},
+		enabledColumns: []playerTableCol{ColMeta, ColName, ColScore, ColDeaths, ColPing},
 	}
 
 	if len(cols) > 0 {
@@ -50,8 +40,8 @@ type TablePlayerData struct {
 	players Players
 	zoneID  string
 	// Defines both the columns shown and the order they are rendered.
-	enabledColumns []playerTableColumn
-	sortColumn     playerTableColumn
+	enabledColumns []playerTableCol
+	sortColumn     playerTableCol
 	asc            bool
 }
 
@@ -59,17 +49,17 @@ func (m *TablePlayerData) Headers() []string {
 	var headers []string
 	for _, col := range m.enabledColumns {
 		switch col {
-		case playerUID:
+		case ColUID:
 			headers = append(headers, zone.Mark(m.zoneID+"uid", "UID"))
-		case playerName:
+		case ColName:
 			headers = append(headers, zone.Mark(m.zoneID+"name", "Name"))
-		case playerScore:
+		case ColScore:
 			headers = append(headers, zone.Mark(m.zoneID+"score", "Score"))
-		case playerDeaths:
+		case ColDeaths:
 			headers = append(headers, zone.Mark(m.zoneID+"deaths", "Deaths"))
-		case playerPing:
+		case ColPing:
 			headers = append(headers, zone.Mark(m.zoneID+"ping", "Ping"))
-		case playerMeta:
+		case ColMeta:
 			headers = append(headers, zone.Mark(m.zoneID+"meta", "Meta"))
 		}
 	}
@@ -77,25 +67,25 @@ func (m *TablePlayerData) Headers() []string {
 	return headers
 }
 
-func (m *TablePlayerData) Sort(column playerTableColumn, asc bool) {
+func (m *TablePlayerData) Sort(column playerTableCol, asc bool) {
 	m.sortColumn = column
 	m.asc = asc
 
 	slices.SortStableFunc(m.players, func(a, b Player) int { //nolint:varnamelen
 		switch m.sortColumn {
-		case playerUID:
+		case ColUID:
 			return cmp.Compare(a.UserID, b.UserID)
-		case playerName:
+		case ColName:
 			return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
-		case playerScore:
+		case ColScore:
 			return cmp.Compare(a.Score, b.Score)
-		case playerDeaths:
+		case ColDeaths:
 			return cmp.Compare(a.Deaths, b.Deaths)
-		case playerPing:
+		case ColPing:
 			return cmp.Compare(a.Ping, b.Ping)
-		case playerMeta:
-			av := len(a.meta.Bans) + int(a.meta.NumberOfVacBans)
-			bv := len(b.meta.Bans) + int(b.meta.NumberOfVacBans)
+		case ColMeta:
+			av := len(a.Meta.Bans) + int(a.Meta.NumberOfVacBans)
+			bv := len(b.Meta.Bans) + int(b.Meta.NumberOfVacBans)
 
 			return cmp.Compare(bv, av)
 		default:
@@ -118,25 +108,25 @@ func (m *TablePlayerData) At(row int, col int) string {
 	curCol := m.enabledColumns[col]
 	player := m.players[row]
 	switch curCol {
-	case playerUID:
+	case ColUID:
 		return fmt.Sprintf("%d", player.UserID)
-	case playerName:
+	case ColName:
 		name := player.Name
 		if name == "" {
-			name = player.meta.PersonaName
+			name = player.Meta.PersonaName
 		}
 		if name == "" {
 			name = player.SteamID.String()
 		}
 
 		return zone.Mark(m.zoneID+player.SteamID.String(), name)
-	case playerScore:
+	case ColScore:
 		return fmt.Sprintf("%d", player.Score)
-	case playerDeaths:
+	case ColDeaths:
 		return fmt.Sprintf("%d", player.Deaths)
-	case playerPing:
+	case ColPing:
 		return fmt.Sprintf("%d", player.Ping)
-	case playerMeta:
+	case ColMeta:
 		return m.metaColumn(player)
 	}
 
@@ -153,11 +143,11 @@ func (m *TablePlayerData) Columns() int {
 
 func (m *TablePlayerData) metaColumn(player Player) string {
 	var afflictions []string
-	if len(player.meta.Bans) > 0 {
+	if len(player.Meta.Bans) > 0 {
 		afflictions = append(afflictions, styles.IconBans)
 	}
 
-	if player.meta.NumberOfVacBans > 0 {
+	if player.Meta.NumberOfVacBans > 0 {
 		afflictions = append(afflictions, styles.IconVac)
 	}
 
@@ -165,13 +155,14 @@ func (m *TablePlayerData) metaColumn(player Player) string {
 	//	afflictions = append(afflictions, styles.IconCheck)
 	//}
 
-	if len(player.meta.CompetitiveTeams) > 0 {
+	if len(player.Meta.CompetitiveTeams) > 0 {
 		afflictions = append(afflictions, styles.IconComp)
 	}
 
-	if len(player.BDMatches) > 0 {
-		afflictions = append(afflictions, styles.IconBD)
-	}
+	// FIXME
+	// if len(player.BDMatches) > 0 {
+	// 	afflictions = append(afflictions, styles.IconBD)
+	// }
 
 	return strings.Join(afflictions, " ")
 }
