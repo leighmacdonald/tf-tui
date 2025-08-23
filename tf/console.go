@@ -32,6 +32,8 @@ func NewConsoleLog() *ConsoleLog {
 	}
 }
 
+// ConsoleLog handles "tail"-ing the console.log file that TF2 produces. Some useful
+// events are parsed out into typed events. Remaining events are also returned in a raw form.
 type ConsoleLog struct {
 	tail       *tail.Tail
 	parser     Parser
@@ -40,7 +42,7 @@ type ConsoleLog struct {
 	outQueueMu *sync.Mutex
 }
 
-func (l *ConsoleLog) Read(filePath string) error {
+func (l *ConsoleLog) Open(filePath string) error {
 	if l.tail != nil && l.tail.Filename == filePath {
 		return nil
 	}

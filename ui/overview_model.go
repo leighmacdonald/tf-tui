@@ -77,9 +77,9 @@ func (m DetailPanelModel) Render(height int) string {
 		rows = append(rows, styles.DetailRow(link.Name, link.Generate(m.player.SteamID)))
 	}
 
-	if len(m.player.Meta.CompetitiveTeams) > 0 {
+	if len(m.player.CompetitiveTeams) > 0 {
 		var leagues []string
-		for _, team := range m.player.Meta.CompetitiveTeams {
+		for _, team := range m.player.CompetitiveTeams {
 			if !slices.Contains(leagues, team.League) {
 				leagues = append(leagues, team.League)
 			}
@@ -96,26 +96,26 @@ func (m DetailPanelModel) Render(height int) string {
 		}
 	}
 
-	if m.player.Meta.TimeCreated > 0 {
+	if m.player.TimeCreated > 0 {
 		rows = append(rows, styles.DetailRow("Acct. Age",
-			humanize.RelTime(time.Unix(m.player.Meta.TimeCreated, 0), time.Now(), "", "")))
+			humanize.RelTime(time.Unix(m.player.TimeCreated, 0), time.Now(), "", "")))
 	}
 
-	if m.player.Meta.EconomyBan != "none" && m.player.Meta.EconomyBan != "" {
-		rows = append(rows, styles.DetailRow("Econ Ban", m.player.Meta.EconomyBan))
+	if m.player.EconomyBan != "none" && m.player.EconomyBan != "" {
+		rows = append(rows, styles.DetailRow("Econ Ban", m.player.EconomyBan))
 	}
 
-	if m.player.Meta.CommunityBanned {
+	if m.player.CommunityBanned {
 		rows = append(rows, styles.DetailRow("Comm Ban", "true"))
 	}
 
-	if m.player.Meta.NumberOfVacBans > 0 {
+	if m.player.NumberOfVacBans > 0 {
 		rows = append(rows, styles.DetailRow("Vac Bans",
-			fmt.Sprintf("%d (%d days)", m.player.Meta.NumberOfVacBans, m.player.Meta.DaysSinceLastBan)))
+			fmt.Sprintf("%d (%d days)", m.player.NumberOfVacBans, m.player.DaysSinceLastBan)))
 	}
 
-	if m.player.Meta.NumberOfGameBans > 0 {
-		rows = append(rows, styles.DetailRow("Game Bans", strconv.Itoa(int(m.player.Meta.NumberOfGameBans))))
+	if m.player.NumberOfGameBans > 0 {
+		rows = append(rows, styles.DetailRow("Game Bans", strconv.Itoa(int(m.player.NumberOfGameBans))))
 	}
 	// FIXME
 	// if len(m.player.BDMatches) > 0 {
@@ -123,11 +123,11 @@ func (m DetailPanelModel) Render(height int) string {
 	// 		strconv.Itoa(len(m.player.BDMatches))))
 	// }
 
-	if m.player.Meta.LogsCount > 0 {
-		rows = append(rows, styles.DetailRow("Logs.tf", strconv.Itoa(int(m.player.Meta.LogsCount))))
+	if m.player.LogsCount > 0 {
+		rows = append(rows, styles.DetailRow("Logs.tf", strconv.Itoa(int(m.player.LogsCount))))
 	}
 
-	rows = append(rows, styles.DetailRow("Friends (Steam)", strconv.Itoa(len(m.player.Meta.Friends))))
+	rows = append(rows, styles.DetailRow("Friends (Steam)", strconv.Itoa(len(m.player.Friends))))
 
 	friends := m.players.FindFriends(m.player.SteamID)
 	rows = append(rows, styles.DetailRow("Friends (In Game)", strconv.Itoa(len(friends))))

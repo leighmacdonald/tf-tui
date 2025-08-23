@@ -59,8 +59,8 @@ func (m TableBansModel) Update(msg tea.Msg) (TableBansModel, tea.Cmd) {
 		m.table.ClearRows()
 
 		var rows [][]string
-		if m.player.Meta.Bans != nil {
-			for _, ban := range m.player.Meta.Bans {
+		if m.player.Bans != nil {
+			for _, ban := range m.player.Bans {
 				perm := styles.IconCheck
 				if !ban.Permanent {
 					perm = ""
@@ -86,7 +86,7 @@ func (m TableBansModel) Update(msg tea.Msg) (TableBansModel, tea.Cmd) {
 func (m TableBansModel) Render(height int) string {
 	m.viewport.Height = height
 	var content string
-	if len(m.player.Meta.Bans) == 0 {
+	if len(m.player.Bans) == 0 {
 		content = styles.InfoMessage.Width(m.width).Render("No bans found " + styles.IconNoBans)
 	} else {
 		content = m.table.StyleFunc(func(row, col int) lipgloss.Style {

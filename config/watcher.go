@@ -8,9 +8,9 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-// NotifyChanged is responsible for monitoring the config file for external changes and
+// Notify is responsible for monitoring the config file for external changes and
 // subsequently sending the new Config to the *tea.Program to broadcast the changed Config.
-func NotifyChanged(ctx context.Context, name string, changes chan<- Config) {
+func Notify(ctx context.Context, name string, changes chan<- Config) {
 	watcher, errWatcher := fsnotify.NewWatcher()
 	if errWatcher != nil {
 		return
@@ -34,6 +34,7 @@ func NotifyChanged(ctx context.Context, name string, changes chan<- Config) {
 				conf, errRead := Read(name)
 				if errRead != nil {
 					slog.Error("Failed to read config", slog.String("error", errRead.Error()))
+
 					continue
 				}
 				changes <- conf

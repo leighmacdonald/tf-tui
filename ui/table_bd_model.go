@@ -49,7 +49,7 @@ func (m TableBDModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TableBDModel) Update(msg tea.Msg) (TableBDModel, tea.Cmd) { //nolint:unparam
+func (m TableBDModel) Update(msg tea.Msg) (TableBDModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width

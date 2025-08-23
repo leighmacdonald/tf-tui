@@ -84,8 +84,8 @@ func (m *TablePlayerData) Sort(column playerTableCol, asc bool) {
 		case ColPing:
 			return cmp.Compare(a.Ping, b.Ping)
 		case ColMeta:
-			av := len(a.Meta.Bans) + int(a.Meta.NumberOfVacBans)
-			bv := len(b.Meta.Bans) + int(b.Meta.NumberOfVacBans)
+			av := len(a.Bans) + int(a.NumberOfVacBans)
+			bv := len(b.Bans) + int(b.NumberOfVacBans)
 
 			return cmp.Compare(bv, av)
 		default:
@@ -113,7 +113,7 @@ func (m *TablePlayerData) At(row int, col int) string {
 	case ColName:
 		name := player.Name
 		if name == "" {
-			name = player.Meta.PersonaName
+			name = player.PersonaName
 		}
 		if name == "" {
 			name = player.SteamID.String()
@@ -143,11 +143,11 @@ func (m *TablePlayerData) Columns() int {
 
 func (m *TablePlayerData) metaColumn(player Player) string {
 	var afflictions []string
-	if len(player.Meta.Bans) > 0 {
+	if len(player.Bans) > 0 {
 		afflictions = append(afflictions, styles.IconBans)
 	}
 
-	if player.Meta.NumberOfVacBans > 0 {
+	if player.NumberOfVacBans > 0 {
 		afflictions = append(afflictions, styles.IconVac)
 	}
 
@@ -155,7 +155,7 @@ func (m *TablePlayerData) metaColumn(player Player) string {
 	//	afflictions = append(afflictions, styles.IconCheck)
 	//}
 
-	if len(player.Meta.CompetitiveTeams) > 0 {
+	if len(player.CompetitiveTeams) > 0 {
 		afflictions = append(afflictions, styles.IconComp)
 	}
 

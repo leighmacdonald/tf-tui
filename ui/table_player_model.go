@@ -291,7 +291,7 @@ func (m TablePlayerModel) View() string {
 
 			mappedCol := m.data.enabledColumns[col]
 			width := colNameSize
-			switch playerTableCol(mappedCol) {
+			switch mappedCol {
 			case ColUID:
 				width = colUIDSize
 			case ColName:

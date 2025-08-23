@@ -2,7 +2,6 @@ package ui
 
 import (
 	"slices"
-	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/tf"
@@ -10,20 +9,32 @@ import (
 )
 
 type Player struct {
-	SteamID       steamid.SteamID
-	Name          string
-	Ping          int
-	Score         int
-	Deaths        int
-	Connected     bool
-	Team          tf.Team
-	Alive         bool
-	Health        int
-	Valid         bool
-	UserID        int
-	Meta          tfapi.MetaProfile
-	MetaUpdatedOn time.Time
-	G15UpdatedOn  time.Time
+	SteamID                  steamid.SteamID
+	Name                     string
+	Ping                     int
+	Score                    int
+	Deaths                   int
+	Connected                bool
+	Team                     tf.Team
+	Alive                    bool
+	Health                   int
+	Valid                    bool
+	UserID                   int
+	Bans                     []tfapi.Ban
+	CommunityBanned          bool
+	CommunityVisibilityState tfapi.MetaProfileCommunityVisibilityState
+	CompetitiveTeams         []tfapi.LeaguePlayerTeamHistory
+	DaysSinceLastBan         int64
+	EconomyBan               string
+	Friends                  []tfapi.SteamFriend
+	LogsCount                int64
+	NumberOfGameBans         int64
+	NumberOfVacBans          int64
+	PersonaName              string
+	ProfileState             tfapi.MetaProfileProfileState
+	RealName                 string
+	SteamId                  string `json:"steam_id"`
+	TimeCreated              int64  `json:"time_created"`
 }
 
 type Players []Player
@@ -34,7 +45,7 @@ func (p Players) FindFriends(steamID steamid.SteamID) steamid.Collection {
 	var friends steamid.Collection
 
 	for _, player := range p {
-		for _, friend := range player.Meta.Friends {
+		for _, friend := range player.Friends {
 			if friend.SteamId == steamID.String() && !slices.Contains(friends, steamID) {
 				friends = append(friends, steamID)
 			}

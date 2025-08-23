@@ -56,6 +56,7 @@ func Run() error {
 	if errConfig != nil {
 		slog.Error("Failed to load config", slog.String("error", errConfig.Error()))
 	}
+
 	logFile, errLogger := config.LoggerInit(config.DefaultLogName, slog.LevelDebug)
 	if errLogger != nil {
 		return errors.Join(errLogger, errApp)
@@ -76,13 +77,13 @@ func Run() error {
 		return errors.Join(errClient, errApp)
 	}
 
-	db, errDB := store.Connect(ctx, config.PathConfig(config.DefaultDBName))
+	database, errDB := store.Connect(ctx, config.PathConfig(config.DefaultDBName))
 	if errDB != nil {
 		return errors.Join(errDB, errApp)
 	}
 
 	defer func() {
-		if err := db.Close(); err != nil {
+		if err := database.Close(); err != nil {
 			slog.Error("Error closing database", slog.String("error", err.Error()))
 		}
 	}()
@@ -92,20 +93,17 @@ func Run() error {
 		return errors.Join(errCache, errApp)
 	}
 
-	app := NewApp(userConfig, cache, client)
+	fetcher := NewMetaFetcher(client, cache)
 
-	tui, errTUI := app.createUI(ctx)
-	if errTUI != nil {
-		return errTUI
-	}
-
-	errChan := make(chan error)
+	app := New(userConfig, fetcher)
 
 	go func() {
-		if _, err := tui.Run(); err != nil {
-			<-errChan
+		if _, err := app.createUI(ctx).Run(); err != nil {
+			slog.Error("Failed to run UI", slog.String("error", err.Error()))
 		}
 	}()
 
-	return app.Start(ctx)
+	app.Start(ctx)
+
+	return nil
 }

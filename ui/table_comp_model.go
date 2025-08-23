@@ -72,12 +72,12 @@ func (m TableCompModel) Update(msg tea.Msg) (TableCompModel, tea.Cmd) {
 		m.table.ClearRows()
 
 		var rows [][]string
-		if m.player.Meta.CompetitiveTeams != nil {
-			slices.SortStableFunc(m.player.Meta.CompetitiveTeams, func(a, b tfapi.LeaguePlayerTeamHistory) int {
+		if m.player.CompetitiveTeams != nil {
+			slices.SortStableFunc(m.player.CompetitiveTeams, func(a, b tfapi.LeaguePlayerTeamHistory) int {
 				return a.JoinedTeam.Compare(b.LeftTeam)
 			})
-			slices.Reverse(m.player.Meta.CompetitiveTeams)
-			for _, team := range m.player.Meta.CompetitiveTeams {
+			slices.Reverse(m.player.CompetitiveTeams)
+			for _, team := range m.player.CompetitiveTeams {
 				var (
 					joined string
 					left   string
@@ -105,7 +105,7 @@ func (m TableCompModel) Update(msg tea.Msg) (TableCompModel, tea.Cmd) {
 		// m.table.Height(len(rows))
 		m.table.Rows(rows...)
 		var content string
-		if len(m.player.Meta.CompetitiveTeams) == 0 {
+		if len(m.player.CompetitiveTeams) == 0 {
 			content = styles.InfoMessage.Width(m.width).Render("No league history found " + styles.IconNoComp)
 		} else {
 			content = m.table.
