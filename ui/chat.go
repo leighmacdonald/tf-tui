@@ -93,9 +93,20 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 		} else {
 			m.viewport.Height = msg.contentViewPortHeight
 		}
-	case ChatRow:
-		m.rows = append(m.rows, msg)
-		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, msg.View())
+	case tf.LogEvent:
+		if msg.Type != tf.EvtMsg {
+			break
+		}
+		row := ChatRow{
+			steamID:   msg.PlayerSID,
+			name:      msg.Player,
+			createdOn: msg.Timestamp,
+			message:   msg.Message,
+			team:      msg.Team,
+			dead:      msg.Dead,
+		}
+		m.rows = append(m.rows, row)
+		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, row.View())
 		m.viewport.SetContent(m.rowsRendered)
 	}
 

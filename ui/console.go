@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -92,10 +91,9 @@ func (m consoleModel) Update(msg tea.Msg) (consoleModel, tea.Cmd) {
 }
 
 func (m consoleModel) onLogs(log tf.LogEvent) consoleModel {
-	if slices.Contains([]tf.EventType{tf.EvtStatusID, tf.EvtHostname, tf.EvtMsg, tf.EvtTags, tf.EvtAddress, tf.EvtLobby}, log.Type) {
-		return m
-	}
-
+	// if slices.Contains([]tf.EventType{tf.EvtStatusID, tf.EvtHostname, tf.EvtMsg, tf.EvtTags, tf.EvtAddress, tf.EvtLobby}, log.Type) {
+	// 	return m
+	// }
 	parts := strings.SplitN(log.Raw, ": ", 2)
 	if len(parts) != 2 {
 		return m

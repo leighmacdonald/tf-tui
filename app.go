@@ -57,7 +57,7 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 	}
 
 	go app.logEventUpdater(ctx)
-	go app.upUpdater(ctx)
+	go app.uiSender(ctx)
 
 	dumpTicker := time.NewTicker(time.Duration(app.config.UpdateFreqMs) * time.Millisecond)
 	for {
@@ -91,7 +91,7 @@ func (app *App) logEventUpdater(ctx context.Context) {
 	}
 }
 
-func (app *App) upUpdater(ctx context.Context) {
+func (app *App) uiSender(ctx context.Context) {
 	for {
 		select {
 		case msg := <-app.uiUpdates:
