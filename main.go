@@ -103,7 +103,7 @@ func Run() error {
 			slog.Error("Failed to run UI", slog.String("error", err.Error()))
 		}
 
-		done <- "let me out"
+		done <- "🫃"
 	}()
 
 	app.Start(ctx, done)
