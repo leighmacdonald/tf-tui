@@ -7,7 +7,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -58,25 +57,22 @@ type consoleModel struct {
 	ready        bool
 	rowsMu       *sync.RWMutex
 	rowsRendered string
-
-	consoleLogPath string
-	width          int
-	viewPort       viewport.Model
-	focused        bool
+	width        int
+	viewPort     viewport.Model
+	focused      bool
 }
 
-func newConsoleModel(consoleLogPath string) consoleModel {
+func newConsoleModel() consoleModel {
 	model := consoleModel{
-		rowsMu:         &sync.RWMutex{},
-		consoleLogPath: consoleLogPath,
-		viewPort:       viewport.New(10, 20),
+		rowsMu:   &sync.RWMutex{},
+		viewPort: viewport.New(10, 20),
 	}
 
 	return model
 }
 
 func (m consoleModel) Init() tea.Cmd {
-	return tea.Batch(textinput.Blink)
+	return nil
 }
 
 func (m consoleModel) Update(msg tea.Msg) (consoleModel, tea.Cmd) {
@@ -88,50 +84,44 @@ func (m consoleModel) Update(msg tea.Msg) (consoleModel, tea.Cmd) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
-	case ConsoleLogMsg:
-		return m.onLogs(msg.logs), tea.Batch(cmds...)
+	case tf.LogEvent:
+		return m.onLogs(msg), tea.Batch(cmds...)
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m consoleModel) onLogs(logs []tf.LogEvent) consoleModel {
-	if len(logs) == 0 {
+func (m consoleModel) onLogs(log tf.LogEvent) consoleModel {
+	if slices.Contains([]tf.EventType{tf.EvtStatusID, tf.EvtHostname, tf.EvtMsg, tf.EvtTags, tf.EvtAddress, tf.EvtLobby}, log.Type) {
 		return m
 	}
 
-	for _, msg := range logs {
-		if slices.Contains([]tf.EventType{tf.EvtStatusID, tf.EvtHostname, tf.EvtMsg, tf.EvtTags, tf.EvtAddress, tf.EvtLobby}, msg.Type) {
-			continue
-		}
+	parts := strings.SplitN(log.Raw, ": ", 2)
+	if len(parts) != 2 {
+		return m
+	}
+	if parts[1] == "" {
+		return m
+	}
 
-		parts := strings.SplitN(msg.Raw, ": ", 2)
-		if len(parts) != 2 {
+	valid := true
+	for _, prefix := range []string{"# ", "version ", "steamid ", "players ", "map ", "account ", "edicts "} {
+		if strings.HasPrefix(parts[1], prefix) {
+			valid = false
+
 			break
 		}
-		if parts[1] == "" {
-			continue
-		}
-
-		valid := true
-		for _, prefix := range []string{"# ", "version ", "steamid ", "players ", "map ", "account ", "edicts "} {
-			if strings.HasPrefix(parts[1], prefix) {
-				valid = false
-
-				break
-			}
-		}
-		if !valid {
-			continue
-		}
-
-		newRow := LogRow{Content: safeString(parts[1]), CreatedOn: time.Now(), EventType: msg.Type}
-		m.rowsMu.Lock()
-		// This does not use JoinVertical currently as it takes *way* more and more CPU as time goes on
-		// and the console log fills.
-		m.rowsRendered = m.rowsRendered + "\n" + newRow.Render(m.width-10)
-		m.rowsMu.Unlock()
 	}
+	if !valid {
+		return m
+	}
+
+	newRow := LogRow{Content: safeString(parts[1]), CreatedOn: time.Now(), EventType: log.Type}
+	m.rowsMu.Lock()
+	// This does not use JoinVertical currently as it takes *way* more and more CPU as time goes on
+	// and the console log fills.
+	m.rowsRendered = m.rowsRendered + "\n" + newRow.Render(m.width-10)
+	m.rowsMu.Unlock()
 
 	return m
 }

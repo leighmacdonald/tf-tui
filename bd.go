@@ -22,7 +22,7 @@ var (
 	errDecodeJSON       = errors.New("failed to decode JSON")
 )
 
-func UnmarshalJSON[T any](reader io.Reader) (T, error) {
+func unmarshalJSON[T any](reader io.Reader) (T, error) {
 	var value T
 	if err := json.NewDecoder(reader).Decode(&value); err != nil {
 		return value, errors.Join(err, errDecodeJSON)
@@ -97,7 +97,7 @@ func (m *BDFetcher) Update(ctx context.Context) {
 				return
 			}
 
-			bdList, errUnmarshal := UnmarshalJSON[tfapi.BDSchema](resp.Body)
+			bdList, errUnmarshal := unmarshalJSON[tfapi.BDSchema](resp.Body)
 			if errUnmarshal != nil {
 				slog.Error("Failed to unmarshal", slog.String("error", errUnmarshal.Error()))
 

@@ -59,11 +59,6 @@ func setContentView(view contentView) tea.Cmd {
 
 type TabChangeMsg tabView
 
-type ConsoleLogMsg struct {
-	logs []tf.LogEvent
-	t    time.Time
-}
-
 type ChatMsg struct {
 	Message  string
 	ChatType ChatType

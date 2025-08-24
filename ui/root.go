@@ -55,7 +55,7 @@ func newRootModel(config config.Config, doSetup bool, buildVersion string, build
 		tabsModel:    newTabsModel(),
 		notesModel:   newNotesModel(),
 		detailPanel:  newDetailPanelModel(config.Links),
-		consoleView:  newConsoleModel(config.ConsoleLogPath),
+		consoleView:  newConsoleModel(),
 		statusModel:  newStatusBarModel(buildVersion),
 		chatModel:    newChatModel(),
 
@@ -91,8 +91,6 @@ func (m rootModel) Init() tea.Cmd {
 func logMsg(inMsg tea.Msg) {
 	// Filter out very noisy stuff
 	switch inMsg.(type) {
-	case ConsoleLogMsg:
-		break
 	case FullStateUpdateMsg:
 		break
 	default:

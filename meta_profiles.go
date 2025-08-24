@@ -64,7 +64,7 @@ func (m *MetaFetcher) cachedMetaProfiles(steamIDs steamid.Collection) ([]tfapi.M
 			continue
 		}
 
-		cached, err := UnmarshalJSON[tfapi.MetaProfile](bytes.NewReader(body))
+		cached, err := unmarshalJSON[tfapi.MetaProfile](bytes.NewReader(body))
 		if err != nil {
 			missing = append(missing, steamID)
 
