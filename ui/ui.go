@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -21,8 +22,8 @@ const (
 	viewHelp
 )
 
-// UI is the root model for the UI side of the app.
-type UI struct {
+// RootModel is the root model for the RootModel side of the app.
+type RootModel struct {
 	currentView  contentView
 	previousView contentView
 	quitting     bool
@@ -49,8 +50,33 @@ type UI struct {
 	rendered              string
 }
 
-func New(config config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string) *UI {
-	app := &UI{
+type UI struct {
+	program *tea.Program
+}
+
+func New(ctx context.Context, config config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string) *UI {
+	rootModel := NewRootModel(config, doSetup, buildVersion, buildDate, buildCommit)
+	program := tea.NewProgram(rootModel, tea.WithMouseCellMotion(), tea.WithAltScreen(), tea.WithContext(ctx))
+
+	return &UI{
+		program: program,
+	}
+}
+
+func (t UI) Run() error {
+	if _, err := t.program.Run(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (t UI) Send(msg tea.Msg) {
+	t.program.Send(msg)
+}
+
+func NewRootModel(config config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string) *RootModel {
+	app := &RootModel{
 		currentView:  viewPlayerTables,
 		previousView: viewPlayerTables,
 		activeTab:    TabOverview,
@@ -80,7 +106,7 @@ func New(config config.Config, doSetup bool, buildVersion string, buildDate stri
 	return app
 }
 
-func (m UI) Init() tea.Cmd {
+func (m RootModel) Init() tea.Cmd {
 	return tea.Batch(
 		tea.SetWindowTitle("tf-tui"),
 		m.configModel.Init(),
@@ -109,7 +135,7 @@ func logMsg(inMsg tea.Msg) {
 	}
 }
 
-func (m UI) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
+func (m RootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	logMsg(inMsg)
 
 	if !m.isInitialized() {
@@ -165,7 +191,7 @@ func (m UI) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	return m.propagate(inMsg)
 }
 
-func (m UI) View() string {
+func (m RootModel) View() string {
 	var (
 		header  string
 		content string
@@ -225,11 +251,11 @@ func (m UI) View() string {
 	return zone.Scan(lipgloss.JoinVertical(lipgloss.Center, hdr, ctr, ftr))
 }
 
-func (m UI) isInitialized() bool {
+func (m RootModel) isInitialized() bool {
 	return m.height != 0 && m.width != 0
 }
 
-func (m UI) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
+func (m RootModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 14)
 	m.redTable, cmds[1] = m.redTable.Update(msg)
 	m.bluTable, cmds[2] = m.bluTable.Update(msg)
@@ -246,4 +272,8 @@ func (m UI) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
 	m.bdTable, cmds[13] = m.bdTable.Update(msg)
 
 	return m, tea.Batch(cmds...)
+}
+
+func init() {
+	zone.NewGlobal()
 }

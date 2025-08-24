@@ -17,7 +17,6 @@ import (
 	"github.com/leighmacdonald/tf-tui/config"
 	"github.com/leighmacdonald/tf-tui/store"
 	"github.com/leighmacdonald/tf-tui/tfapi"
-	zone "github.com/lrstanley/bubblezone"
 	_ "modernc.org/sqlite"
 )
 
@@ -38,7 +37,6 @@ func main() {
 
 func Run() error {
 	ctx := context.Background()
-	zone.NewGlobal()
 
 	if len(os.Getenv("PROFILE")) > 0 {
 		f, err := os.Create(os.Getenv("PROFILE"))
@@ -94,16 +92,19 @@ func Run() error {
 	}
 
 	fetcher := NewMetaFetcher(client, cache)
-
 	app := New(userConfig, fetcher)
+	done := make(chan any)
 
 	go func() {
-		if _, err := app.createUI(ctx).Run(); err != nil {
+		tui := app.createTUI(ctx)
+		if err := tui.Run(); err != nil {
 			slog.Error("Failed to run UI", slog.String("error", err.Error()))
 		}
+
+		done <- "let me out"
 	}()
 
-	app.Start(ctx)
+	app.Start(ctx, done)
 
 	return nil
 }

@@ -4,18 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
-	"slices"
 	"sync"
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/config"
-	"github.com/leighmacdonald/tf-tui/tf"
 	"github.com/leighmacdonald/tf-tui/tfapi"
 	"github.com/leighmacdonald/tf-tui/ui"
 )
@@ -44,29 +41,6 @@ func UnmarshalJSON[T any](reader io.Reader) (T, error) {
 	return value, nil
 }
 
-type Player struct {
-	SteamID       steamid.SteamID
-	Name          string
-	Ping          int
-	Score         int
-	Deaths        int
-	Connected     bool
-	Team          tf.Team
-	Alive         bool
-	Health        int
-	Valid         bool
-	UserID        int
-	Meta          tfapi.MetaProfile
-	MetaUpdatedOn time.Time
-	G15UpdatedOn  time.Time
-}
-
-func (p Player) Expired() bool {
-	return time.Since(p.G15UpdatedOn) > playerExpiration
-}
-
-type Players []Player
-
 func NewPlayerDataModel(config config.Config) *PlayerDataModel {
 	return &PlayerDataModel{
 		mu:          &sync.RWMutex{},
@@ -82,77 +56,6 @@ type PlayerDataModel struct {
 	mu          *sync.RWMutex
 	updateQueue chan steamid.SteamID
 	lists       []tfapi.BDSchema
-}
-
-func (m *PlayerDataModel) Start(ctx context.Context) {
-	// TODO convert into Tick msg
-	ticker := time.NewTicker(time.Second * 1)
-	defer ticker.Stop()
-
-	var queue steamid.Collection
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case update := <-m.updateQueue:
-			if !update.Valid() {
-				continue
-			}
-			if slices.Contains(queue, update) {
-				continue
-			}
-			queue = append(queue, update)
-		case <-ticker.C:
-			if len(queue) == 0 {
-				continue
-			}
-
-			m.updateMeta(ctx, queue)
-			m.updateUserListMatches()
-			queue = nil
-		}
-	}
-}
-
-func (m *PlayerDataModel) Get(steamID steamid.SteamID) (Player, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	player, found := m.players[steamID]
-	if !found {
-		return Player{}, fmt.Errorf("%w: %s", errPlayerNotFound, steamID.String())
-	}
-
-	return *player, nil
-}
-
-func (m *PlayerDataModel) All() (Players, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	var profiles Players //nolint:prealloc
-	for _, player := range m.players {
-		// Remove the expired player entries from the active player list
-		if player.Expired() {
-			delete(m.players, player.SteamID)
-
-			continue
-		}
-		profiles = append(profiles, *player)
-	}
-
-	return profiles, nil
-}
-
-func (m *PlayerDataModel) updateMeta(ctx context.Context, steamIDs steamid.Collection) {
-	profiles, errProfiles := m.MetaProfiles(ctx, steamIDs)
-	if errProfiles != nil {
-		slog.Error("Failed to update meta profiles", slog.String("error", errProfiles.Error()))
-
-		return
-	}
-
-	m.setProfiles(profiles...)
 }
 
 func (m *PlayerDataModel) updateUserLists() []tfapi.BDSchema {

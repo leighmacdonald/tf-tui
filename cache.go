@@ -38,19 +38,19 @@ type FilesystemCache struct {
 	cacheDir string
 }
 
-func NewFilesystemCache() (*FilesystemCache, error) {
+func NewFilesystemCache() (FilesystemCache, error) {
 	cachePath := config.PathCache(config.CacheDirName)
 	if err := os.MkdirAll(cachePath, 0o700); err != nil {
 		slog.Error("Failed to make config root", slog.String("error", err.Error()),
 			slog.String("path", cachePath))
 
-		return nil, errors.Join(err, errCacheDir)
+		return FilesystemCache{}, errors.Join(err, errCacheDir)
 	}
 
-	return &FilesystemCache{cacheDir: cachePath}, nil
+	return FilesystemCache{cacheDir: cachePath}, nil
 }
 
-func (c *FilesystemCache) Set(steamID steamid.SteamID, variant CacheItemVariant, content []byte) error {
+func (c FilesystemCache) Set(steamID steamid.SteamID, variant CacheItemVariant, content []byte) error {
 	file, errFile := os.Create(path.Join(c.cacheDir, cacheName(steamID, variant)))
 	if errFile != nil {
 		return errors.Join(errCacheSet, errFile)
@@ -69,7 +69,7 @@ func (c *FilesystemCache) Set(steamID steamid.SteamID, variant CacheItemVariant,
 	return nil
 }
 
-func (c *FilesystemCache) Get(steamID steamid.SteamID, variant CacheItemVariant) ([]byte, error) {
+func (c FilesystemCache) Get(steamID steamid.SteamID, variant CacheItemVariant) ([]byte, error) {
 	file, errFile := os.Open(path.Join(c.cacheDir, cacheName(steamID, variant)))
 	if errFile != nil {
 		return nil, errors.Join(errCacheMiss, errFile)
