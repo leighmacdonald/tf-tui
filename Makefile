@@ -1,9 +1,9 @@
+.PHONY: config
 debug:
 	dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient
 
 fmt:
-	go tool gci write . --skip-generated -s standard -s default
-	go tool gofumpt -l -w .
+	go tool golangci-lint fmt
 
 check:
 	go tool golangci-lint run --fix --timeout 3m ./...
@@ -11,6 +11,7 @@ check:
 update:
 	go get -u
 	go mod tidy
+	make generate
 
 generate:
 	go generate
@@ -23,6 +24,9 @@ test:
 
 tail:
 	tail -f ~/.config/tf-tui/tf-tui.log
+
+config:
+	vim ~/.config/tf-tui/tf-tui.yaml
 
 snapshot:
 	goreleaser release --snapshot --clean

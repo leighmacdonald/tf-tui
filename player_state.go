@@ -47,7 +47,7 @@ type PlayerStates struct {
 }
 
 func (s *PlayerStates) UpdateDumpPlayer(stats tf.DumpPlayer) {
-	var players Players
+	var players Players //nolint:prealloc
 	for idx := range tf.MaxPlayerCount {
 		sid := stats.SteamID[idx]
 		if !sid.Valid() {
@@ -75,6 +75,7 @@ func (s *PlayerStates) UpdateDumpPlayer(stats tf.DumpPlayer) {
 		player.Team = tf.Team(stats.Team[idx])
 		player.UserID = stats.UserID[idx]
 		player.G15UpdatedOn = time.Now()
+		players = append(players, player)
 	}
 
 	s.SetPlayer(players...)
@@ -98,15 +99,15 @@ func (s *PlayerStates) SetPlayer(updates ...Player) {
 }
 
 func (s *PlayerStates) UpdateMetaProfile(metaProfiles ...tfapi.MetaProfile) {
-	var players Players
-	for _, meta := range metaProfiles {
+	players := make(Players, len(metaProfiles))
+	for index, meta := range metaProfiles {
 		player, err := s.Player(steamid.New(meta.SteamId))
 		if err != nil {
 			return
 		}
 
 		player.Meta = meta
-		players = append(players, player)
+		players[index] = player
 	}
 
 	s.SetPlayer(players...)
@@ -148,7 +149,7 @@ func (s *PlayerStates) removeExpired() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var valid Players
+	var valid Players //nolint:prealloc
 	for _, player := range s.players {
 		if time.Since(player.G15UpdatedOn) > s.expiration {
 			continue

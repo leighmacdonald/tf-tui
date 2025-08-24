@@ -30,6 +30,50 @@ func New(config config.Config, fetcher *MetaFetcher) *App {
 	}
 }
 
+func (app *App) stateSyncer(ctx context.Context) {
+	ticker := time.NewTicker(time.Millisecond * time.Duration(app.config.UpdateFreqMs))
+
+	for {
+		select {
+		case <-ticker.C:
+			var players ui.Players
+			for _, player := range app.players.Players() {
+				players = append(players, ui.Player{
+					SteamID:                  player.SteamID,
+					Name:                     player.Name,
+					Ping:                     player.Ping,
+					Score:                    player.Score,
+					Deaths:                   player.Deaths,
+					Connected:                player.Connected,
+					Team:                     player.Team,
+					Alive:                    player.Alive,
+					Valid:                    player.Valid,
+					UserID:                   player.UserID,
+					Health:                   player.Health,
+					Bans:                     player.Meta.Bans,
+					Friends:                  player.Meta.Friends,
+					CommunityBanned:          player.Meta.CommunityBanned,
+					CommunityVisibilityState: player.Meta.CommunityVisibilityState,
+					CompetitiveTeams:         player.Meta.CompetitiveTeams,
+					DaysSinceLastBan:         player.Meta.DaysSinceLastBan,
+					EconomyBan:               player.Meta.EconomyBan,
+					LogsCount:                player.Meta.LogsCount,
+					NumberOfGameBans:         player.Meta.NumberOfGameBans,
+					NumberOfVacBans:          player.Meta.NumberOfVacBans,
+					PersonaName:              player.Meta.PersonaName,
+					ProfileState:             player.Meta.ProfileState,
+					RealName:                 player.Meta.RealName,
+					TimeCreated:              player.Meta.TimeCreated,
+				})
+			}
+
+			app.ui.Send(players)
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
 func (app *App) Start(ctx context.Context, done <-chan any) {
 	dumpTicker := time.NewTicker(time.Second * 2)
 	configUpdates := make(chan config.Config)
@@ -37,6 +81,7 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 	go config.Notify(ctx, config.DefaultConfigName, configUpdates)
 
 	go app.players.cleaner(ctx)
+	go app.stateSyncer(ctx)
 
 	if app.config.ConsoleLogPath != "" {
 		if err := app.console.Open(app.config.ConsoleLogPath); err != nil {
@@ -80,6 +125,7 @@ func (app *App) updateMetaProfile(ctx context.Context) {
 	mProfiles, errProfiles := app.fetcher.MetaProfiles(ctx, expires)
 	if errProfiles != nil {
 		slog.Error("Failed to fetch meta profiles", slog.String("error", errProfiles.Error()))
+
 		return
 	}
 

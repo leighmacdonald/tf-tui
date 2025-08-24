@@ -33,8 +33,7 @@ type Player struct {
 	PersonaName              string
 	ProfileState             tfapi.MetaProfileProfileState
 	RealName                 string
-	SteamId                  string `json:"steam_id"`
-	TimeCreated              int64  `json:"time_created"`
+	TimeCreated              int64
 }
 
 type Players []Player

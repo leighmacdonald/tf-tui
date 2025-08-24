@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -13,6 +14,8 @@ import (
 	"github.com/leighmacdonald/tf-tui/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
+
+var ErrUIExit = errors.New("ui error returned")
 
 type contentView int
 
@@ -55,6 +58,7 @@ type UI struct {
 }
 
 func New(ctx context.Context, config config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string) *UI {
+	zone.NewGlobal()
 	rootModel := NewRootModel(config, doSetup, buildVersion, buildDate, buildCommit)
 	program := tea.NewProgram(rootModel, tea.WithMouseCellMotion(), tea.WithAltScreen(), tea.WithContext(ctx))
 
@@ -65,7 +69,7 @@ func New(ctx context.Context, config config.Config, doSetup bool, buildVersion s
 
 func (t UI) Run() error {
 	if _, err := t.program.Run(); err != nil {
-		return err
+		return errors.Join(err, ErrUIExit)
 	}
 
 	return nil
@@ -272,8 +276,4 @@ func (m RootModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
 	m.bdTable, cmds[13] = m.bdTable.Update(msg)
 
 	return m, tea.Batch(cmds...)
-}
-
-func init() {
-	zone.NewGlobal()
 }
