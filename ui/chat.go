@@ -11,8 +11,6 @@ import (
 	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
-const MaxTF2MessageLength = 127
-
 type ChatRow struct {
 	steamID   steamid.SteamID
 	name      string
@@ -53,11 +51,11 @@ const (
 	PartyChat
 )
 
-func NewChatModel() ChatModel {
-	return ChatModel{}
+func newChatModel() chatModel {
+	return chatModel{}
 }
 
-type ChatModel struct {
+type chatModel struct {
 	viewport     viewport.Model
 	ready        bool
 	rows         []ChatRow
@@ -67,7 +65,7 @@ type ChatModel struct {
 	chatType     ChatType
 }
 
-func (m ChatModel) Placeholder() string {
+func (m chatModel) Placeholder() string {
 	var label string
 	switch m.chatType {
 	case AllChat:
@@ -81,11 +79,11 @@ func (m ChatModel) Placeholder() string {
 	return label + " >"
 }
 
-func (m ChatModel) Init() tea.Cmd {
+func (m chatModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m ChatModel) Update(msg tea.Msg) (ChatModel, tea.Cmd) {
+func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
@@ -107,7 +105,7 @@ func (m ChatModel) Update(msg tea.Msg) (ChatModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m ChatModel) View(height int) string {
+func (m chatModel) View(height int) string {
 	titleBar := renderTitleBar(m.width, "Game Chat")
 	m.viewport.Height = height - lipgloss.Height(titleBar)
 

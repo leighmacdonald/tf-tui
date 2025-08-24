@@ -38,7 +38,7 @@ linters:
     - grouper
     - importas
     - ineffassign
-    #- interfacebloat
+    - interfacebloat
     - loggercheck
     - maintidx
     - makezero

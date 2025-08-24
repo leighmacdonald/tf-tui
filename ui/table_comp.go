@@ -36,7 +36,7 @@ const (
 	colTeamNameSize    compTableSize = -1
 )
 
-type TableCompModel struct {
+type tableCompModel struct {
 	player   Player
 	table    *table.Table
 	width    int
@@ -45,17 +45,17 @@ type TableCompModel struct {
 	viewport viewport.Model
 }
 
-func NewTableCompModel() TableCompModel {
-	return TableCompModel{
-		table: NewUnstyledTable("League", "Competition", "Joined", "Left", "Format", "Division", "Team Name"),
+func newTableCompModel() tableCompModel {
+	return tableCompModel{
+		table: newUnstyledTable("League", "Competition", "Joined", "Left", "Format", "Division", "Team Name"),
 	}
 }
 
-func (m TableCompModel) Init() tea.Cmd {
+func (m tableCompModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TableCompModel) Update(msg tea.Msg) (TableCompModel, tea.Cmd) {
+func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
@@ -149,7 +149,7 @@ func (m TableCompModel) Update(msg tea.Msg) (TableCompModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m TableCompModel) Render(height int) string {
+func (m tableCompModel) Render(height int) string {
 	titlebar := renderTitleBar(m.width, "League History")
 	m.viewport.Height = height - lipgloss.Height(titlebar)
 

@@ -38,7 +38,7 @@ type Config struct {
 	Address        string          `yaml:"address"`
 	Password       string          `yaml:"password"`
 	ConsoleLogPath string          `yaml:"console_log_path"`
-	UpdateFreqMs   int             `yaml:"update_freq_ms,omitempty` //nolint:govet
+	UpdateFreqMs   int             `yaml:"update_freq_ms,omitempty"`
 	APIBaseURL     string          `yaml:"api_base_url,omitempty"`
 	BDLists        []UserList      `yaml:"bd_lists"`
 	Links          []UserLink      `yaml:"links"`

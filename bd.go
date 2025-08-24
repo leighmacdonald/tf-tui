@@ -14,16 +14,6 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/config"
 	"github.com/leighmacdonald/tf-tui/tfapi"
-	"github.com/leighmacdonald/tf-tui/ui"
-)
-
-const (
-	maxQueueSize = 100
-
-	// How long we wait until a player should be ejected from our tracking.
-	// This should be long enough to last through map changes without dropping the
-	// known players.
-	playerExpiration = time.Second * 30
 )
 
 var (
@@ -41,46 +31,54 @@ func UnmarshalJSON[T any](reader io.Reader) (T, error) {
 	return value, nil
 }
 
-func NewPlayerDataModel(config config.Config) *PlayerDataModel {
-	return &PlayerDataModel{
-		mu:          &sync.RWMutex{},
-		players:     make(map[steamid.SteamID]*Player),
-		updateQueue: make(chan steamid.SteamID, maxQueueSize),
-		config:      config,
+type HTTPDoer interface {
+	Do(*http.Request) (*http.Response, error)
+}
+
+type BDMatch struct {
+	Player   tfapi.BDPlayer
+	ListName string
+}
+
+func NewBDFetcher(httpClient HTTPDoer, userLists []config.UserList, cache Cache) *BDFetcher {
+	return &BDFetcher{
+		mu:         &sync.RWMutex{},
+		configured: userLists,
+		httpClient: httpClient,
+		lists:      []tfapi.BDSchema{},
+		cache:      cache,
 	}
 }
 
-type PlayerDataModel struct {
-	config      config.Config
-	players     map[steamid.SteamID]*Player
-	mu          *sync.RWMutex
-	updateQueue chan steamid.SteamID
-	lists       []tfapi.BDSchema
+type BDFetcher struct {
+	configured []config.UserList
+	mu         *sync.RWMutex
+	lists      []tfapi.BDSchema
+	httpClient HTTPDoer
+	cache      Cache
 }
 
-func (m *PlayerDataModel) updateUserLists() []tfapi.BDSchema {
-	waitGroup := sync.WaitGroup{}
-	mutex := sync.Mutex{}
-	// There is no context passed down to children in tea apps... :(
-	ctx := context.Background()
-	var lists []tfapi.BDSchema
-	for _, userList := range m.config.BDLists {
+func (m *BDFetcher) Update(ctx context.Context) {
+	var (
+		waitGroup = sync.WaitGroup{}
+		lists     = make([]tfapi.BDSchema, len(m.configured))
+		updates   = make(chan tfapi.BDSchema)
+	)
+
+	for _, userList := range m.configured {
 		waitGroup.Add(1)
 
 		go func(list config.UserList) {
 			defer waitGroup.Done()
 
-			reqContext, cancel := context.WithTimeout(ctx, time.Second*10)
-			defer cancel()
-
-			req, errReq := http.NewRequestWithContext(reqContext, http.MethodGet, list.URL, nil)
+			req, errReq := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
 			if errReq != nil {
 				slog.Error("Failed to create request", slog.String("error", errReq.Error()))
 
 				return
 			}
 
-			resp, errResp := http.DefaultClient.Do(req) //nolint:bodyclose
+			resp, errResp := m.httpClient.Do(req) //nolint:bodyclose
 			if errResp != nil {
 				slog.Error("Failed to get response", slog.String("error", errResp.Error()))
 
@@ -121,29 +119,30 @@ func (m *PlayerDataModel) updateUserLists() []tfapi.BDSchema {
 				})
 			}
 
-			mutex.Lock()
-			lists = append(lists, bdList)
-			mutex.Unlock()
+			// TODO save cached copy
+			// m.cache.Set(...)
+
+			updates <- bdList
+			slog.Debug("Downloaded bd list", slog.String("name", bdList.FileInfo.Title))
 		}(userList)
 	}
 
-	waitGroup.Wait()
+	go func() {
+		waitGroup.Wait()
+		close(updates)
+	}()
 
-	return lists
-}
+	for update := range updates {
+		lists = append(lists, update)
+	}
 
-func (m *PlayerDataModel) updateUserListMatches() {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	// for _, player := range m.players {
-	// FIXME
-	// player.BDMatches = m.findBDPlayerMatches(player.SteamID)
-	// }
+	m.lists = lists
+	m.mu.Unlock()
 }
 
-func (m *PlayerDataModel) findBDPlayerMatches(steamID steamid.SteamID) []ui.MatchedBDPlayer {
-	var matched []ui.MatchedBDPlayer
+func (m *BDFetcher) Search(steamID steamid.SteamID) []BDMatch {
+	matched := []BDMatch{}
 	for _, list := range m.lists {
 		for _, player := range list.Players {
 			var sid steamid.SteamID
@@ -161,7 +160,7 @@ func (m *PlayerDataModel) findBDPlayerMatches(steamID steamid.SteamID) []ui.Matc
 				continue
 			}
 			if steamID.Equal(sid) {
-				matched = append(matched, ui.MatchedBDPlayer{
+				matched = append(matched, BDMatch{
 					Player:   player,
 					ListName: list.FileInfo.Title,
 				})

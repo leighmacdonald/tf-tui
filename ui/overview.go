@@ -14,14 +14,14 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func NewDetailPanelModel(links []config.UserLink) DetailPanelModel {
-	return DetailPanelModel{
+func newDetailPanelModel(links []config.UserLink) detailPanelModel {
+	return detailPanelModel{
 		links:    links,
 		viewport: viewport.New(1, 1),
 	}
 }
 
-type DetailPanelModel struct {
+type detailPanelModel struct {
 	links                 []config.UserLink
 	players               Players
 	player                Player
@@ -32,11 +32,11 @@ type DetailPanelModel struct {
 	viewport              viewport.Model
 }
 
-func (m DetailPanelModel) Init() tea.Cmd {
+func (m detailPanelModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m DetailPanelModel) Update(msg tea.Msg) (DetailPanelModel, tea.Cmd) {
+func (m detailPanelModel) Update(msg tea.Msg) (detailPanelModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case config.Config:
 		m.links = msg.Links
@@ -62,7 +62,7 @@ func (m DetailPanelModel) Update(msg tea.Msg) (DetailPanelModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m DetailPanelModel) Render(height int) string {
+func (m detailPanelModel) Render(height int) string {
 	if !m.player.SteamID.Valid() {
 		return ""
 	}

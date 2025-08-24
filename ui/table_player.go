@@ -12,26 +12,26 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 )
 
-// Direction defines the cardinal directions the users can use in the UI.
-type Direction int
+// direction defines the cardinal directions the users can use in the UI.
+type direction int
 
 const (
-	Up Direction = iota //nolint:varnamelen
-	Down
-	Left
-	Right
+	up direction = iota //nolint:varnamelen
+	down
+	left
+	right
 )
 
 // playerTableCol defines all available columns for the player table.
 type playerTableCol int
 
 const (
-	ColUID playerTableCol = iota
-	ColName
-	ColScore
-	ColDeaths
-	ColPing
-	ColMeta
+	colUID playerTableCol = iota
+	colName
+	colScore
+	colDeaths
+	colPing
+	colMeta
 )
 
 // playerTableColSize defines the sizes of the player columns.
@@ -46,23 +46,23 @@ const (
 	colMetaSize   playerTableColSize = 8
 )
 
-func NewPlayerTableModel(team tf.Team, selfSID steamid.SteamID) TablePlayerModel {
+func newPlayerTableModel(team tf.Team, selfSID steamid.SteamID) tablePlayerModel {
 	zoneID := zone.NewPrefix()
 
-	return TablePlayerModel{
+	return tablePlayerModel{
 		id:           zoneID,
 		team:         team,
 		selectedTeam: tf.RED,
-		data:         NewTablePlayerData(zoneID, Players{}, team),
-		table:        NewUnstyledTable(),
+		data:         newTablePlayerData(zoneID, Players{}, team),
+		table:        newUnstyledTable(),
 		selfSteamID:  selfSID,
 	}
 }
 
-type TablePlayerModel struct {
+type tablePlayerModel struct {
 	id              string
 	table           *table.Table
-	data            *TablePlayerData
+	data            *tablePlayerData
 	team            tf.Team
 	selectedTeam    tf.Team
 	selectedSteamID steamid.SteamID
@@ -71,11 +71,11 @@ type TablePlayerModel struct {
 	selfSteamID     steamid.SteamID
 }
 
-func (m TablePlayerModel) Init() tea.Cmd {
+func (m tablePlayerModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case config.Config:
 		m.selfSteamID = msg.SteamID
@@ -121,17 +121,17 @@ func (m TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					var col playerTableCol
 					switch markID {
 					case "uid":
-						col = ColUID
+						col = colUID
 					case "score":
-						col = ColScore
+						col = colScore
 					case "deaths":
-						col = ColDeaths
+						col = colDeaths
 					case "ping":
-						col = ColPing
+						col = colPing
 					case "meta":
-						col = ColMeta
+						col = colMeta
 					default:
-						col = ColName
+						col = colName
 					}
 					m.data.Sort(col, !m.data.asc)
 
@@ -145,19 +145,19 @@ func (m TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		switch {
 		case key.Matches(msg, DefaultKeyMap.up):
-			m, cmd = m.moveSelection(Up)
+			m, cmd = m.moveSelection(up)
 
 			return m, cmd
 		case key.Matches(msg, DefaultKeyMap.down):
-			m, cmd = m.moveSelection(Down)
+			m, cmd = m.moveSelection(down)
 
 			return m, cmd
 		case key.Matches(msg, DefaultKeyMap.left):
-			m, cmd = m.moveSelection(Left)
+			m, cmd = m.moveSelection(left)
 
 			return m, cmd
 		case key.Matches(msg, DefaultKeyMap.right):
-			m, cmd = m.moveSelection(Right)
+			m, cmd = m.moveSelection(right)
 
 			return m, cmd
 		}
@@ -174,10 +174,10 @@ func (m TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m TablePlayerModel) moveSelection(direction Direction) (TablePlayerModel, tea.Cmd) {
+func (m tablePlayerModel) moveSelection(direction direction) (tablePlayerModel, tea.Cmd) {
 	currentRow := m.currentRowIndex()
 	switch direction {
-	case Up:
+	case up:
 		if currentRow < 0 && len(m.data.players) > 0 {
 			m.selectedSteamID = m.data.players[len(m.data.players)-1].SteamID
 
@@ -189,7 +189,7 @@ func (m TablePlayerModel) moveSelection(direction Direction) (TablePlayerModel, 
 		if currentRow-1 >= 0 && max(0, len(m.data.players)-1) > currentRow-1 {
 			m.selectedSteamID = m.data.players[currentRow-1].SteamID
 		}
-	case Down:
+	case down:
 		if currentRow < 0 && len(m.data.players) > 0 {
 			m.selectedSteamID = m.data.players[0].SteamID
 
@@ -199,7 +199,7 @@ func (m TablePlayerModel) moveSelection(direction Direction) (TablePlayerModel, 
 			break
 		}
 		m.selectedSteamID = m.data.players[currentRow+1].SteamID
-	case Left:
+	case left:
 		if m.team == tf.RED {
 			break
 		}
@@ -207,7 +207,7 @@ func (m TablePlayerModel) moveSelection(direction Direction) (TablePlayerModel, 
 		if m.team == tf.RED {
 			m.selectedSteamID = m.data.players[len(m.data.players)-1].SteamID
 		}
-	case Right:
+	case right:
 		if m.team == tf.BLU {
 			break
 		}
@@ -230,7 +230,7 @@ func (m TablePlayerModel) moveSelection(direction Direction) (TablePlayerModel, 
 	return m, tea.Batch(cmds...)
 }
 
-func (m TablePlayerModel) currentPlayer() (Player, bool) {
+func (m tablePlayerModel) currentPlayer() (Player, bool) {
 	if m.selectedTeam != m.team {
 		return Player{}, false
 	}
@@ -243,7 +243,7 @@ func (m TablePlayerModel) currentPlayer() (Player, bool) {
 	return Player{}, false
 }
 
-func (m TablePlayerModel) currentRowIndex() int {
+func (m tablePlayerModel) currentRowIndex() int {
 	for rowIdx, player := range m.data.players {
 		if player.SteamID == m.selectedSteamID {
 			return rowIdx
@@ -253,8 +253,8 @@ func (m TablePlayerModel) currentRowIndex() int {
 	return -1
 }
 
-func (m TablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.Cmd) {
-	m.data = NewTablePlayerData(m.id, playersUpdate, m.team)
+func (m tablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.Cmd) {
+	m.data = newTablePlayerData(m.id, playersUpdate, m.team)
 	m.data.Sort(m.data.sortColumn, m.data.asc)
 	m.table.Data(m.data)
 
@@ -281,7 +281,7 @@ func (m TablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.C
 	return m, nil
 }
 
-func (m TablePlayerModel) View() string {
+func (m tablePlayerModel) View() string {
 	selectedRowIdx := m.currentRowIndex()
 
 	return m.table.
@@ -292,23 +292,23 @@ func (m TablePlayerModel) View() string {
 			mappedCol := m.data.enabledColumns[col]
 			width := colNameSize
 			switch mappedCol {
-			case ColUID:
+			case colUID:
 				width = colUIDSize
-			case ColName:
+			case colName:
 				width = colNameSize
-			case ColScore:
+			case colScore:
 				width = colScoreSize
-			case ColDeaths:
+			case colDeaths:
 				width = colDeathsSize
-			case ColPing:
+			case colPing:
 				width = colPingSize
-			case ColMeta:
+			case colMeta:
 				width = colMetaSize
 			}
 			switch {
 			case row == table.HeaderRow:
 				if m.team == tf.RED {
-					if playerTableCol(col) == ColName {
+					if playerTableCol(col) == colName {
 						return styles.HeaderStyleRed.Width(int(width))
 					}
 
@@ -320,9 +320,9 @@ func (m TablePlayerModel) View() string {
 
 				return styles.HeaderStyleBlu
 
-			case playerTableCol(col) != ColMeta && row == selectedRowIdx && m.team == m.selectedTeam:
+			case playerTableCol(col) != colMeta && row == selectedRowIdx && m.team == m.selectedTeam:
 				if m.team == tf.RED {
-					if playerTableCol(col) == ColName {
+					if playerTableCol(col) == colName {
 						if isSelf {
 							return styles.PlayerTableRowSelf.Width(int(width))
 						}
@@ -332,7 +332,7 @@ func (m TablePlayerModel) View() string {
 
 					return styles.SelectedCellStyleRed.Width(int(width))
 				}
-				if playerTableCol(col) == ColName {
+				if playerTableCol(col) == colName {
 					if isSelf {
 						return styles.PlayerTableRowSelf.Width(int(width))
 					}
@@ -341,7 +341,7 @@ func (m TablePlayerModel) View() string {
 				}
 
 				return styles.SelectedCellStyleBlu.Width(int(width))
-			case playerTableCol(col) == ColName:
+			case playerTableCol(col) == colName:
 				return styles.PlayerTableRow.Width(int(width))
 			case row%2 == 0:
 				return styles.PlayerTableRow.Width(int(width))

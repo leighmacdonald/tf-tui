@@ -28,7 +28,11 @@ const (
 	colReasonSize banTableSize = -1
 )
 
-type TableBansModel struct {
+func newTableBansModel() tableBansModel {
+	return tableBansModel{table: newUnstyledTable("Site", "Date", "Perm", "Reason")}
+}
+
+type tableBansModel struct {
 	table                 *table.Table
 	player                Player
 	width                 int
@@ -38,11 +42,11 @@ type TableBansModel struct {
 	viewport              viewport.Model
 }
 
-func (m TableBansModel) Init() tea.Cmd {
+func (m tableBansModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TableBansModel) Update(msg tea.Msg) (TableBansModel, tea.Cmd) {
+func (m tableBansModel) Update(msg tea.Msg) (tableBansModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
@@ -83,7 +87,7 @@ func (m TableBansModel) Update(msg tea.Msg) (TableBansModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m TableBansModel) Render(height int) string {
+func (m tableBansModel) Render(height int) string {
 	m.viewport.Height = height
 	var content string
 	if len(m.player.Bans) == 0 {
@@ -115,8 +119,4 @@ func (m TableBansModel) Render(height int) string {
 	m.viewport.SetContent(lipgloss.JoinVertical(lipgloss.Left, renderTitleBar(m.width, "Bans"), content))
 
 	return m.viewport.View()
-}
-
-func NewTableBansModel() TableBansModel {
-	return TableBansModel{table: NewUnstyledTable("Site", "Date", "Perm", "Reason")}
 }

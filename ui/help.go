@@ -9,8 +9,8 @@ import (
 	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
-func NewHelpModel(buildVersion, buildDate, buildCommit string) HelpModel {
-	return HelpModel{
+func newHelpModel(buildVersion, buildDate, buildCommit string) helpModel {
+	return helpModel{
 		configPath:   config.PathConfig(config.DefaultConfigName),
 		cachePath:    config.PathCache(config.CacheDirName),
 		buildVersion: buildVersion,
@@ -19,7 +19,7 @@ func NewHelpModel(buildVersion, buildDate, buildCommit string) HelpModel {
 	}
 }
 
-type HelpModel struct {
+type helpModel struct {
 	helpView     help.Model
 	view         contentView
 	configPath   string
@@ -29,11 +29,11 @@ type HelpModel struct {
 	buildCommit  string
 }
 
-func (m HelpModel) Init() tea.Cmd {
+func (m helpModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m HelpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m helpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch { //nolint:gocritic
@@ -52,7 +52,7 @@ func (m HelpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m HelpModel) View() string {
+func (m helpModel) View() string {
 	left := m.helpView.FullHelpView([][]key.Binding{
 		{
 			DefaultKeyMap.config,

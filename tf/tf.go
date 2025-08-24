@@ -9,3 +9,5 @@ const (
 	BLU
 	RED
 )
+
+const MaxMessageLength = 127

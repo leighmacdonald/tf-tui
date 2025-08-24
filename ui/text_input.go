@@ -23,18 +23,18 @@ var (
 	errConfigValue    = errors.New("failed to validate config")
 )
 
-type InputValidator interface {
-	Validate(string) error
+type inputValidator interface {
+	validate(string) error
 }
 
-func NewValidatingTextInputModel(label string, value string, placeholder string, validators ...InputValidator) *ValidatingTextInputModel {
-	input := NewTextInputModel(value, placeholder)
+func newValidatingTextInputModel(label string, value string, placeholder string, validators ...inputValidator) *validatingTextInputModel {
+	input := newTextInputModel(value, placeholder)
 
 	if len(validators) > 0 {
 		input.Validate = func(s string) error {
 			for _, validator := range validators {
-				if err := validator.Validate(s); err != nil {
-					return err //nolint:wrapcheck
+				if err := validator.validate(s); err != nil {
+					return err
 				}
 			}
 
@@ -42,27 +42,27 @@ func NewValidatingTextInputModel(label string, value string, placeholder string,
 		}
 	}
 
-	return &ValidatingTextInputModel{input: input, active: false, label: label}
+	return &validatingTextInputModel{input: input, active: false, label: label}
 }
 
-type ValidatingTextInputModel struct {
+type validatingTextInputModel struct {
 	label  string
 	input  textinput.Model
 	active bool
 }
 
-func (m *ValidatingTextInputModel) Init() tea.Cmd {
+func (m *validatingTextInputModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *ValidatingTextInputModel) Update(msg tea.Msg) (*ValidatingTextInputModel, tea.Cmd) {
+func (m *validatingTextInputModel) Update(msg tea.Msg) (*validatingTextInputModel, tea.Cmd) {
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
 
 	return m, cmd
 }
 
-func (m *ValidatingTextInputModel) View() string {
+func (m *validatingTextInputModel) View() string {
 	var errRow string
 	if m.input.Err != nil {
 		errRow = lipgloss.NewStyle().Foreground(styles.Red).Render("Validation Error: " + m.input.Err.Error())
@@ -73,24 +73,24 @@ func (m *ValidatingTextInputModel) View() string {
 		lipgloss.JoinVertical(lipgloss.Top, m.input.View(), errRow))
 }
 
-func (m *ValidatingTextInputModel) focus() tea.Cmd {
+func (m *validatingTextInputModel) focus() tea.Cmd {
 	m.input.PromptStyle = styles.FocusedStyle
 	m.input.TextStyle = styles.FocusedStyle
 
 	return m.input.Focus()
 }
 
-func (m *ValidatingTextInputModel) blur() {
+func (m *validatingTextInputModel) blur() {
 	m.input.PromptStyle = styles.NoStyle
 	m.input.TextStyle = styles.NoStyle
 	m.input.Blur()
 }
 
-type URLValidator struct {
+type urlValidator struct {
 	emptyOk bool
 }
 
-func (v URLValidator) Validate(value string) error {
+func (v urlValidator) validate(value string) error {
 	if value == "" {
 		if v.emptyOk {
 			return nil
@@ -107,9 +107,9 @@ func (v URLValidator) Validate(value string) error {
 	return nil
 }
 
-type PathValidator struct{}
+type pathValidator struct{}
 
-func (v PathValidator) Validate(value string) error {
+func (v pathValidator) validate(value string) error {
 	if value == "" {
 		return fmt.Errorf("%w: Cannot be empty", errFilePath)
 	}
@@ -121,9 +121,9 @@ func (v PathValidator) Validate(value string) error {
 	return nil
 }
 
-type SteamIDValidator struct{}
+type steamIDValidator struct{}
 
-func (v SteamIDValidator) Validate(value string) error {
+func (v steamIDValidator) validate(value string) error {
 	steamID := steamid.New(value)
 	if !steamID.Valid() {
 		return errSteamIDInvalid
@@ -132,9 +132,9 @@ func (v SteamIDValidator) Validate(value string) error {
 	return nil
 }
 
-type AddressValidator struct{}
+type addressValidator struct{}
 
-func (v AddressValidator) Validate(value string) error {
+func (v addressValidator) validate(value string) error {
 	if value == "" {
 		return fmt.Errorf("%w: Cannot be empty", errAddressInvalid)
 	}

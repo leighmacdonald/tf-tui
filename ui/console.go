@@ -54,7 +54,7 @@ func (r LogRow) Render(width int) string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, timeStamp, body)
 }
 
-type ConsoleModel struct {
+type consoleModel struct {
 	ready        bool
 	rowsMu       *sync.RWMutex
 	rowsRendered string
@@ -65,8 +65,8 @@ type ConsoleModel struct {
 	focused        bool
 }
 
-func NewConsoleModel(consoleLogPath string) ConsoleModel {
-	model := ConsoleModel{
+func newConsoleModel(consoleLogPath string) consoleModel {
+	model := consoleModel{
 		rowsMu:         &sync.RWMutex{},
 		consoleLogPath: consoleLogPath,
 		viewPort:       viewport.New(10, 20),
@@ -75,11 +75,11 @@ func NewConsoleModel(consoleLogPath string) ConsoleModel {
 	return model
 }
 
-func (m ConsoleModel) Init() tea.Cmd {
+func (m consoleModel) Init() tea.Cmd {
 	return tea.Batch(textinput.Blink)
 }
 
-func (m ConsoleModel) Update(msg tea.Msg) (ConsoleModel, tea.Cmd) {
+func (m consoleModel) Update(msg tea.Msg) (consoleModel, tea.Cmd) {
 	cmds := make([]tea.Cmd, 2)
 
 	m.viewPort, cmds[0] = m.viewPort.Update(msg)
@@ -95,7 +95,7 @@ func (m ConsoleModel) Update(msg tea.Msg) (ConsoleModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m ConsoleModel) onLogs(logs []tf.LogEvent) ConsoleModel {
+func (m consoleModel) onLogs(logs []tf.LogEvent) consoleModel {
 	if len(logs) == 0 {
 		return m
 	}
@@ -144,7 +144,7 @@ func safeString(s string) string {
 	return s
 }
 
-func (m ConsoleModel) Render(height int) string {
+func (m consoleModel) Render(height int) string {
 	title := renderTitleBar(m.width, "Console Log")
 	m.viewPort.Height = height - lipgloss.Height(title)
 	wasBottom := m.viewPort.AtBottom()

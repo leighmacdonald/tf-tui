@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"golang.org/x/exp/constraints"

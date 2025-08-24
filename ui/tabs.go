@@ -11,70 +11,70 @@ import (
 type tabView int
 
 const (
-	TabOverview tabView = iota
-	TabBans
-	TabBD
-	TabComp
-	TabChat
-	TabConsole
+	tabOverview tabView = iota
+	tabBans
+	tabBD
+	tabComp
+	tabChat
+	tabConsole
 )
 
-type TabLabel struct {
+type tabLabel struct {
 	label string
 	tab   tabView
 	id    string
 }
 
-func NewTabsModel() tea.Model {
-	return &TabsModel{
-		tabs: []TabLabel{
+func newTabsModel() tea.Model {
+	return &tabsModel{
+		tabs: []tabLabel{
 			{
 				label: styles.IconInfo + " Overview",
-				tab:   TabOverview,
+				tab:   tabOverview,
 				id:    zone.NewPrefix(),
 			},
 			{
 				label: styles.IconBans + " Bans",
-				tab:   TabBans,
+				tab:   tabBans,
 				id:    zone.NewPrefix(),
 			},
 			{
 				label: styles.IconBD + " Bot Det.",
-				tab:   TabBD,
+				tab:   tabBD,
 				id:    zone.NewPrefix(),
 			},
 			{
 				label: styles.IconComp + " Comp",
-				tab:   TabComp,
+				tab:   tabComp,
 				id:    zone.NewPrefix(),
 			},
 			{
 				label: styles.IconChat + " Chat",
-				tab:   TabChat,
+				tab:   tabChat,
 				id:    zone.NewPrefix(),
 			},
 			{
 				label: styles.IconConsole + " Console",
-				tab:   TabConsole,
+				tab:   tabConsole,
 				id:    zone.NewPrefix(),
 			},
 		},
-		selectedTab: TabOverview,
+		selectedTab: tabOverview,
 	}
 }
 
-type TabsModel struct {
-	tabs        []TabLabel
+type tabsModel struct {
+	tabs        []tabLabel
 	selectedTab tabView
 	width       int
 	id          string
 }
 
-func (m TabsModel) Init() tea.Cmd {
+func (m tabsModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m tabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	changed := false
 	switch msg := msg.(type) {
 	case tea.MouseMsg:
@@ -99,27 +99,27 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, DefaultKeyMap.nextTab):
 			m.selectedTab++
-			if m.selectedTab > TabConsole {
-				m.selectedTab = TabOverview
+			if m.selectedTab > tabConsole {
+				m.selectedTab = tabOverview
 			}
 			changed = true
 		case key.Matches(msg, DefaultKeyMap.prevTab):
 			m.selectedTab--
-			if m.selectedTab < TabOverview {
-				m.selectedTab = TabConsole
+			if m.selectedTab < tabOverview {
+				m.selectedTab = tabConsole
 			}
 			changed = true
 		case key.Matches(msg, DefaultKeyMap.overview):
-			m.selectedTab = TabOverview
+			m.selectedTab = tabOverview
 			changed = true
 		case key.Matches(msg, DefaultKeyMap.bans):
-			m.selectedTab = TabBans
+			m.selectedTab = tabBans
 			changed = true
 		case key.Matches(msg, DefaultKeyMap.comp):
-			m.selectedTab = TabComp
+			m.selectedTab = tabComp
 			changed = true
 		case key.Matches(msg, DefaultKeyMap.chat):
-			m.selectedTab = TabChat
+			m.selectedTab = tabChat
 			changed = true
 		}
 	}
@@ -133,7 +133,7 @@ func (m TabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m TabsModel) View() string {
+func (m tabsModel) View() string {
 	var tabs []string
 
 	for _, tab := range m.tabs {

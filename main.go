@@ -35,6 +35,7 @@ func main() {
 	}
 }
 
+// Run is the main entry point of tf-tui.
 func Run() error {
 	ctx := context.Background()
 
@@ -91,13 +92,14 @@ func Run() error {
 		return errors.Join(errCache, errApp)
 	}
 
-	fetcher := NewMetaFetcher(client, cache)
-	app := New(userConfig, fetcher)
+	app := New(userConfig,
+		NewMetaFetcher(client, cache),
+		NewBDFetcher(httpClient, userConfig.BDLists, cache))
+
 	done := make(chan any)
 
 	go func() {
-		tui := app.createTUI(ctx)
-		if err := tui.Run(); err != nil {
+		if err := app.createUI(ctx).Run(); err != nil {
 			slog.Error("Failed to run UI", slog.String("error", err.Error()))
 		}
 
