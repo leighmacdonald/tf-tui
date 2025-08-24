@@ -38,6 +38,7 @@ type Config struct {
 	Address        string          `yaml:"address"`
 	Password       string          `yaml:"password"`
 	ConsoleLogPath string          `yaml:"console_log_path"`
+	UpdateFreqMs   int             `yaml:"update_freq_ms,omitempty` //nolint:govet
 	APIBaseURL     string          `yaml:"api_base_url,omitempty"`
 	BDLists        []UserList      `yaml:"bd_lists"`
 	Links          []UserLink      `yaml:"links"`
@@ -78,8 +79,9 @@ type UserList struct {
 var defaultConfig = Config{
 	Address:        "127.0.0.1:27015",
 	Password:       "tf-tui",
-	ConsoleLogPath: DefaultConsoleLogPath(),
+	ConsoleLogPath: defaultConsoleLogPath(),
 	APIBaseURL:     "https://tf-api.roto.lol/",
+	UpdateFreqMs:   2000,
 	BDLists:        []UserList{},
 	Links:          []UserLink{},
 }
@@ -133,13 +135,25 @@ func Read(name string) (Config, error) {
 	}
 
 	if config.ConsoleLogPath == "" {
-		config.ConsoleLogPath = DefaultConsoleLogPath()
+		config.ConsoleLogPath = defaultConsoleLogPath()
+	}
+
+	if config.UpdateFreqMs <= 0 {
+		config.UpdateFreqMs = defaultConfig.UpdateFreqMs
+	}
+
+	if config.Address == "" {
+		config.Address = defaultConfig.Address
+	}
+
+	if config.Password == "" {
+		config.Password = defaultConfig.Password
 	}
 
 	return config, nil
 }
 
-func DefaultConsoleLogPath() string {
+func defaultConsoleLogPath() string {
 	switch runtime.GOOS {
 	case "darwin":
 		// Untested
