@@ -56,6 +56,7 @@ func newChatModel() chatModel {
 }
 
 type chatModel struct {
+	players      Players
 	viewport     viewport.Model
 	ready        bool
 	rows         []ChatRow
@@ -93,16 +94,27 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 		} else {
 			m.viewport.Height = msg.contentViewPortHeight
 		}
+	case Players:
+		m.players = msg
 	case tf.LogEvent:
 		if msg.Type != tf.EvtMsg {
 			break
 		}
+
+		team := msg.Team
+		for _, player := range m.players {
+			if player.SteamID.Equal(msg.PlayerSID) {
+				team = player.Team
+				break
+			}
+		}
+
 		row := ChatRow{
 			steamID:   msg.PlayerSID,
 			name:      msg.Player,
 			createdOn: msg.Timestamp,
 			message:   msg.Message,
-			team:      msg.Team,
+			team:      team,
 			dead:      msg.Dead,
 		}
 		m.rows = append(m.rows, row)

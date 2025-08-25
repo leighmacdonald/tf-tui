@@ -15,6 +15,8 @@ func newTablePlayerData(parentZoneID string, playersUpdate Players, team tf.Team
 	data := tablePlayerData{
 		zoneID:         parentZoneID,
 		enabledColumns: []playerTableCol{colMeta, colName, colScore, colDeaths, colPing},
+		sortColumn:     colScore,
+		asc:            true,
 	}
 
 	if len(cols) > 0 {

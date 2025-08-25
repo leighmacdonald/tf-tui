@@ -1,5 +1,7 @@
 # tf-tui
 
+[![Demo](docs/demo.webm)](docs/demo.webm)
+
 ## Ensure launch options
 
 Add the following launch options:
