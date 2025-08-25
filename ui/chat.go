@@ -105,6 +105,7 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 		for _, player := range m.players {
 			if player.SteamID.Equal(msg.PlayerSID) {
 				team = player.Team
+
 				break
 			}
 		}
