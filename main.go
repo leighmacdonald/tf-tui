@@ -14,9 +14,9 @@ import (
 	"runtime/pprof"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/leighmacdonald/tf-tui/config"
 	"github.com/leighmacdonald/tf-tui/store"
-	zone "github.com/lrstanley/bubblezone"
+	"github.com/leighmacdonald/tf-tui/tfapi"
 	_ "modernc.org/sqlite"
 )
 
@@ -35,9 +35,9 @@ func main() {
 	}
 }
 
+// Run is the main entry point of tf-tui.
 func Run() error {
 	ctx := context.Background()
-	zone.NewGlobal()
 
 	if len(os.Getenv("PROFILE")) > 0 {
 		f, err := os.Create(os.Getenv("PROFILE"))
@@ -51,8 +51,12 @@ func Run() error {
 		defer pprof.StopCPUProfile()
 	}
 
-	config, configFound := ConfigRead(defaultConfigName)
-	logFile, errLogger := LoggerInit(defaultLogName, slog.LevelDebug)
+	userConfig, errConfig := config.Read(config.DefaultConfigName)
+	if errConfig != nil {
+		slog.Error("Failed to load config", slog.String("error", errConfig.Error()))
+	}
+
+	logFile, errLogger := config.LoggerInit(config.DefaultLogName, slog.LevelDebug)
 	if errLogger != nil {
 		return errors.Join(errLogger, errApp)
 	}
@@ -66,19 +70,19 @@ func Run() error {
 		slog.String("commit", BuildCommit), slog.String("date", BuildDate),
 		slog.String("go", runtime.Version()))
 
-	client, errClient := NewClientWithResponses(config.APIBaseURL, WithHTTPClient(&http.Client{
-		Timeout: defaultHTTPTimeout,
-	}))
+	httpClient := &http.Client{Timeout: config.DefaultHTTPTimeout}
+	client, errClient := tfapi.NewClientWithResponses(userConfig.APIBaseURL, tfapi.WithHTTPClient(httpClient))
 	if errClient != nil {
 		return errors.Join(errClient, errApp)
 	}
 
-	db, errDB := store.Connect(ctx, ConfigPath(defaultDBName))
+	database, errDB := store.Connect(ctx, config.PathConfig(config.DefaultDBName))
 	if errDB != nil {
 		return errors.Join(errDB, errApp)
 	}
+
 	defer func() {
-		if err := db.Close(); err != nil {
+		if err := database.Close(); err != nil {
 			slog.Error("Error closing database", slog.String("error", err.Error()))
 		}
 	}()
@@ -88,14 +92,21 @@ func Run() error {
 		return errors.Join(errCache, errApp)
 	}
 
-	program := tea.NewProgram(New(config, !configFound, client, cache),
-		tea.WithMouseCellMotion(), tea.WithAltScreen())
+	app := New(userConfig,
+		NewMetaFetcher(client, cache),
+		NewBDFetcher(httpClient, userConfig.BDLists, cache))
 
-	go ConfigWatcher(ctx, program, defaultConfigName)
+	done := make(chan any)
 
-	if _, err := program.Run(); err != nil {
-		return errors.Join(err, errApp)
-	}
+	go func() {
+		if err := app.createUI(ctx).Run(); err != nil {
+			slog.Error("Failed to run UI", slog.String("error", err.Error()))
+		}
+
+		done <- "🫃"
+	}()
+
+	app.Start(ctx, done)
 
 	return nil
 }

@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"time"
@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
 type banTableCol int
@@ -28,7 +28,11 @@ const (
 	colReasonSize banTableSize = -1
 )
 
-type TableBansModel struct {
+func newTableBansModel() tableBansModel {
+	return tableBansModel{table: newUnstyledTable("Site", "Date", "Perm", "Reason")}
+}
+
+type tableBansModel struct {
 	table                 *table.Table
 	player                Player
 	width                 int
@@ -38,11 +42,11 @@ type TableBansModel struct {
 	viewport              viewport.Model
 }
 
-func (m TableBansModel) Init() tea.Cmd {
+func (m tableBansModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TableBansModel) Update(msg tea.Msg) (TableBansModel, tea.Cmd) {
+func (m tableBansModel) Update(msg tea.Msg) (tableBansModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
@@ -59,8 +63,8 @@ func (m TableBansModel) Update(msg tea.Msg) (TableBansModel, tea.Cmd) {
 		m.table.ClearRows()
 
 		var rows [][]string
-		if m.player.meta.Bans != nil {
-			for _, ban := range m.player.meta.Bans {
+		if m.player.Bans != nil {
+			for _, ban := range m.player.Bans {
 				perm := styles.IconCheck
 				if !ban.Permanent {
 					perm = ""
@@ -83,10 +87,10 @@ func (m TableBansModel) Update(msg tea.Msg) (TableBansModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m TableBansModel) Render(height int) string {
+func (m tableBansModel) Render(height int) string {
 	m.viewport.Height = height
 	var content string
-	if len(m.player.meta.Bans) == 0 {
+	if len(m.player.Bans) == 0 {
 		content = styles.InfoMessage.Width(m.width).Render("No bans found " + styles.IconNoBans)
 	} else {
 		content = m.table.StyleFunc(func(row, col int) lipgloss.Style {
@@ -115,8 +119,4 @@ func (m TableBansModel) Render(height int) string {
 	m.viewport.SetContent(lipgloss.JoinVertical(lipgloss.Left, renderTitleBar(m.width, "Bans"), content))
 
 	return m.viewport.View()
-}
-
-func NewTableBansModel() TableBansModel {
-	return TableBansModel{table: NewUnstyledTable("Site", "Date", "Perm", "Reason")}
 }

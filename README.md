@@ -8,10 +8,11 @@ Add the following launch options:
 
 ## Config file
 
-There is a config editor in the app, however its currently *very* limited and only supports a couple fields. You can 
+There is a config editor in the app, however its currently *very* limited and only supports a couple fields. You can
 access that with the `shift+e` shortcut.
 
 Linux: `~/.config/tf-tui/tf-tui.yaml`
+
 Windows: `%LOCALAPPDATA%\tf-tui\tf-tui.yaml`
 
 ```yaml
@@ -47,4 +48,28 @@ links:
 
 If you set `DEBUG=1` env var, a log file will be created for extra error logging & debug messages.
 
-Linux: `~/.config/tf-tui/tf-tui.log`
+Linux: `~/.config/tf-tui/tf-tui.log` Tail shortcut: `make tail`
+
+## Building
+
+The only build dependency is `go1.24+`.
+
+Full snapshot build using goreleaser. Binaries are output to the platform specific paths: `./dist/tf-tui_{linux,windows}/tf-tui`:
+
+```sh
+$ make snapshot
+```
+
+The standard go build options will also work, but some values will not be automatically injected into the build such as version/commit info.
+
+```sh
+$ go build -o tf-tui && ./tf-tui
+```
+
+### Releases
+
+Releases are built and uploaded automatically when a new matching tag is pushed.
+
+```sh
+$ git tag -a v1.2.3 -m "v1.2.3 release!" && git push --tags
+```

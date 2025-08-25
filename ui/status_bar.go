@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"fmt"
@@ -6,10 +6,11 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/tf"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
-type StatusBarModel struct {
+type statusBarModel struct {
 	width       int
 	hostname    string
 	mapName     string
@@ -21,36 +22,36 @@ type StatusBarModel struct {
 	version     string
 }
 
-func NewStatusBarModel(version string) *StatusBarModel {
-	return &StatusBarModel{version: version}
+func newStatusBarModel(version string) *statusBarModel {
+	return &statusBarModel{version: version}
 }
 
-func (m StatusBarModel) Init() tea.Cmd {
+func (m statusBarModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m StatusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case FullStateUpdateMsg:
+	case Players:
 		var (
 			red int
 			blu int
 		)
 
-		for _, player := range msg.players {
+		for _, player := range msg {
 			switch player.Team {
-			case RED:
+			case tf.RED:
 				red++
-			case BLU:
+			case tf.BLU:
 				blu++
 			}
 		}
-		m.players = msg.players
+		m.players = msg
 		m.redPlayers = red
 		m.bluPlayers = blu
 	case StatusMsg:
-		m.statusMsg = msg.message
-		m.statusError = msg.error
+		m.statusMsg = msg.Message
+		m.statusError = msg.Err
 
 		return m, clearErrorAfter(time.Second * 10)
 	case clearStatusMessageMsg:
@@ -58,11 +59,11 @@ func (m StatusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusMsg = ""
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
-	case LogEvent:
+	case tf.LogEvent:
 		switch msg.Type {
-		case EvtHostname:
+		case tf.EvtHostname:
 			m.hostname = msg.MetaData
-		case EvtMap:
+		case tf.EvtMap:
 			m.mapName = msg.MetaData
 		}
 	}
@@ -70,7 +71,7 @@ func (m StatusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m StatusBarModel) View() string {
+func (m statusBarModel) View() string {
 	return lipgloss.NewStyle().Width(m.width).Background(styles.Black).Render(lipgloss.JoinHorizontal(lipgloss.Top,
 		styles.StatusRedTeam.Render(fmt.Sprintf("%3d", m.redPlayers)),
 		styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.bluPlayers)),
@@ -80,7 +81,7 @@ func (m StatusBarModel) View() string {
 		styles.StatusMap.Render(m.mapName)))
 }
 
-func (m StatusBarModel) status() string {
+func (m statusBarModel) status() string {
 	if m.statusError {
 		return styles.StatusError.Render(m.statusMsg)
 	}

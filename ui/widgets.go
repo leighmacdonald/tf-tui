@@ -1,13 +1,13 @@
-package main
+package ui
 
 import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
-func NewTextInputModel(value string, placeholder string) textinput.Model {
+func newTextInputModel(value string, placeholder string) textinput.Model {
 	input := textinput.New()
 	input.Cursor.Style = styles.CursorStyle
 	input.SetValue(value)
@@ -32,7 +32,7 @@ func renderTitleBar(width int, value string) string {
 		Render(value)
 }
 
-func NewUnstyledTable(headers ...string) *table.Table {
+func newUnstyledTable(headers ...string) *table.Table {
 	return table.New().
 		Border(lipgloss.NormalBorder()).
 		BorderColumn(false).

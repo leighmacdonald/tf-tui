@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"time"
@@ -7,26 +7,25 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/tf"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
-
-const MaxTF2MessageLength = 127
 
 type ChatRow struct {
 	steamID   steamid.SteamID
 	name      string
 	createdOn time.Time
 	message   string
-	team      Team
+	team      tf.Team
 	dead      bool
 }
 
 func (m ChatRow) View() string {
 	var name string
 	switch m.team {
-	case RED:
+	case tf.RED:
 		name = styles.ChatNameRed.Render(m.name)
-	case BLU:
+	case tf.BLU:
 		name = styles.ChatNameBlu.Render(m.name)
 	default:
 		name = styles.ChatNameOther.Render(m.name)
@@ -52,11 +51,11 @@ const (
 	PartyChat
 )
 
-func NewChatModel() ChatModel {
-	return ChatModel{}
+func newChatModel() chatModel {
+	return chatModel{}
 }
 
-type ChatModel struct {
+type chatModel struct {
 	viewport     viewport.Model
 	ready        bool
 	rows         []ChatRow
@@ -66,7 +65,7 @@ type ChatModel struct {
 	chatType     ChatType
 }
 
-func (m ChatModel) Placeholder() string {
+func (m chatModel) Placeholder() string {
 	var label string
 	switch m.chatType {
 	case AllChat:
@@ -80,11 +79,11 @@ func (m ChatModel) Placeholder() string {
 	return label + " >"
 }
 
-func (m ChatModel) Init() tea.Cmd {
+func (m chatModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m ChatModel) Update(msg tea.Msg) (ChatModel, tea.Cmd) {
+func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
@@ -94,23 +93,20 @@ func (m ChatModel) Update(msg tea.Msg) (ChatModel, tea.Cmd) {
 		} else {
 			m.viewport.Height = msg.contentViewPortHeight
 		}
-	case ConsoleLogMsg:
-		for _, logEvent := range msg.logs {
-			if logEvent.Type != EvtMsg {
-				break
-			}
-
-			newRow := ChatRow{
-				steamID:   logEvent.PlayerSID,
-				name:      logEvent.Player,
-				createdOn: logEvent.Timestamp,
-				message:   logEvent.Message,
-				dead:      logEvent.Dead,
-				team:      logEvent.Team,
-			}
-			m.rows = append(m.rows, newRow)
-			m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, newRow.View())
+	case tf.LogEvent:
+		if msg.Type != tf.EvtMsg {
+			break
 		}
+		row := ChatRow{
+			steamID:   msg.PlayerSID,
+			name:      msg.Player,
+			createdOn: msg.Timestamp,
+			message:   msg.Message,
+			team:      msg.Team,
+			dead:      msg.Dead,
+		}
+		m.rows = append(m.rows, row)
+		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, row.View())
 		m.viewport.SetContent(m.rowsRendered)
 	}
 
@@ -120,7 +116,7 @@ func (m ChatModel) Update(msg tea.Msg) (ChatModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m ChatModel) View(height int) string {
+func (m chatModel) View(height int) string {
 	titleBar := renderTitleBar(m.width, "Game Chat")
 	m.viewport.Height = height - lipgloss.Height(titleBar)
 

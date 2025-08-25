@@ -1,13 +1,11 @@
-package main
+package ui
 
 import (
-	"strings"
-	"time"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/tfapi"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
 type bdTableCol int
@@ -31,42 +29,43 @@ const (
 )
 
 type MatchedBDPlayer struct {
-	player   BDPlayer
-	listName string
+	Player   tfapi.BDPlayer
+	ListName string
 }
 
-func NewTableBDModel() TableBDModel {
-	return TableBDModel{
-		table: NewUnstyledTable("List Name", "Last Name", "Last Seen", "Attributes", "Proof"),
+func newTableBDModel() tableBDModel {
+	return tableBDModel{
+		table: newUnstyledTable("List Name", "Last Name", "Last Seen", "Attributes", "Proof"),
 	}
 }
 
-type TableBDModel struct {
+type tableBDModel struct {
 	table   *table.Table
 	matched []MatchedBDPlayer
 	width   int
 }
 
-func (m TableBDModel) Init() tea.Cmd {
+func (m tableBDModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TableBDModel) Update(msg tea.Msg) (TableBDModel, tea.Cmd) { //nolint:unparam
+func (m tableBDModel) Update(msg tea.Msg) (tableBDModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 	case SelectedPlayerMsg:
 		var rows [][]string
-		for _, match := range msg.player.BDMatches {
-			lastSeen := time.Unix(match.player.LastSeen.Time, 0)
-			rows = append(rows, []string{
-				match.listName,
-				match.player.LastSeen.PlayerName,
-				lastSeen.Format("2006-01-02"),
-				strings.Join(match.player.Attributes, ", "),
-				strings.Join(match.player.Proof, "\n"),
-			})
-		}
+		// FIXME
+		// for _, match := range msg.player.BDMatches {
+		// 	lastSeen := time.Unix(match.Player.LastSeen.Time, 0)
+		// 	rows = append(rows, []string{
+		// 		match.ListName,
+		// 		match.Player.LastSeen.PlayerName,
+		// 		lastSeen.Format("2006-01-02"),
+		// 		strings.Join(match.Player.Attributes, ", "),
+		// 		strings.Join(match.Player.Proof, "\n"),
+		// 	})
+		// }
 		m.table.ClearRows()
 		m.table.Rows(rows...)
 		m.table.Height(len(m.matched))
@@ -75,7 +74,7 @@ func (m TableBDModel) Update(msg tea.Msg) (TableBDModel, tea.Cmd) { //nolint:unp
 	return m, nil
 }
 
-func (m TableBDModel) Render(height int) string {
+func (m tableBDModel) Render(height int) string {
 	titleBar := renderTitleBar(m.width, "Bot Detector Matches")
 	renderedTable := m.table.Height(height).StyleFunc(func(row, col int) lipgloss.Style {
 		var width int

@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"log/slog"
@@ -7,69 +7,61 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/config"
+	"github.com/leighmacdonald/tf-tui/tf"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
 
-type contentView int
-
-const (
-	viewPlayerTables contentView = iota
-	viewConfig
-	viewHelp
-)
-
-type AppModel struct {
+// rootModel is the root model for the rootModel side of the app.
+type rootModel struct {
 	currentView           contentView
 	previousView          contentView
 	quitting              bool
 	height                int
 	width                 int
 	activeTab             tabView
-	consoleView           ConsoleModel
-	detailPanel           DetailPanelModel
-	banTable              TableBansModel
-	compTable             TableCompModel
-	bdTable               TableBDModel
+	consoleView           consoleModel
+	detailPanel           detailPanelModel
+	banTable              tableBansModel
+	compTable             tableCompModel
+	bdTable               tableBDModel
 	configModel           tea.Model
 	helpModel             tea.Model
-	notesModel            NotesModel
+	notesModel            notesModel
 	tabsModel             tea.Model
 	statusModel           tea.Model
-	chatModel             ChatModel
-	playerDataModel       tea.Model
+	chatModel             chatModel
 	redTable              tea.Model
 	bluTable              tea.Model
-	config                Config
 	contentViewPortHeight int
-	ftrHeight             int
-	hdrHeight             int
+	footerHeight          int
+	headerHeight          int
 	rendered              string
 }
 
-func New(config Config, doSetup bool, client *ClientWithResponses, cache Cache) *AppModel {
-	app := &AppModel{
-		config:                config,
-		currentView:           viewPlayerTables,
-		previousView:          viewPlayerTables,
-		activeTab:             TabOverview,
-		helpModel:             NewHelpModel(),
-		redTable:              NewPlayerTableModel(RED, config.SteamID),
-		bluTable:              NewPlayerTableModel(BLU, config.SteamID),
-		banTable:              NewTableBansModel(),
-		configModel:           NewConfigModal(config),
-		compTable:             NewTableCompModel(),
-		bdTable:               NewTableBDModel(),
-		tabsModel:             NewTabsModel(),
-		notesModel:            NewNotesModel(),
-		detailPanel:           NewDetailPanelModel(config.Links),
-		consoleView:           NewConsoleModel(config.ConsoleLogPath),
-		statusModel:           NewStatusBarModel(BuildVersion),
-		chatModel:             NewChatModel(),
-		playerDataModel:       NewPlayerDataModel(client, config, cache),
+func newRootModel(config config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string) *rootModel {
+	app := &rootModel{
+		currentView:  viewPlayerTables,
+		previousView: viewPlayerTables,
+		activeTab:    tabOverview,
+		helpModel:    newHelpModel(buildVersion, buildDate, buildCommit),
+		redTable:     newPlayerTableModel(tf.RED, config.SteamID),
+		bluTable:     newPlayerTableModel(tf.BLU, config.SteamID),
+		banTable:     newTableBansModel(),
+		configModel:  newConfigModal(config),
+		compTable:    newTableCompModel(),
+		bdTable:      newTableBDModel(),
+		tabsModel:    newTabsModel(),
+		notesModel:   newNotesModel(),
+		detailPanel:  newDetailPanelModel(config.Links),
+		consoleView:  newConsoleModel(),
+		statusModel:  newStatusBarModel(buildVersion),
+		chatModel:    newChatModel(),
+
 		contentViewPortHeight: 10,
-		hdrHeight:             1,
-		ftrHeight:             1,
+		headerHeight:          1,
+		footerHeight:          1,
 	}
 
 	if doSetup {
@@ -79,7 +71,7 @@ func New(config Config, doSetup bool, client *ClientWithResponses, cache Cache) 
 	return app
 }
 
-func (m AppModel) Init() tea.Cmd {
+func (m rootModel) Init() tea.Cmd {
 	return tea.Batch(
 		tea.SetWindowTitle("tf-tui"),
 		m.configModel.Init(),
@@ -89,29 +81,26 @@ func (m AppModel) Init() tea.Cmd {
 		m.consoleView.Init(),
 		m.statusModel.Init(),
 		m.chatModel.Init(),
-		m.playerDataModel.Init(),
 		m.bdTable.Init(),
 		m.redTable.Init(),
 		m.bluTable.Init(), func() tea.Msg {
-			return SelectedTableRowMsg{selectedTeam: RED}
+			return SelectedTableRowMsg{selectedTeam: tf.RED}
 		})
 }
 
 func logMsg(inMsg tea.Msg) {
 	// Filter out very noisy stuff
 	switch inMsg.(type) {
-	case DumpPlayerMsg:
+	case tf.LogEvent:
 		break
-	case ConsoleLogMsg:
-		break
-	case FullStateUpdateMsg:
+	case Players:
 		break
 	default:
 		slog.Debug("tea.Msg", slog.Any("msg", inMsg))
 	}
 }
 
-func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
+func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	logMsg(inMsg)
 
 	if !m.isInitialized() {
@@ -124,7 +113,7 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		m.contentViewPortHeight = m.height - m.hdrHeight - m.ftrHeight
+		m.contentViewPortHeight = m.height - m.headerHeight - m.footerHeight
 
 		return m, func() tea.Msg {
 			return ContentViewPortHeightMsg{
@@ -167,7 +156,7 @@ func (m AppModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	return m.propagate(inMsg)
 }
 
-func (m AppModel) View() string {
+func (m rootModel) View() string {
 	var (
 		header  string
 		content string
@@ -199,17 +188,17 @@ func (m AppModel) View() string {
 		lowerPanelViewportHeight := contentViewPortHeight - lipgloss.Height(playerTables) - 2
 		var ptContent string
 		switch m.activeTab {
-		case TabOverview:
+		case tabOverview:
 			ptContent = m.detailPanel.Render(lowerPanelViewportHeight)
-		case TabBans:
+		case tabBans:
 			ptContent = m.banTable.Render(lowerPanelViewportHeight)
-		case TabBD:
+		case tabBD:
 			ptContent = m.bdTable.Render(lowerPanelViewportHeight)
-		case TabComp:
+		case tabComp:
 			ptContent = m.compTable.Render(lowerPanelViewportHeight)
-		case TabChat:
+		case tabChat:
 			ptContent = m.chatModel.View(lowerPanelViewportHeight)
-		case TabConsole:
+		case tabConsole:
 			ptContent = m.consoleView.Render(lowerPanelViewportHeight)
 		}
 
@@ -227,13 +216,12 @@ func (m AppModel) View() string {
 	return zone.Scan(lipgloss.JoinVertical(lipgloss.Center, hdr, ctr, ftr))
 }
 
-func (m AppModel) isInitialized() bool {
+func (m rootModel) isInitialized() bool {
 	return m.height != 0 && m.width != 0
 }
 
-func (m AppModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
+func (m rootModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 14)
-	m.playerDataModel, cmds[0] = m.playerDataModel.Update(msg)
 	m.redTable, cmds[1] = m.redTable.Update(msg)
 	m.bluTable, cmds[2] = m.bluTable.Update(msg)
 	m.banTable, cmds[3] = m.banTable.Update(msg)

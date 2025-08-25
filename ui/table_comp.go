@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"slices"
@@ -8,7 +8,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"github.com/leighmacdonald/tf-tui/styles"
+	"github.com/leighmacdonald/tf-tui/tfapi"
+	"github.com/leighmacdonald/tf-tui/ui/styles"
 )
 
 type compTableCol int
@@ -35,7 +36,7 @@ const (
 	colTeamNameSize    compTableSize = -1
 )
 
-type TableCompModel struct {
+type tableCompModel struct {
 	player   Player
 	table    *table.Table
 	width    int
@@ -44,17 +45,17 @@ type TableCompModel struct {
 	viewport viewport.Model
 }
 
-func NewTableCompModel() TableCompModel {
-	return TableCompModel{
-		table: NewUnstyledTable("League", "Competition", "Joined", "Left", "Format", "Division", "Team Name"),
+func newTableCompModel() tableCompModel {
+	return tableCompModel{
+		table: newUnstyledTable("League", "Competition", "Joined", "Left", "Format", "Division", "Team Name"),
 	}
 }
 
-func (m TableCompModel) Init() tea.Cmd {
+func (m tableCompModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m TableCompModel) Update(msg tea.Msg) (TableCompModel, tea.Cmd) {
+func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
@@ -71,12 +72,12 @@ func (m TableCompModel) Update(msg tea.Msg) (TableCompModel, tea.Cmd) {
 		m.table.ClearRows()
 
 		var rows [][]string
-		if m.player.meta.CompetitiveTeams != nil {
-			slices.SortStableFunc(m.player.meta.CompetitiveTeams, func(a, b LeaguePlayerTeamHistory) int {
+		if m.player.CompetitiveTeams != nil {
+			slices.SortStableFunc(m.player.CompetitiveTeams, func(a, b tfapi.LeaguePlayerTeamHistory) int {
 				return a.JoinedTeam.Compare(b.LeftTeam)
 			})
-			slices.Reverse(m.player.meta.CompetitiveTeams)
-			for _, team := range m.player.meta.CompetitiveTeams {
+			slices.Reverse(m.player.CompetitiveTeams)
+			for _, team := range m.player.CompetitiveTeams {
 				var (
 					joined string
 					left   string
@@ -104,7 +105,7 @@ func (m TableCompModel) Update(msg tea.Msg) (TableCompModel, tea.Cmd) {
 		// m.table.Height(len(rows))
 		m.table.Rows(rows...)
 		var content string
-		if len(m.player.meta.CompetitiveTeams) == 0 {
+		if len(m.player.CompetitiveTeams) == 0 {
 			content = styles.InfoMessage.Width(m.width).Render("No league history found " + styles.IconNoComp)
 		} else {
 			content = m.table.
@@ -148,7 +149,7 @@ func (m TableCompModel) Update(msg tea.Msg) (TableCompModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m TableCompModel) Render(height int) string {
+func (m tableCompModel) Render(height int) string {
 	titlebar := renderTitleBar(m.width, "League History")
 	m.viewport.Height = height - lipgloss.Height(titlebar)
 

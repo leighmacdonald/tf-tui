@@ -1,4 +1,4 @@
-package main
+package ui
 
 import (
 	"github.com/charmbracelet/bubbles/textarea"
@@ -7,27 +7,27 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type NotesModel struct {
+type notesModel struct {
 	viewPort viewport.Model
 	textarea textarea.Model
 	player   Player
 	width    int
 }
 
-func NewNotesModel() NotesModel {
+func newNotesModel() notesModel {
 	textArea := textarea.New()
 	// textArea.SetHeight(10)
 	textArea.SetValue("A note...")
 	viewPort := viewport.New(10, 10)
 
-	return NotesModel{textarea: textArea, viewPort: viewPort}
+	return notesModel{textarea: textArea, viewPort: viewPort}
 }
 
-func (m NotesModel) Init() tea.Cmd {
+func (m notesModel) Init() tea.Cmd {
 	return tea.Batch(m.textarea.Cursor.BlinkCmd(), m.textarea.Focus())
 }
 
-func (m NotesModel) Update(msg tea.Msg) (NotesModel, tea.Cmd) {
+func (m notesModel) Update(msg tea.Msg) (notesModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
@@ -41,7 +41,7 @@ func (m NotesModel) Update(msg tea.Msg) (NotesModel, tea.Cmd) {
 	return m, tea.Batch()
 }
 
-func (m NotesModel) View(height int) string {
+func (m notesModel) View(height int) string {
 	m.viewPort.SetContent(m.textarea.Value())
 	title := renderTitleBar(m.width, "Player Notes (doesnt work)")
 

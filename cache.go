@@ -9,13 +9,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/adrg/xdg"
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/config"
 )
 
 const (
-	maxCacheAge  = time.Hour * 24
-	cacheDirName = "cache"
+	maxCacheAge = time.Hour * 24
 )
 
 var (
@@ -39,27 +38,19 @@ type FilesystemCache struct {
 	cacheDir string
 }
 
-func cachePath() string {
-	cacheDir, found := os.LookupEnv("CACHE_DIR")
-	if found && cacheDir != "" {
-		return cacheDir
-	}
-
-	return path.Join(xdg.CacheHome, configDirName, cacheDirName)
-}
-
-func NewFilesystemCache() (*FilesystemCache, error) {
-	if err := os.MkdirAll(cachePath(), 0o700); err != nil {
+func NewFilesystemCache() (FilesystemCache, error) {
+	cachePath := config.PathCache(config.CacheDirName)
+	if err := os.MkdirAll(cachePath, 0o700); err != nil {
 		slog.Error("Failed to make config root", slog.String("error", err.Error()),
-			slog.String("path", cachePath()))
+			slog.String("path", cachePath))
 
-		return nil, errors.Join(err, errCacheDir)
+		return FilesystemCache{}, errors.Join(err, errCacheDir)
 	}
 
-	return &FilesystemCache{cacheDir: cachePath()}, nil
+	return FilesystemCache{cacheDir: cachePath}, nil
 }
 
-func (c *FilesystemCache) Set(steamID steamid.SteamID, variant CacheItemVariant, content []byte) error {
+func (c FilesystemCache) Set(steamID steamid.SteamID, variant CacheItemVariant, content []byte) error {
 	file, errFile := os.Create(path.Join(c.cacheDir, cacheName(steamID, variant)))
 	if errFile != nil {
 		return errors.Join(errCacheSet, errFile)
@@ -78,7 +69,7 @@ func (c *FilesystemCache) Set(steamID steamid.SteamID, variant CacheItemVariant,
 	return nil
 }
 
-func (c *FilesystemCache) Get(steamID steamid.SteamID, variant CacheItemVariant) ([]byte, error) {
+func (c FilesystemCache) Get(steamID steamid.SteamID, variant CacheItemVariant) ([]byte, error) {
 	file, errFile := os.Open(path.Join(c.cacheDir, cacheName(steamID, variant)))
 	if errFile != nil {
 		return nil, errors.Join(errCacheMiss, errFile)

@@ -1,156 +1,34 @@
-package main
+package tf
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"github.com/nxadm/tail"
 )
-
-var (
-	errConsoleLog     = errors.New("failed to read console.log")
-	errDuration       = errors.New("failed to parse connected duration")
-	errParseTimestamp = errors.New("failed to parse timestamp")
-)
-
-func NewConsoleLog() *ConsoleLog {
-	return &ConsoleLog{
-		tail:       nil,
-		stopChan:   make(chan bool),
-		parser:     newLogParser(),
-		outQueueMu: &sync.Mutex{},
-	}
-}
-
-type ConsoleLog struct {
-	tail       *tail.Tail
-	parser     Parser
-	stopChan   chan bool
-	outQueue   []LogEvent
-	outQueueMu *sync.Mutex
-}
-
-func (l *ConsoleLog) Read(filePath string) error {
-	if l.tail != nil && l.tail.Filename == filePath {
-		return nil
-	}
-
-	tailConfig := tail.Config{
-		// Start at the end of the file, only watch for new lines.
-		Location: &tail.SeekInfo{
-			Offset: 0,
-			Whence: io.SeekEnd,
-		},
-		// Ensure we don't see the log messages in stdout and mangle the ui
-		Logger:    tail.DiscardingLogger,
-		Follow:    true,
-		ReOpen:    true,
-		MustExist: false,
-		// Poll:      runtime.GOOS == "windows",
-	}
-
-	tailFile, errTail := tail.TailFile(filePath, tailConfig)
-	if errTail != nil {
-		return errors.Join(errTail, errConsoleLog)
-	}
-
-	if l.tail != nil {
-		l.stopChan <- true
-	}
-
-	l.tail = tailFile
-	go l.start()
-
-	return nil
-}
-
-func (l *ConsoleLog) Dequeue() []LogEvent {
-	l.outQueueMu.Lock()
-	out := l.outQueue
-	l.outQueue = nil
-	l.outQueueMu.Unlock()
-
-	return out
-}
-
-func (l *ConsoleLog) handleLine(rawLine string) {
-	line := strings.TrimSuffix(rawLine, "\r")
-	if line == "" {
-		return
-	}
-
-	var logEvent LogEvent
-	if err := l.parser.parse(line, &logEvent); err != nil || errors.Is(err, ErrNoMatch) {
-		// This is sent as a "raw" line so that the console view can show it even if it doesn't
-		// match any supported events.
-		logEvent.Raw = line
-		logEvent.Type = EvtAny
-	}
-
-	l.outQueueMu.Lock()
-	l.outQueue = append(l.outQueue, logEvent)
-	l.outQueueMu.Unlock()
-}
-
-// start begins reading incoming log events, parsing events from the lines and emitting any found events as a LogEvent.
-func (l *ConsoleLog) start() {
-	if len(os.Getenv("DEBUG")) > 0 {
-		go func() {
-			for {
-				reader, errReader := os.Open("testdata/console.log")
-				if errReader != nil {
-					panic(errReader)
-				}
-
-				scanner := bufio.NewScanner(reader)
-				for scanner.Scan() {
-					l.handleLine(scanner.Text())
-					time.Sleep(time.Millisecond * 50)
-				}
-			}
-		}()
-	}
-	for {
-		select {
-		case msg := <-l.tail.Lines:
-			if msg == nil {
-				// Happens on linux only?
-				continue
-			}
-			l.handleLine(msg.Text)
-		case <-l.stopChan:
-			if errStop := l.tail.Stop(); errStop != nil {
-				slog.Error("Failed to stop tailing console.log cleanly", slog.String("error", errStop.Error()))
-			}
-
-			return
-		}
-	}
-}
 
 var ErrNoMatch = errors.New("no match found")
 
-const logTimestampFormat = "01/02/2006 - 15:04:05"
+type EventType int
 
-// parseTimestamp will convert the source formatted log timestamps into a time.Time value.
-func parseTimestamp(timestamp string) (time.Time, error) {
-	parsedTime, errParse := time.Parse(logTimestampFormat, timestamp)
-	if errParse != nil {
-		return time.Time{}, errors.Join(errParse, errParseTimestamp)
-	}
-
-	return parsedTime, nil
-}
+const (
+	EvtAny = iota - 1
+	EvtKill
+	EvtMsg
+	EvtConnect
+	EvtDisconnect
+	EvtStatusID
+	EvtHostname
+	EvtMap
+	EvtTags
+	EvtAddress
+	EvtLobby
+)
 
 type LogEvent struct {
 	Type            EventType
@@ -179,6 +57,31 @@ func (e *LogEvent) ApplyTimestamp(tsString string) error {
 	e.Timestamp = ts
 
 	return nil
+}
+
+type logParser struct {
+	evtChan     chan LogEvent
+	ReadChannel chan string
+	rx          []*regexp.Regexp
+	logger      *slog.Logger
+}
+
+const (
+	teamPrefix     = "(TEAM) "
+	deadPrefix     = "*DEAD* "
+	deadTeamPrefix = "*DEAD*(TEAM) "
+	// coachPrefix    = "*COACH* ".
+)
+const logTimestampFormat = "01/02/2006 - 15:04:05"
+
+// parseTimestamp will convert the source formatted log timestamps into a time.Time value.
+func parseTimestamp(timestamp string) (time.Time, error) {
+	parsedTime, errParse := time.Parse(logTimestampFormat, timestamp)
+	if errParse != nil {
+		return time.Time{}, errors.Join(errParse, errParseTimestamp)
+	}
+
+	return parsedTime, nil
 }
 
 type updateType int
@@ -219,24 +122,6 @@ func (ut updateType) String() string {
 		return "unknown"
 	}
 }
-
-type Parser interface {
-	parse(msg string, outEvent *LogEvent) error
-}
-
-type logParser struct {
-	evtChan     chan LogEvent
-	ReadChannel chan string
-	rx          []*regexp.Regexp
-	logger      *slog.Logger
-}
-
-const (
-	teamPrefix     = "(TEAM) "
-	deadPrefix     = "*DEAD* "
-	deadTeamPrefix = "*DEAD*(TEAM) "
-	// coachPrefix    = "*COACH* ".
-)
 
 func newLogParser() *logParser {
 	return &logParser{
@@ -376,36 +261,3 @@ func parseConnected(d string) (time.Duration, error) {
 
 	return dur, nil
 }
-
-type EventType int
-
-const (
-	EvtAny = iota - 1
-	EvtKill
-	EvtMsg
-	EvtConnect
-	EvtDisconnect
-	EvtStatusID
-	EvtHostname
-	EvtMap
-	EvtTags
-	EvtAddress
-	EvtLobby
-)
-
-type KickReason string
-
-const (
-	KickReasonIdle     KickReason = "idle"
-	KickReasonScamming KickReason = "scamming"
-	KickReasonCheating KickReason = "cheating"
-	KickReasonOther    KickReason = "other"
-)
-
-type ChatDest string
-
-const (
-	ChatDestAll   ChatDest = "all"
-	ChatDestTeam  ChatDest = "team"
-	ChatDestParty ChatDest = "party"
-)
