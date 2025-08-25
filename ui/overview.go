@@ -137,5 +137,5 @@ func (m detailPanelModel) Render(height int) string {
 	titleBar := renderTitleBar(m.width, "Player Overview")
 	m.viewport.Height = height - lipgloss.Height(titleBar)
 
-	return lipgloss.JoinVertical(lipgloss.Top, titleBar, m.viewport.View())
+	return lipgloss.JoinVertical(lipgloss.Top, titleBar, "", m.viewport.View())
 }

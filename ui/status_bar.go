@@ -77,14 +77,18 @@ func (m statusBarModel) View() string {
 		styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.bluPlayers)),
 		styles.StatusVersion.Render(m.version),
 		styles.StatusHelp.Render(fmt.Sprintf("%s %s", DefaultKeyMap.help.Help().Key, DefaultKeyMap.help.Help().Desc)),
-		styles.StatusHostname.Render(m.hostname),
+		m.status(),
 		styles.StatusMap.Render(m.mapName)))
 }
 
 func (m statusBarModel) status() string {
-	if m.statusError {
-		return styles.StatusError.Render(m.statusMsg)
+	if m.statusMsg != "" {
+		if m.statusError {
+			return styles.StatusError.Render(m.statusMsg)
+		}
+
+		return styles.StatusMessage.Render(m.statusMsg)
 	}
 
-	return styles.StatusMessage.Render(m.statusMsg)
+	return styles.StatusHostname.Render(m.hostname)
 }

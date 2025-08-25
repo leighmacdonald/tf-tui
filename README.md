@@ -1,5 +1,7 @@
 # tf-tui
 
+[![Demo](docs/demo.mp4)](docs/demo.mp4)
+
 ## Ensure launch options
 
 Add the following launch options:

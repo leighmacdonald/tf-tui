@@ -30,3 +30,6 @@ config:
 
 snapshot:
 	goreleaser release --snapshot --clean
+
+demo:
+	go tool vhs docs/demo.vhs
