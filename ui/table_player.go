@@ -167,8 +167,8 @@ func (m tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedSteamID = msg.selectedSteamID
 
 		return m, nil
-	case FullStateUpdateMsg:
-		return m.updatePlayers(msg.players)
+	case Players:
+		return m.updatePlayers(msg)
 	}
 
 	return m, nil

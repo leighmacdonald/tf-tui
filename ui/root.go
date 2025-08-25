@@ -91,7 +91,9 @@ func (m rootModel) Init() tea.Cmd {
 func logMsg(inMsg tea.Msg) {
 	// Filter out very noisy stuff
 	switch inMsg.(type) {
-	case FullStateUpdateMsg:
+	case tf.LogEvent:
+		break
+	case Players:
 		break
 	default:
 		slog.Debug("tea.Msg", slog.Any("msg", inMsg))

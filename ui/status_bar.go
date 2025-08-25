@@ -32,13 +32,13 @@ func (m statusBarModel) Init() tea.Cmd {
 
 func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case FullStateUpdateMsg:
+	case Players:
 		var (
 			red int
 			blu int
 		)
 
-		for _, player := range msg.players {
+		for _, player := range msg {
 			switch player.Team {
 			case tf.RED:
 				red++
@@ -46,12 +46,12 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				blu++
 			}
 		}
-		m.players = msg.players
+		m.players = msg
 		m.redPlayers = red
 		m.bluPlayers = blu
 	case StatusMsg:
-		m.statusMsg = msg.message
-		m.statusError = msg.error
+		m.statusMsg = msg.Message
+		m.statusError = msg.Err
 
 		return m, clearErrorAfter(time.Second * 10)
 	case clearStatusMessageMsg:

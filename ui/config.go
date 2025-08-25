@@ -231,7 +231,7 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case fieldSave:
 				for _, field := range m.fields {
 					if field.input.Err != nil {
-						return m, func() tea.Msg { return StatusMsg{message: "Config is not valid, cannot save", error: true} }
+						return m, func() tea.Msg { return StatusMsg{Message: "Config is not valid, cannot save", Err: true} }
 					}
 				}
 
@@ -243,14 +243,14 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cfg.APIBaseURL = m.fields[fieldTFAPIBaseURL].input.Value()
 
 				if err := config.Write(config.DefaultConfigName, cfg); err != nil {
-					return m, func() tea.Msg { return StatusMsg{message: err.Error(), error: true} }
+					return m, func() tea.Msg { return StatusMsg{Message: err.Error(), Err: true} }
 				}
 
 				m.config = cfg
 
 				return m, tea.Batch(
 					func() tea.Msg { return cfg },
-					func() tea.Msg { return StatusMsg{message: "Saved config"} },
+					func() tea.Msg { return StatusMsg{Message: "Saved config"} },
 					setContentView(viewPlayerTables))
 			}
 		}

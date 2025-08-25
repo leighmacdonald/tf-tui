@@ -37,13 +37,9 @@ func clearErrorAfter(t time.Duration) tea.Cmd {
 	})
 }
 
-type FullStateUpdateMsg struct {
-	players Players
-}
-
 type StatusMsg struct {
-	message string
-	error   bool
+	Message string
+	Err     bool
 }
 
 // SetViewMsg will Switch the currently displayed center content view.

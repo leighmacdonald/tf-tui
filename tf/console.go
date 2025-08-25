@@ -33,7 +33,7 @@ func NewConsoleLog() *ConsoleLog {
 // events are parsed out into typed events. Remaining events are also returned in a raw form.
 type ConsoleLog struct {
 	tail       *tail.Tail
-	parser     Parser
+	parser     *logParser
 	stopChan   chan bool
 	readers    map[EventType][]chan<- LogEvent
 	readersAny []chan<- LogEvent

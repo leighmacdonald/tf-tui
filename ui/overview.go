@@ -40,8 +40,8 @@ func (m detailPanelModel) Update(msg tea.Msg) (detailPanelModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case config.Config:
 		m.links = msg.Links
-	case FullStateUpdateMsg:
-		m.players = msg.players
+	case Players:
+		m.players = msg
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 		m.height = msg.height

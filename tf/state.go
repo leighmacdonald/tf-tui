@@ -13,10 +13,6 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 )
 
-const (
-	MaxPlayerCount = 102
-)
-
 type DumpPlayer struct {
 	Names     [MaxPlayerCount]string
 	Ping      [MaxPlayerCount]int
@@ -46,7 +42,7 @@ type DumpFetcher struct {
 	g15re      *regexp.Regexp
 }
 
-func (f DumpFetcher) FetchDumpPlayer(ctx context.Context) (DumpPlayer, error) {
+func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, error) {
 	conn := newRconConnection(f.Address, f.Password)
 	response, errExec := conn.exec(ctx, "g15_dumpplayer", true)
 	if errExec != nil {

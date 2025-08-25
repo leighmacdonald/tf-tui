@@ -12,11 +12,13 @@ import (
 	"github.com/leighmacdonald/tf-tui/ui"
 )
 
+// App is the main application container.
 type App struct {
 	ui            *ui.UI
 	config        config.Config
 	console       *tf.ConsoleLog
 	metaFetcher   *MetaFetcher
+	dumpFetcher   tf.DumpFetcher
 	bdFetcher     *BDFetcher
 	players       *PlayerStates
 	metaInFlight  atomic.Bool
@@ -24,6 +26,8 @@ type App struct {
 	configUpdates chan config.Config
 }
 
+// New returns a new application instance. To actually start the app you must call
+// Start().
 func New(conf config.Config, metaFetcher *MetaFetcher, bdFetcheer *BDFetcher) *App {
 	return &App{
 		config:        conf,
@@ -31,6 +35,7 @@ func New(conf config.Config, metaFetcher *MetaFetcher, bdFetcheer *BDFetcher) *A
 		bdFetcher:     bdFetcheer,
 		console:       tf.NewConsoleLog(),
 		players:       NewPlayerStates(),
+		dumpFetcher:   tf.NewDumpFetcher(conf.Address, conf.Password),
 		configUpdates: make(chan config.Config),
 		uiUpdates:     make(chan any),
 	}
@@ -68,6 +73,7 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 			}
 			app.updateMetaProfile(ctx)
 			app.updateBD()
+			app.updateDump(ctx)
 		case conf := <-app.configUpdates:
 			app.uiUpdates <- conf
 		case <-ctx.Done():
@@ -78,6 +84,7 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 	}
 }
 
+// logEventUpdater sends console log events to the UI for display.
 func (app *App) logEventUpdater(ctx context.Context) {
 	eventChan := make(chan tf.LogEvent)
 	app.console.RegisterHandler(tf.EvtAny, eventChan)
@@ -91,6 +98,7 @@ func (app *App) logEventUpdater(ctx context.Context) {
 	}
 }
 
+// uiSender handles forwarding all events to the UI.
 func (app *App) uiSender(ctx context.Context) {
 	for {
 		select {
@@ -166,6 +174,18 @@ func (app *App) updateBD() {
 	}
 
 	app.players.SetPlayer(updates...)
+}
+
+func (app *App) updateDump(ctx context.Context) {
+	dump, errDump := app.dumpFetcher.Fetch(ctx)
+	if errDump != nil {
+		app.uiUpdates <- ui.StatusMsg{
+			Err:     true,
+			Message: errDump.Error(),
+		}
+	}
+
+	app.players.UpdateDumpPlayer(dump)
 }
 
 func (app *App) updateMetaProfile(ctx context.Context) {

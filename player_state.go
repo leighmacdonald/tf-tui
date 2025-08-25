@@ -85,17 +85,19 @@ func (s *PlayerStates) UpdateDumpPlayer(stats tf.DumpPlayer) {
 func (s *PlayerStates) SetPlayer(updates ...Player) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
+	var existing bool
 	for _, player := range updates {
 		for playerIdx := range s.players {
 			if s.players[playerIdx].SteamID.Equal(player.SteamID) {
 				s.players[playerIdx] = player
+				existing = true
 
 				continue
 			}
 		}
-
-		s.players = append(s.players, player)
+		if !existing {
+			s.players = append(s.players, player)
+		}
 	}
 }
 

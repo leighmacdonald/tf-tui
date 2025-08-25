@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"net/http"
 	"strings"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
@@ -89,6 +90,11 @@ func (m *MetaFetcher) fetchMetaProfiles(ctx context.Context, steamIDs steamid.Co
 		}
 	}(resp.Body)
 
+	if resp.StatusCode != http.StatusOK {
+		slog.Error("Failed to fetch profiles")
+
+		return nil, errFetchMetaProfile
+	}
 	parsed, errParse := tfapi.ParseMetaProfileResponse(resp)
 	if errParse != nil {
 		return nil, errors.Join(errParse, errFetchMetaProfile)

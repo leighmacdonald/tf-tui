@@ -14,6 +14,22 @@ import (
 
 var ErrNoMatch = errors.New("no match found")
 
+type EventType int
+
+const (
+	EvtAny = iota - 1
+	EvtKill
+	EvtMsg
+	EvtConnect
+	EvtDisconnect
+	EvtStatusID
+	EvtHostname
+	EvtMap
+	EvtTags
+	EvtAddress
+	EvtLobby
+)
+
 type LogEvent struct {
 	Type            EventType
 	Player          string
@@ -41,10 +57,6 @@ func (e *LogEvent) ApplyTimestamp(tsString string) error {
 	e.Timestamp = ts
 
 	return nil
-}
-
-type Parser interface {
-	parse(msg string, outEvent *LogEvent) error
 }
 
 type logParser struct {
@@ -249,36 +261,3 @@ func parseConnected(d string) (time.Duration, error) {
 
 	return dur, nil
 }
-
-type EventType int
-
-const (
-	EvtAny = iota - 1
-	EvtKill
-	EvtMsg
-	EvtConnect
-	EvtDisconnect
-	EvtStatusID
-	EvtHostname
-	EvtMap
-	EvtTags
-	EvtAddress
-	EvtLobby
-)
-
-type KickReason string
-
-const (
-	KickReasonIdle     KickReason = "idle"
-	KickReasonScamming KickReason = "scamming"
-	KickReasonCheating KickReason = "cheating"
-	KickReasonOther    KickReason = "other"
-)
-
-type ChatDest string
-
-const (
-	ChatDestAll   ChatDest = "all"
-	ChatDestTeam  ChatDest = "team"
-	ChatDestParty ChatDest = "party"
-)
