@@ -1,4 +1,4 @@
-Output docs/demo.webm
+Output docs/demo.mp4
 Set Width 2000
 Set Height 1000
 Set Shell zsh

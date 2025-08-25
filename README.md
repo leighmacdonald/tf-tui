@@ -1,6 +1,6 @@
 # tf-tui
 
-[![Demo](docs/demo.webm)](docs/demo.webm)
+[![Demo](docs/demo.mp4)](docs/demo.mp4)
 
 ## Ensure launch options
 
