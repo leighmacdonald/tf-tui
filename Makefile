@@ -14,7 +14,8 @@ update:
 	make generate
 
 generate:
-	go generate
+	go tool oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.json
+	go tool sqlc generate -f .sqlc.yaml
 
 race:
 	GORACE="race.txt" DEBUG=1 go run -race .
@@ -33,3 +34,9 @@ snapshot:
 
 demo:
 	go tool vhs docs/demo.vhs
+
+build:
+	go build -o tf-tui cmd/tf-tui/*
+
+run: build
+	./tf-tui

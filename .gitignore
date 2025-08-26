@@ -39,3 +39,4 @@ dist/
 *.prof
 *.svg
 tf-tui
+!cmd/tf-tui

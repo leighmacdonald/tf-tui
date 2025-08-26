@@ -1,6 +1,6 @@
 # tf-tui
 
-[![Demo](docs/demo.mp4)](docs/demo.mp4)
+[![Demo](docs/demo.gif)](docs/demo.gif)
 
 ## Ensure launch options
 

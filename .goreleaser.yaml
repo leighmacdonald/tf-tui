@@ -20,14 +20,18 @@ project_name: tf-tui
 #      - "--label=org.opencontainers.image.title={{.ProjectName}}"
 #      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
 #      - "--label=org.opencontainers.image.version={{.Version}}"
+
 gomod:
   # Proxy a module from proxy.golang.org, making the builds verifiable.
   # This will only be effective if running against a tag. Snapshots will ignore
   # this setting.
   proxy: true
+
 builds:
   - env:
       - CGO_ENABLED=0
+    main: ./cmd/tf-tui
+    binary: tf-tui
     goos:
       - linux
       - windows
@@ -37,10 +41,6 @@ builds:
       - -trimpath
     tags:
       - release
-    # GOARCH to build for.
-    # For more info refer to: https://go.dev/doc/install/source#environment
-    #
-    # Default: [ '386', 'amd64', 'arm64' ].
     goarch:
       - amd64
     ldflags:
@@ -50,9 +50,8 @@ builds:
       - -X main.BuildCommit={{.Commit}}
       - -X main.BuildDate={{.CommitDate}}
 
-
 archives:
-  - formats: ['tar.gz']
+  - formats: ["tar.gz"]
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
@@ -65,7 +64,7 @@ archives:
     # use zip for windows archives
     format_overrides:
       - goos: windows
-        formats: ['zip']
+        formats: ["zip"]
 
 changelog:
   sort: asc

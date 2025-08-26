@@ -1,11 +1,11 @@
-Output docs/demo.mp4
+Output docs/demo.gif
 Set Width 2000
 Set Height 1000
 Set Shell zsh
 Set BorderRadius 0
 Set Margin 0
 Sleep 1.5s
-Type "go run ."
+Type "make run"
 Enter
 Sleep 6.5s
 Down 8
