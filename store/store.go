@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"embed"
-	_ "embed"
 	"errors"
 	"net/http"
 	"runtime"
@@ -49,7 +48,8 @@ func configureConnection(ctx context.Context, connection *sql.DB) error {
 		"PRAGMA busy_timeout = 10000",
 		"PRAGMA journal_mode=WAL",
 		"PRAGMA main.synchronous = NORMAL",
-		"PRAGMA main.cache_size = -32768"}
+		"PRAGMA main.cache_size = -32768",
+	}
 	for _, pragma := range pragmas {
 		if _, errPragma := connection.ExecContext(ctx, pragma); errPragma != nil {
 			return errors.Join(errPragma, ErrDBConnect)
@@ -78,6 +78,7 @@ func Open(ctx context.Context, path string, autoMigrate bool) (*sql.DB, error) {
 	defer cancel()
 	if err := connection.PingContext(pingCtx); err != nil {
 		connection.Close()
+
 		return nil, errors.Join(err, ErrDBConnect)
 	}
 
