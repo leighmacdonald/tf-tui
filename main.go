@@ -76,7 +76,7 @@ func Run() error {
 		return errors.Join(errClient, errApp)
 	}
 
-	database, errDB := store.Connect(ctx, config.PathConfig(config.DefaultDBName))
+	database, errDB := store.Open(ctx, config.PathConfig(config.DefaultDBName), true)
 	if errDB != nil {
 		return errors.Join(errDB, errApp)
 	}
