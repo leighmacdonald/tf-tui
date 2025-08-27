@@ -35,7 +35,16 @@ var (
 
 	ErrDBConnect = errors.New("db connect error")
 	ErrMigrate   = errors.New("failed to migrate db schema")
+	ErrNoResults = errors.New("no results")
 )
+
+func Err(err error) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNoResults
+	}
+
+	return err
+}
 
 func configureConnection(ctx context.Context, connection *sql.DB) error {
 	parallelism := min(8, max(2, runtime.GOMAXPROCS(0)))
