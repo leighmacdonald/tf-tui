@@ -91,10 +91,21 @@ func Run() error {
 		return errors.Join(errCache, errApp)
 	}
 
-	app := New(userConfig,
-		internal.NewMetaFetcher(client, cache),
-		internal.NewBDFetcher(httpClient, userConfig.BDLists, cache),
-		database)
+	metaFetcher := internal.NewMetaFetcher(client, cache)
+	bdFetcher := internal.NewBDFetcher(httpClient, userConfig.BDLists, cache)
+
+	pluginHost := internal.NewPluginHost()
+	if errPlugins := pluginHost.Open(); errPlugins != nil {
+		return errors.Join(errPlugins, errApp)
+	}
+	defer pluginHost.Close()
+
+	app := New(
+		userConfig,
+		metaFetcher,
+		bdFetcher,
+		database,
+		pluginHost)
 
 	done := make(chan any)
 

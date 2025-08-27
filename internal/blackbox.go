@@ -47,7 +47,7 @@ type Match struct {
 type BlackBox struct {
 	db        *store.Queries
 	logEvents chan tf.LogEvent
-	validIds  []steamid.SteamID
+	validIDs  []steamid.SteamID
 	match     Match
 }
 
@@ -66,7 +66,7 @@ func (b *BlackBox) start(ctx context.Context) {
 			case tf.EvtKill:
 				b.onKill(ctx, event)
 			case tf.EvtConnect:
-				err = b.onConnect(ctx, event)
+				b.onConnect(ctx, event)
 			case tf.EvtDisconnect:
 			case tf.EvtAddress:
 				b.match.Address = event.MetaData
@@ -87,18 +87,16 @@ func (b *BlackBox) start(ctx context.Context) {
 	}
 }
 
-func (b *BlackBox) onConnect(ctx context.Context, event tf.LogEvent) error {
-	if len(b.match.Players) > 0 {
-		// Save it
-	}
+func (b *BlackBox) onConnect(_ context.Context, _ tf.LogEvent) {
+	// if len(b.match.Players) > 0 {
+	// 	// Save it
+	// }
 
 	b.match = Match{
 		Players:  []*PlayerHistory{},
 		Messages: []ChatMessage{},
 		Tags:     []string{},
 	}
-
-	return nil
 }
 
 func (b *BlackBox) player(steamID steamid.SteamID) *PlayerHistory {
@@ -114,7 +112,7 @@ func (b *BlackBox) player(steamID steamid.SteamID) *PlayerHistory {
 	return player
 }
 
-func (b *BlackBox) onKill(ctx context.Context, event tf.LogEvent) {
+func (b *BlackBox) onKill(_ context.Context, event tf.LogEvent) {
 	player := b.player(event.PlayerSID)
 	player.Kills = append(player.Kills, PlayerKill{
 		Source:    event.PlayerSID,
@@ -127,7 +125,7 @@ func (b *BlackBox) onKill(ctx context.Context, event tf.LogEvent) {
 
 // ensureSID handles making sure the players steam_id FK is satisfied.
 func (b *BlackBox) ensureSID(ctx context.Context, steamID steamid.SteamID) error {
-	if slices.Contains(b.validIds, steamID) {
+	if slices.Contains(b.validIDs, steamID) {
 		return nil
 	}
 
@@ -138,10 +136,10 @@ func (b *BlackBox) ensureSID(ctx context.Context, steamID steamid.SteamID) error
 		UpdatedOn: time.Now().Unix(),
 	}
 	if err := b.db.InsertPlayer(ctx, args); err != nil {
-		return err
+		return store.Err(err)
 	}
 
-	b.validIds = append(b.validIds, steamID)
+	b.validIDs = append(b.validIDs, steamID)
 
 	return nil
 }
@@ -163,7 +161,7 @@ func (b *BlackBox) onMsg(ctx context.Context, event tf.LogEvent) error {
 		TeamOnly:  teamOnly,
 		CreatedOn: event.Timestamp.Unix(),
 	}); err != nil {
-		return err
+		return store.Err(err)
 	}
 
 	return nil
