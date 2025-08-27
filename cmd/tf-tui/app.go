@@ -34,7 +34,8 @@ type App struct {
 // New returns a new application instance. To actually start the app you must call
 // Start().
 func New(conf config.Config, metaFetcher *internal.MetaFetcher, bdFetcher *internal.BDFetcher,
-	database *sql.DB, plugins *internal.PluginHost) *App {
+	database *sql.DB, plugins *internal.PluginHost,
+) *App {
 	return &App{
 		config:        conf,
 		metaFetcher:   metaFetcher,
