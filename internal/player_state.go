@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	tf2 "github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 )
 
@@ -18,7 +18,7 @@ type Player struct {
 	Score         int
 	Deaths        int
 	Connected     bool
-	Team          tf2.Team
+	Team          tf.Team
 	Alive         bool
 	Health        int
 	Valid         bool
@@ -47,9 +47,9 @@ type PlayerStates struct {
 	checkInterval time.Duration
 }
 
-func (s *PlayerStates) UpdateDumpPlayer(stats tf2.DumpPlayer) {
+func (s *PlayerStates) UpdateDumpPlayer(stats tf.DumpPlayer) {
 	var players Players //nolint:prealloc
-	for idx := range tf2.MaxPlayerCount {
+	for idx := range tf.MaxPlayerCount {
 		sid := stats.SteamID[idx]
 		if !sid.Valid() {
 			// TODO verify this is ok, however i think g15 is filled sequentially.
@@ -73,7 +73,7 @@ func (s *PlayerStates) UpdateDumpPlayer(stats tf2.DumpPlayer) {
 		player.Score = stats.Score[idx]
 		player.Connected = stats.Connected[idx]
 		player.Name = stats.Names[idx]
-		player.Team = tf2.Team(stats.Team[idx])
+		player.Team = tf.Team(stats.Team[idx])
 		player.UserID = stats.UserID[idx]
 		player.G15UpdatedOn = time.Now()
 		players = append(players, player)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
@@ -19,7 +20,7 @@ type PlayerKill struct {
 	CreatedOn time.Time
 }
 
-type PlayerHistroy struct {
+type PlayerHistory struct {
 	SteamID   steamid.SteamID
 	Name      string
 	Score     int
@@ -35,8 +36,11 @@ type ChatMessage struct {
 }
 
 type Match struct {
-	Players  []PlayerHistroy
+	Players  []*PlayerHistory
 	Messages []ChatMessage
+	Hostname string
+	Address  string
+	Tags     []string
 }
 
 // BlackBox handles recording various game events for long term storage.
@@ -58,12 +62,20 @@ func (b *BlackBox) start(ctx context.Context) {
 			var err error
 			switch event.Type {
 			case tf.EvtMsg:
-				err = b.saveChatMsg(ctx, event)
+				err = b.onMsg(ctx, event)
 			case tf.EvtKill:
-				err = b.onKill(ctx, event)
+				b.onKill(ctx, event)
 			case tf.EvtConnect:
 				err = b.onConnect(ctx, event)
 			case tf.EvtDisconnect:
+			case tf.EvtAddress:
+				b.match.Address = event.MetaData
+			case tf.EvtHostname:
+				b.match.Hostname = event.MetaData
+			case tf.EvtTags:
+				b.match.Tags = strings.Split(event.MetaData, ",")
+			case tf.EvtLobby:
+			case tf.EvtStatusID:
 			}
 
 			if err != nil {
@@ -81,18 +93,36 @@ func (b *BlackBox) onConnect(ctx context.Context, event tf.LogEvent) error {
 	}
 
 	b.match = Match{
-		Players: []PlayerHistroy{},
+		Players:  []*PlayerHistory{},
+		Messages: []ChatMessage{},
+		Tags:     []string{},
 	}
 
 	return nil
 }
 
-func (b *BlackBox) onKill(ctx context.Context, event tf.LogEvent) error {
-	for _, playerSID := range []steamid.SteamID{event.PlayerSID, event.VictimSID} {
-		if err := b.ensureSID(ctx, playerSID); err != nil {
-			return err
+func (b *BlackBox) player(steamID steamid.SteamID) *PlayerHistory {
+	for _, player := range b.match.Players {
+		if player.SteamID.Equal(steamID) {
+			return player
 		}
 	}
+
+	player := &PlayerHistory{SteamID: steamID}
+	b.match.Players = append(b.match.Players, player)
+
+	return player
+}
+
+func (b *BlackBox) onKill(ctx context.Context, event tf.LogEvent) {
+	player := b.player(event.PlayerSID)
+	player.Kills = append(player.Kills, PlayerKill{
+		Source:    event.PlayerSID,
+		Victim:    event.VictimSID,
+		Weapon:    event.MetaData,
+		Crit:      false,
+		CreatedOn: event.Timestamp,
+	})
 }
 
 // ensureSID handles making sure the players steam_id FK is satisfied.
@@ -116,7 +146,7 @@ func (b *BlackBox) ensureSID(ctx context.Context, steamID steamid.SteamID) error
 	return nil
 }
 
-func (b *BlackBox) saveChatMsg(ctx context.Context, event tf.LogEvent) error {
+func (b *BlackBox) onMsg(ctx context.Context, event tf.LogEvent) error {
 	if errEnsure := b.ensureSID(ctx, event.PlayerSID); errEnsure != nil {
 		return errEnsure
 	}
