@@ -58,7 +58,7 @@ func configureConnection(ctx context.Context, connection *sql.DB) error {
 		"PRAGMA busy_timeout = 10000",
 		"PRAGMA journal_mode=WAL",
 		"PRAGMA main.synchronous = NORMAL",
-		"PRAGMA main.cache_size = -32768",
+		"PRAGMA main.cache_size = -32768", // 32mb, negative is correct
 	}
 	for _, pragma := range pragmas {
 		if _, errPragma := connection.ExecContext(ctx, pragma); errPragma != nil {
