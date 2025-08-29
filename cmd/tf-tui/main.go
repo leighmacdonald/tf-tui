@@ -94,7 +94,7 @@ func Run() error {
 	metaFetcher := internal.NewMetaFetcher(client, cache)
 	bdFetcher := internal.NewBDFetcher(httpClient, userConfig.BDLists, cache)
 
-	pluginHost := internal.NewPluginHost("")
+	pluginHost := internal.NewPluginHost("pkg/plugins")
 	if errPlugins := pluginHost.Open(); errPlugins != nil {
 		return errors.Join(errPlugins, errApp)
 	}

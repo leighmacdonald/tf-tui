@@ -8,24 +8,40 @@ import (
 	"google.golang.org/grpc"
 )
 
-var Handshake = plugin.HandshakeConfig{
-	ProtocolVersion:  1,
-	MagicCookieKey:   "BASIC_PLUGIN",
-	MagicCookieValue: "tf-tui",
+const ProtocolVersion = 1
+
+type PluginName string
+
+const (
+	PluginLogger PluginName = "logger"
+	PluginRCON   PluginName = "rcon"
+)
+
+var (
+	Handshake = plugin.HandshakeConfig{
+		ProtocolVersion:  ProtocolVersion,
+		MagicCookieKey:   "BASIC_PLUGIN",
+		MagicCookieValue: "tf-tui",
+	}
+
+	PluginMap = map[string]plugin.Plugin{
+		string(PluginLogger): &LoggerPlugin{},
+		string(PluginRCON):   &RCONPlugin{},
+	}
+)
+
+type RCON interface {
+	Command(command string) string
 }
 
-type Players interface {
-	Get(steamid string) string
-}
-
-type PlayersPlugin struct {
+type RCONPlugin struct {
 	plugin.NetRPCUnsupportedPlugin
 
-	Impl Players
+	Impl RCON
 }
 
-func (p *PlayersPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-	proto.RegisterPlayersServer(s, &GRPCServer{
+func (p *RCONPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
+	proto.RegisterRCONServer(s, &GRPCServerRCON{
 		Impl:   p.Impl,
 		broker: broker,
 	})
@@ -33,15 +49,43 @@ func (p *PlayersPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) er
 	return nil
 }
 
-func (p *PlayersPlugin) GRPCClient(_ context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (any, error) {
-	return &GRPCClient{
-		client: proto.NewPlayersClient(c),
+func (p *RCONPlugin) GRPCClient(_ context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (any, error) {
+	return &GRPCClientRCON{
+		client: proto.NewRCONClient(c),
 		broker: broker,
 	}, nil
 }
 
-var PluginMap = map[string]plugin.Plugin{
-	"players": &PlayersPlugin{},
+type Logger interface {
+	Info(message string)
+	Warn(message string)
+	Error(message string)
+	Debug(message string)
 }
 
-var _ plugin.GRPCPlugin = &PlayersPlugin{}
+type LoggerPlugin struct {
+	plugin.NetRPCUnsupportedPlugin
+
+	Impl Logger
+}
+
+func (p *LoggerPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
+	proto.RegisterLoggerServer(s, &GRPCServerLogger{
+		Impl:   p.Impl,
+		broker: broker,
+	})
+
+	return nil
+}
+
+func (p *LoggerPlugin) GRPCClient(_ context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (any, error) {
+	return &GRPCClientLogger{
+		client: proto.NewLoggerClient(c),
+		broker: broker,
+	}, nil
+}
+
+var (
+	_ plugin.GRPCPlugin = &LoggerPlugin{}
+	_ plugin.GRPCPlugin = &RCONPlugin{}
+)

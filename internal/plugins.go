@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 	"io/fs"
+	"log/slog"
 	"os"
 	"os/exec"
 	"runtime"
@@ -23,7 +24,7 @@ func NewPluginHost(pluginRoot string) *PluginHost {
 type PluginHost struct {
 	pluginRoot string
 	plugins    []*plugin.Client
-	players    []plugins.Players
+	players    []plugins.Logger
 }
 
 func (p *PluginHost) Open() error {
@@ -50,18 +51,23 @@ func (p *PluginHost) Open() error {
 			return errors.Join(errClient, errPluginOpen)
 		}
 
-		// Request the plugin
-		raw, errDispense := rpcClient.Dispense("players")
-		if errDispense != nil {
-			return errors.Join(errDispense, errPluginOpen)
-		}
+		for _, pluginName := range []plugins.PluginName{plugins.PluginLogger, plugins.PluginRCON} {
+			// Request the plugin
+			raw, errDispense := rpcClient.Dispense(string(pluginName))
+			if errDispense != nil {
+				return errors.Join(errDispense, errPluginOpen)
+			}
+			switch pluginName {
+			case plugins.PluginLogger:
+				playersImpl, ok := raw.(plugins.Logger)
+				if !ok {
+					return errPluginOpen
+				}
 
-		playersImpl, ok := raw.(plugins.Players)
-		if !ok {
-			return errPluginOpen
+				p.players = append(p.players, playersImpl)
+				slog.Info("Registered plugin successfully", slog.String("name", string(pluginName)), slog.String("path", pluginPath))
+			}
 		}
-
-		p.players = append(p.players, playersImpl)
 	}
 
 	return nil

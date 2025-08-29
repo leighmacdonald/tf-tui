@@ -10,15 +10,97 @@ import (
 
 var ErrRPCCall = errors.New("failed to call grpc endpoint")
 
-// GRPCClient is an implementation of KV that talks over RPC.
-type GRPCClient struct {
+// GRPCClientPlayers is an implementation of KV that talks over RPC.
+type GRPCClientLogger struct {
 	broker *plugin.GRPCBroker
-	client proto.PlayersClient
+	client proto.LoggerClient
 }
 
-func (m *GRPCClient) Get(key string) (string, error) {
-	resp, err := m.client.Get(context.Background(), &proto.GetRequest{
-		Key: key,
+func (m *GRPCClientLogger) Info(message string) error {
+	_, err := m.client.Info(context.Background(), &proto.LoggerRequest{
+		Message: message,
+	})
+	if err != nil {
+		return errors.Join(err, ErrRPCCall)
+	}
+
+	return nil
+}
+
+func (m *GRPCClientLogger) Warn(message string) error {
+	_, err := m.client.Warn(context.Background(), &proto.LoggerRequest{
+		Message: message,
+	})
+	if err != nil {
+		return errors.Join(err, ErrRPCCall)
+	}
+
+	return nil
+}
+
+func (m *GRPCClientLogger) Error(message string) error {
+	_, err := m.client.Error(context.Background(), &proto.LoggerRequest{
+		Message: message,
+	})
+	if err != nil {
+		return errors.Join(err, ErrRPCCall)
+	}
+
+	return nil
+}
+
+func (m *GRPCClientLogger) Debug(message string) error {
+	_, err := m.client.Debug(context.Background(), &proto.LoggerRequest{
+		Message: message,
+	})
+	if err != nil {
+		return errors.Join(err, ErrRPCCall)
+	}
+
+	return nil
+}
+
+// Here is the gRPC server that GRPCClient talks to.
+type GRPCServerLogger struct {
+	// This is the real implementation
+	Impl Logger
+
+	broker *plugin.GRPCBroker
+}
+
+func (m *GRPCServerLogger) Info(_ context.Context, req *proto.LoggerRequest) (*proto.LoggerResponse, error) {
+	m.Impl.Info(req.Message)
+
+	return &proto.LoggerResponse{}, nil
+}
+
+func (m *GRPCServerLogger) Warn(_ context.Context, req *proto.LoggerRequest) (*proto.LoggerResponse, error) {
+	m.Impl.Warn(req.Message)
+
+	return &proto.LoggerResponse{}, nil
+}
+
+func (m *GRPCServerLogger) Error(_ context.Context, req *proto.LoggerRequest) (*proto.LoggerResponse, error) {
+	m.Impl.Error(req.Message)
+
+	return &proto.LoggerResponse{}, nil
+}
+
+func (m *GRPCServerLogger) Debug(_ context.Context, req *proto.LoggerRequest) (*proto.LoggerResponse, error) {
+	m.Impl.Debug(req.Message)
+
+	return &proto.LoggerResponse{}, nil
+}
+
+// GRPCClientPlayers is an implementation of KV that talks over RPC.
+type GRPCClientRCON struct {
+	broker *plugin.GRPCBroker
+	client proto.RCONClient
+}
+
+func (m *GRPCClientRCON) Command(command string) (string, error) {
+	resp, err := m.client.Command(context.Background(), &proto.RCONRequest{
+		Command: command,
 	})
 	if err != nil {
 		return "", errors.Join(err, ErrRPCCall)
@@ -28,44 +110,15 @@ func (m *GRPCClient) Get(key string) (string, error) {
 }
 
 // Here is the gRPC server that GRPCClient talks to.
-type GRPCServer struct {
+type GRPCServerRCON struct {
 	// This is the real implementation
-	Impl Players
+	Impl RCON
 
 	broker *plugin.GRPCBroker
 }
 
-func (m *GRPCServer) Get(_ context.Context, req *proto.GetRequest) (*proto.GetResponse, error) {
-	v := m.Impl.Get(req.Key)
+func (m *GRPCServerRCON) Command(_ context.Context, req *proto.RCONRequest) (*proto.RCONResponse, error) {
+	v := m.Impl.Command(req.Command)
 
-	return &proto.GetResponse{Key: v}, nil
+	return &proto.RCONResponse{Response: v}, nil
 }
-
-// // GRPCClient is an implementation of KV that talks over RPC.
-// type GRPCAddHelperClient struct{ client proto.AddHelperClient }
-//
-// func (m *GRPCAddHelperClient) Sum(a, b int64) (int64, error) {
-// 	resp, err := m.client.Sum(context.Background(), &proto.SumRequest{
-// 		A: a,
-// 		B: b,
-// 	})
-// 	if err != nil {
-// 		hclog.Default().Info("add.Sum", "client", "start", "err", err)
-// 		return 0, err
-// 	}
-// 	return resp.R, err
-// }
-//
-// // Here is the gRPC server that GRPCClient talks to.
-// type GRPCAddHelperServer struct {
-// 	// This is the real implementation
-// 	Impl AddHelper
-// }
-
-// func (m *GRPCAddHelperServer) Sum(ctx context.Context, req *proto.SumRequest) (resp *proto.SumResponse, err error) {
-// 	r, err := m.Impl.Sum(req.A, req.B)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &proto.SumResponse{R: r}, err
-// }
