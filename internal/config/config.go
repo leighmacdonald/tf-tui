@@ -42,6 +42,7 @@ type Config struct {
 	APIBaseURL     string          `yaml:"api_base_url,omitempty"`
 	BDLists        []UserList      `yaml:"bd_lists"`
 	Links          []UserLink      `yaml:"links"`
+	ConfigPath     string          `yaml:"-"`
 }
 
 type SIDFormats string
@@ -105,17 +106,13 @@ func PathCache(name string) string {
 	return path.Join(xdg.CacheHome, ConfigDirName, name)
 }
 
-func Read(name string) (Config, error) {
+func Read(configPath string) (Config, error) {
 	errDotEnv := godotenv.Load()
 	if errDotEnv != nil {
 		slog.Debug("Could not load .env file", slog.String("error", errDotEnv.Error()))
 	}
 
-	if err := os.MkdirAll(path.Join(xdg.ConfigHome, ConfigDirName), 0o700); err != nil {
-		return defaultConfig, errors.Join(err, errConfigRead)
-	}
-
-	inFile, errOpen := os.Open(PathConfig(name))
+	inFile, errOpen := os.Open(configPath)
 	if errOpen != nil {
 		return defaultConfig, errors.Join(errOpen, errConfigRead)
 	}
@@ -149,6 +146,8 @@ func Read(name string) (Config, error) {
 	if config.Password == "" {
 		config.Password = defaultConfig.Password
 	}
+
+	config.ConfigPath = configPath
 
 	return config, nil
 }

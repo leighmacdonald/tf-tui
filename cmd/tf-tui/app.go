@@ -32,7 +32,7 @@ type App struct {
 
 // New returns a new application instance. To actually start the app you must call
 // Start().
-func New(conf config.Config, metaFetcher *internal.MetaFetcher, bdFetcher *internal.BDFetcher, db *sql.DB) *App {
+func New(conf config.Config, metaFetcher *internal.MetaFetcher, bdFetcher *internal.BDFetcher, database *sql.DB) *App {
 	return &App{
 		config:        conf,
 		metaFetcher:   metaFetcher,
@@ -42,7 +42,7 @@ func New(conf config.Config, metaFetcher *internal.MetaFetcher, bdFetcher *inter
 		dumpFetcher:   tf.NewDumpFetcher(conf.Address, conf.Password),
 		configUpdates: make(chan config.Config),
 		uiUpdates:     make(chan any),
-		blackBox:      internal.NewBlackBox(store.New(db)),
+		blackBox:      internal.NewBlackBox(store.New(database)),
 	}
 }
 

@@ -23,7 +23,7 @@ func renderTitleBar(width int, value string) string {
 	return lipgloss.
 		NewStyle().
 		Width(width - 2).
-		Bold(true).
+		Bold(false).
 		Align(lipgloss.Center).
 		Background(styles.Black).
 		Foreground(styles.ColourStrange).
