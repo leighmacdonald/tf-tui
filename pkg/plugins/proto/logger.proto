@@ -1,0 +1,14 @@
+syntax = "proto3";
+package proto;
+option go_package = "./proto";
+
+message LoggerRequest { string message = 1; }
+
+message LoggerResponse {}
+
+service Logger {
+  rpc Info(LoggerRequest) returns (LoggerResponse);
+  rpc Warn(LoggerRequest) returns (LoggerResponse);
+  rpc Error(LoggerRequest) returns (LoggerResponse);
+  rpc Debug(LoggerRequest) returns (LoggerResponse);
+}
