@@ -1,4 +1,5 @@
 .PHONY: config
+
 debug:
 	dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient
 
@@ -9,13 +10,20 @@ check:
 	go tool golangci-lint run --fix --timeout 3m ./...
 
 update:
-	go get -u
+	go get -u ./...
 	go mod tidy
 	make generate
 
-generate:
-	go tool oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.json
+generate: proto openapi sqlc
+
+sqlc:
 	go tool sqlc generate -f .sqlc.yaml
+
+openapi:
+	go tool oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.json
+
+proto:
+	go tool buf generate
 
 race:
 	GORACE="race.txt" DEBUG=1 go run -race .
@@ -40,3 +48,6 @@ build:
 
 run: build
 	./tf-tui
+
+plugin:
+	make -C pkg/plugins

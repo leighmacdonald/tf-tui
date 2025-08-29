@@ -1,0 +1,9 @@
+syntax = "proto3";
+package proto;
+option go_package = "./proto";
+
+message RCONRequest { string command = 1; }
+
+message RCONResponse { string response = 1; }
+
+service RCON { rpc Command(RCONRequest) returns (RCONResponse); }
