@@ -242,7 +242,7 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cfg.ConsoleLogPath = m.fields[fieldConsoleLogPath].input.Value()
 				cfg.APIBaseURL = m.fields[fieldTFAPIBaseURL].input.Value()
 
-				if err := config.Write(config.DefaultConfigName, cfg); err != nil {
+				if err := config.Write(cfg.ConfigPath, cfg); err != nil {
 					return m, func() tea.Msg { return StatusMsg{Message: err.Error(), Err: true} }
 				}
 

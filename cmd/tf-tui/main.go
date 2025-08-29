@@ -3,18 +3,22 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
+	"path"
 	"runtime"
 	"runtime/pprof"
 	"time"
 
+	"github.com/adrg/xdg"
 	"github.com/leighmacdonald/tf-tui/internal"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
+	"github.com/spf13/cobra"
 	_ "modernc.org/sqlite"
 )
 
@@ -23,19 +27,47 @@ var (
 	BuildCommit    = "00000000"
 	BuildDate      = time.Now().Format("2006-01-02T15:04:05Z")
 	BuildGoVersion = runtime.Version()
+	cfgFile        string
+	rootCmd        = &cobra.Command{
+		Use:   "tf-api",
+		Short: "TF2 companion TUI",
+		Long:  `tf-tui - A real-time game analysis and information tool for Team Fortress 2`,
+		RunE:  run,
+	}
+
+	versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Print version information",
+		Long:  "Print detailed version information about tf-tui",
+		Run:   version,
+	}
 )
 
 var errApp = errors.New("application error")
 
 func main() {
-	if err := Run(); err != nil {
+	configPath := config.PathConfig(config.DefaultConfigName)
+	// cobra.OnInitialize(initConfig)
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", configPath,
+		"Config file path")
+	rootCmd.AddCommand(versionCmd)
+
+	if err := rootCmd.Execute(); err != nil {
 		slog.Error("Exited with error", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 }
 
-// Run is the main entry point of tf-tui.
-func Run() error {
+func version(_ *cobra.Command, _ []string) {
+	fmt.Printf("tf-tui - TF2 Terminal UI\n\n")      //nolint:forbidigo
+	fmt.Printf("  Version: %s\n", BuildVersion)     //nolint:forbidigo
+	fmt.Printf("  Commit:  %s\n", BuildCommit)      //nolint:forbidigo
+	fmt.Printf("  Built:   %s\n", BuildDate)        //nolint:forbidigo
+	fmt.Printf("  Runtime: %s\n\n", BuildGoVersion) //nolint:forbidigo
+}
+
+// run is the main entry point of tf-tui.
+func run(_ *cobra.Command, _ []string) error {
 	ctx := context.Background()
 
 	if len(os.Getenv("PROFILE")) > 0 {
@@ -50,7 +82,11 @@ func Run() error {
 		defer pprof.StopCPUProfile()
 	}
 
-	userConfig, errConfig := config.Read(config.DefaultConfigName)
+	if err := os.MkdirAll(path.Join(xdg.ConfigHome, config.ConfigDirName), 0o750); err != nil {
+		return errors.Join(err, errApp)
+	}
+
+	userConfig, errConfig := config.Read(cfgFile)
 	if errConfig != nil {
 		slog.Error("Failed to load config", slog.String("error", errConfig.Error()))
 	}
