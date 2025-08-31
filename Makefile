@@ -14,7 +14,7 @@ update:
 	make generate
 
 generate:
-	go tool oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.json
+	go tool oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/openapi-3.0.yaml
 	go tool sqlc generate -f .sqlc.yaml
 
 race:
