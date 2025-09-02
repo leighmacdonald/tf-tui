@@ -79,9 +79,13 @@ func (m detailPanelModel) Render(height int) string {
 
 	if len(m.player.CompetitiveTeams) > 0 {
 		var leagues []string
+		var etf2lID int64
 		for _, team := range m.player.CompetitiveTeams {
 			if !slices.Contains(leagues, team.League) {
 				leagues = append(leagues, team.League)
+				if team.League == "etf2l" {
+					etf2lID = team.LeagueId
+				}
 			}
 		}
 		for _, league := range leagues {
@@ -92,6 +96,11 @@ func (m detailPanelModel) Render(height int) string {
 			case "ugc":
 				rows = append(rows, styles.DetailRow("UGC Profile",
 					fmt.Sprintf("https://www.ugcleague.com/players_page.cfm?player_id=%s", m.player.SteamID.String())))
+			case "etf2l":
+				if etf2lID > 0 {
+					rows = append(rows, styles.DetailRow("ETF2L Profile",
+						fmt.Sprintf("https://etf2l.org/forum/user/%d/", etf2lID)))
+				}
 			}
 		}
 	}
