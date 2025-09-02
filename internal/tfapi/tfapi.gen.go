@@ -977,6 +977,30 @@ type SteamGameOwnedPlayer struct {
 	SteamId string `json:"steam_id"`
 }
 
+// SteamGroup defines model for SteamGroup.
+type SteamGroup struct {
+	// Schema A URL to the JSON Schema for this object.
+	Schema    string             `json:"$schema,omitempty"`
+	Avatar    string             `json:"avatar"`
+	CreatedOn time.Time          `json:"created_on"`
+	GroupId   string             `json:"group_id"`
+	GroupName string             `json:"group_name"`
+	Headline  string             `json:"headline"`
+	Members   []SteamGroupMember `json:"members"`
+	Summary   string             `json:"summary"`
+	UpdatedOn time.Time          `json:"updated_on"`
+	Url       string             `json:"url"`
+}
+
+// SteamGroupMember defines model for SteamGroupMember.
+type SteamGroupMember struct {
+	CreatedOn   time.Time `json:"created_on"`
+	GroupId     string    `json:"group_id"`
+	PersonaName string    `json:"persona_name"`
+	SteamId     string    `json:"steam_id"`
+	UpdatedOn   time.Time `json:"updated_on"`
+}
+
 // SteamRepEntry defines model for SteamRepEntry.
 type SteamRepEntry struct {
 	// Banned Indicates if the player banned
@@ -1120,6 +1144,12 @@ type SteamGamesParams struct {
 	Steamids string `form:"steamids" json:"steamids"`
 }
 
+// SteamGroupParams defines parameters for SteamGroup.
+type SteamGroupParams struct {
+	// Groupid Group ID, 64bit format only
+	Groupid string `form:"groupid" json:"groupid"`
+}
+
 // SteamIdParams defines parameters for SteamId.
 type SteamIdParams struct {
 	// Steamid Steam ID in any standard format
@@ -1261,6 +1291,9 @@ type ClientInterface interface {
 
 	// SteamGames request
 	SteamGames(ctx context.Context, params *SteamGamesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SteamGroup request
+	SteamGroup(ctx context.Context, params *SteamGroupParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SteamId request
 	SteamId(ctx context.Context, params *SteamIdParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1472,6 +1505,18 @@ func (c *Client) SteamFriends(ctx context.Context, params *SteamFriendsParams, r
 
 func (c *Client) SteamGames(ctx context.Context, params *SteamGamesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewSteamGamesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SteamGroup(ctx context.Context, params *SteamGroupParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSteamGroupRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2404,6 +2449,51 @@ func NewSteamGamesRequest(server string, params *SteamGamesParams) (*http.Reques
 	return req, nil
 }
 
+// NewSteamGroupRequest generates requests for SteamGroup
+func NewSteamGroupRequest(server string, params *SteamGroupParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/steam/group")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "groupid", runtime.ParamLocationQuery, params.Groupid); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewSteamIdRequest generates requests for SteamId
 func NewSteamIdRequest(server string, params *SteamIdParams) (*http.Request, error) {
 	var err error
@@ -2686,6 +2776,9 @@ type ClientWithResponsesInterface interface {
 
 	// SteamGamesWithResponse request
 	SteamGamesWithResponse(ctx context.Context, params *SteamGamesParams, reqEditors ...RequestEditorFn) (*SteamGamesResponse, error)
+
+	// SteamGroupWithResponse request
+	SteamGroupWithResponse(ctx context.Context, params *SteamGroupParams, reqEditors ...RequestEditorFn) (*SteamGroupResponse, error)
 
 	// SteamIdWithResponse request
 	SteamIdWithResponse(ctx context.Context, params *SteamIdParams, reqEditors ...RequestEditorFn) (*SteamIdResponse, error)
@@ -3094,6 +3187,29 @@ func (r SteamGamesResponse) StatusCode() int {
 	return 0
 }
 
+type SteamGroupResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *SteamGroup
+	ApplicationproblemJSONDefault *ErrorModel
+}
+
+// Status returns HTTPResponse.Status
+func (r SteamGroupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SteamGroupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type SteamIdResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
@@ -3360,6 +3476,15 @@ func (c *ClientWithResponses) SteamGamesWithResponse(ctx context.Context, params
 		return nil, err
 	}
 	return ParseSteamGamesResponse(rsp)
+}
+
+// SteamGroupWithResponse request returning *SteamGroupResponse
+func (c *ClientWithResponses) SteamGroupWithResponse(ctx context.Context, params *SteamGroupParams, reqEditors ...RequestEditorFn) (*SteamGroupResponse, error) {
+	rsp, err := c.SteamGroup(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSteamGroupResponse(rsp)
 }
 
 // SteamIdWithResponse request returning *SteamIdResponse
@@ -3951,6 +4076,39 @@ func ParseSteamGamesResponse(rsp *http.Response) (*SteamGamesResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest map[string]*[]SteamGameOwnedPlayer
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest ErrorModel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSteamGroupResponse parses an HTTP response from a SteamGroupWithResponse call
+func ParseSteamGroupResponse(rsp *http.Response) (*SteamGroupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SteamGroupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SteamGroup
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
