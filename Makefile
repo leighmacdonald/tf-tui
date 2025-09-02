@@ -9,7 +9,7 @@ check:
 	go tool golangci-lint run --fix --timeout 3m ./...
 
 update:
-	go get -u
+	go get -u ./...
 	go mod tidy
 	make generate
 
