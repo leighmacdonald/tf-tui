@@ -86,7 +86,7 @@ func (m tabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if zone.Get(m.id + item.label).InBounds(msg) {
 				m.selectedTab = item.tab
 
-				return m, func() tea.Msg { return TabChangeMsg(m.selectedTab) }
+				return m, setTab(m.selectedTab)
 			}
 		}
 
@@ -125,9 +125,7 @@ func (m tabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if changed {
-		return m, func() tea.Msg {
-			return TabChangeMsg(m.selectedTab)
-		}
+		return m, setTab(m.selectedTab)
 	}
 
 	return m, nil

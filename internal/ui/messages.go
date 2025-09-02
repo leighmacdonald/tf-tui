@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 )
 
@@ -14,9 +15,25 @@ type ContentViewPortHeightMsg struct {
 	width                 int
 }
 
+func setContentViewPortHeight(viewport int, height int, width int) func() tea.Msg {
+	return func() tea.Msg {
+		return ContentViewPortHeightMsg{
+			contentViewPortHeight: viewport,
+			height:                height,
+			width:                 width,
+		}
+	}
+}
+
 type SortPlayersMsg struct {
 	sortColumn playerTableCol
 	asc        bool
+}
+
+func selectedPlayer(player Player) func() tea.Msg {
+	return func() tea.Msg {
+		return SelectedPlayerMsg{player: player}
+	}
 }
 
 type SelectedPlayerMsg struct {
@@ -24,8 +41,23 @@ type SelectedPlayerMsg struct {
 	notes  string
 }
 
+func selectTeam(team tf.Team) func() tea.Msg {
+	return func() tea.Msg {
+		return SelectedTeamMsg{selectedTeam: team}
+	}
+}
+
+type SelectedTeamMsg struct {
+	selectedTeam tf.Team
+}
+
+func selectRow(steamID steamid.SteamID) func() tea.Msg {
+	return func() tea.Msg {
+		return SelectedTableRowMsg{selectedSteamID: steamID}
+	}
+}
+
 type SelectedTableRowMsg struct {
-	selectedTeam    tf.Team
 	selectedSteamID steamid.SteamID
 }
 
@@ -42,6 +74,12 @@ type StatusMsg struct {
 	Err     bool
 }
 
+func setStatusMessage(msg string, err bool) tea.Cmd {
+	return func() tea.Msg {
+		return StatusMsg{Message: msg, Err: err}
+	}
+}
+
 // SetViewMsg will Switch the currently displayed center content view.
 type SetViewMsg struct {
 	view contentView
@@ -55,7 +93,15 @@ func setContentView(view contentView) tea.Cmd {
 
 type TabChangeMsg tabView
 
+func setTab(tab tabView) tea.Cmd {
+	return func() tea.Msg { return tab }
+}
+
 type ChatMsg struct {
 	Message  string
 	ChatType ChatType
+}
+
+func setConfig(config config.Config) tea.Cmd {
+	return func() tea.Msg { return config }
 }

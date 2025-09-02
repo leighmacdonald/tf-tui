@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/internal/config"
-	tf2 "github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -46,8 +46,8 @@ func newRootModel(config config.Config, doSetup bool, buildVersion string, build
 		previousView: viewPlayerTables,
 		activeTab:    tabOverview,
 		helpModel:    newHelpModel(buildVersion, buildDate, buildCommit),
-		redTable:     newPlayerTableModel(tf2.RED, config.SteamID),
-		bluTable:     newPlayerTableModel(tf2.BLU, config.SteamID),
+		redTable:     newPlayerTableModel(tf.RED, config.SteamID),
+		bluTable:     newPlayerTableModel(tf.BLU, config.SteamID),
 		banTable:     newTableBansModel(),
 		configModel:  newConfigModal(config),
 		compTable:    newTableCompModel(),
@@ -83,15 +83,15 @@ func (m rootModel) Init() tea.Cmd {
 		m.chatModel.Init(),
 		m.bdTable.Init(),
 		m.redTable.Init(),
-		m.bluTable.Init(), func() tea.Msg {
-			return SelectedTableRowMsg{selectedTeam: tf2.RED}
-		})
+		m.bluTable.Init(),
+		selectTeam(tf.RED),
+	)
 }
 
 func logMsg(inMsg tea.Msg) {
 	// Filter out very noisy stuff
 	switch inMsg.(type) {
-	case tf2.LogEvent:
+	case tf.LogEvent:
 		break
 	case Players:
 		break
@@ -115,13 +115,7 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.contentViewPortHeight = m.height - m.headerHeight - m.footerHeight
 
-		return m, func() tea.Msg {
-			return ContentViewPortHeightMsg{
-				contentViewPortHeight: m.contentViewPortHeight,
-				height:                msg.Height,
-				width:                 msg.Width,
-			}
-		}
+		return m, setContentViewPortHeight(m.contentViewPortHeight, m.height, m.width)
 	case TabChangeMsg:
 		m.activeTab = tabView(msg)
 	// Is it a key press?
@@ -147,8 +141,12 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 				m.previousView = m.currentView
 				m.currentView = viewConfig
 			}
-		}
+		case key.Matches(msg, DefaultKeyMap.left):
+			return m, selectTeam(tf.BLU)
 
+		case key.Matches(msg, DefaultKeyMap.right):
+			return m, selectTeam(tf.RED)
+		}
 	case SetViewMsg:
 		m.currentView = msg.view
 	}
