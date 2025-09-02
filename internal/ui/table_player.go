@@ -190,9 +190,7 @@ func (m tablePlayerModel) moveSelection(direction direction) (tablePlayerModel, 
 		return m, nil
 	}
 
-	cmds := []tea.Cmd{func() tea.Msg {
-		return SelectedTableRowMsg{selectedSteamID: m.selectedSteamID}
-	}}
+	cmds := []tea.Cmd{selectRow(m.selectedSteamID)}
 
 	if m.selectedTeam == m.team {
 		if player, ok := m.currentPlayer(); ok {
