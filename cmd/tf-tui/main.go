@@ -14,9 +14,10 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
-	"github.com/leighmacdonald/tf-tui/internal"
+	tftui "github.com/leighmacdonald/tf-tui/internal"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/store"
+	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 	"github.com/spf13/cobra"
 	_ "modernc.org/sqlite"
@@ -70,6 +71,7 @@ func version(_ *cobra.Command, _ []string) {
 func run(_ *cobra.Command, _ []string) error {
 	ctx := context.Background()
 
+	// If PROFILE is set, it will be used as the output file path for the profiler.
 	if len(os.Getenv("PROFILE")) > 0 {
 		f, err := os.Create(os.Getenv("PROFILE"))
 		if err != nil {
@@ -82,19 +84,23 @@ func run(_ *cobra.Command, _ []string) error {
 		defer pprof.StopCPUProfile()
 	}
 
+	// Make sure our config & data home exists.
 	if err := os.MkdirAll(path.Join(xdg.ConfigHome, config.ConfigDirName), 0o750); err != nil {
 		return errors.Join(err, errApp)
 	}
 
+	// Try and load the users config, uses default config on error.
 	userConfig, errConfig := config.Read(cfgFile)
 	if errConfig != nil {
 		slog.Error("Failed to load config", slog.String("error", errConfig.Error()))
 	}
 
+	// Setup file based logger. This is very useful for us as our console is taken over by the ui.
 	logFile, errLogger := config.LoggerInit(config.DefaultLogName, slog.LevelDebug)
 	if errLogger != nil {
 		return errors.Join(errLogger, errApp)
 	}
+
 	defer func(closer io.Closer) {
 		if err := closer.Close(); err != nil {
 			slog.Error("Failed to close log file", slog.String("error", err.Error()))
@@ -105,12 +111,22 @@ func run(_ *cobra.Command, _ []string) error {
 		slog.String("commit", BuildCommit), slog.String("date", BuildDate),
 		slog.String("go", runtime.Version()))
 
+	// Setup the filesystem cache, creating any necessary directories.
+	cache, errCache := tftui.NewFilesystemCache()
+	if errCache != nil {
+		return errors.Join(errCache, errApp)
+	}
+
+	// Setup all the data sources responsible for fetching player data.
 	httpClient := &http.Client{Timeout: config.DefaultHTTPTimeout}
 	client, errClient := tfapi.NewClientWithResponses(userConfig.APIBaseURL, tfapi.WithHTTPClient(httpClient))
 	if errClient != nil {
 		return errors.Join(errClient, errApp)
 	}
+	metaFetcher := tftui.NewMetaFetcher(client, cache)
+	bdFetcher := tftui.NewBDFetcher(httpClient, userConfig.BDLists, cache)
 
+	// Setup the sqlite database system.
 	database, errDB := store.Open(ctx, config.PathConfig(config.DefaultDBName), true)
 	if errDB != nil {
 		return errors.Join(errDB, errApp)
@@ -122,17 +138,23 @@ func run(_ *cobra.Command, _ []string) error {
 		}
 	}()
 
-	cache, errCache := internal.NewFilesystemCache()
-	if errCache != nil {
-		return errors.Join(errCache, errApp)
+	// Setup a log source depending on the operating mode.
+	logBroadcater := tf.NewLogBroadcaster()
+	var logSource LogSource
+
+	if userConfig.ServerModeEnabled {
+		listener, errListener := tf.NewSRCDSListener(logBroadcater, tf.SRCDSListenerOpts{})
+		if errListener != nil {
+			return errListener
+		}
+		logSource = listener
+	} else {
+		logSource = tf.NewConsoleLog(logBroadcater)
 	}
 
-	app := New(userConfig,
-		internal.NewMetaFetcher(client, cache),
-		internal.NewBDFetcher(httpClient, userConfig.BDLists, cache),
-		database)
-
 	done := make(chan any)
+
+	app := NewApp(userConfig, metaFetcher, bdFetcher, database, logBroadcater, logSource)
 
 	go func() {
 		if err := app.createUI(ctx).Run(); err != nil {

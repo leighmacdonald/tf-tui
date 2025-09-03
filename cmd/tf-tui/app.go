@@ -15,6 +15,10 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/ui"
 )
 
+type LogSource interface {
+	Start(ctx context.Context)
+}
+
 // App is the main application container.
 type App struct {
 	ui            *ui.UI
@@ -28,22 +32,31 @@ type App struct {
 	blackBox      *internal.BlackBox
 	uiUpdates     chan any
 	configUpdates chan config.Config
+	broadcaster   *tf.LogBroadcaster
+	srcdsListener *tf.SRCDSListener
+
+	logSource LogSource
 }
 
-// New returns a new application instance. To actually start the app you must call
+// NewApp returns a new application instance. To actually start the app you must call
 // Start().
-func New(conf config.Config, metaFetcher *internal.MetaFetcher, bdFetcher *internal.BDFetcher, database *sql.DB) *App {
-	return &App{
+func NewApp(conf config.Config, metaFetcher *internal.MetaFetcher, bdFetcher *internal.BDFetcher, database *sql.DB,
+	broadcaster *tf.LogBroadcaster, logSource LogSource,
+) *App {
+	app := &App{
 		config:        conf,
 		metaFetcher:   metaFetcher,
 		bdFetcher:     bdFetcher,
-		console:       tf.NewConsoleLog(),
 		players:       internal.NewPlayerStates(),
 		dumpFetcher:   tf.NewDumpFetcher(conf.Address, conf.Password),
 		configUpdates: make(chan config.Config),
 		uiUpdates:     make(chan any),
 		blackBox:      internal.NewBlackBox(store.New(database)),
+		broadcaster:   broadcaster,
+		logSource:     logSource,
 	}
+
+	return app
 }
 
 // Start brings up all the background goroutines and starts the main event processing loop.
@@ -92,8 +105,7 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 // logEventUpdater sends console log events to the UI for display.
 func (app *App) logEventUpdater(ctx context.Context) {
 	eventChan := make(chan tf.LogEvent)
-	app.console.RegisterHandler(tf.EvtAny, eventChan)
-	app.console.RegisterHandler(tf.EvtAny, eventChan)
+	app.broadcaster.ListenFor(tf.EvtAny, eventChan)
 	for {
 		select {
 		case evt := <-eventChan:

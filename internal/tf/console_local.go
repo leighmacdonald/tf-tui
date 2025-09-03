@@ -6,8 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/nxadm/tail"
@@ -19,25 +17,20 @@ var (
 	errParseTimestamp = errors.New("failed to parse timestamp")
 )
 
-func NewConsoleLog() *ConsoleLog {
+func NewConsoleLog(broadcater *LogBroadcaster) *ConsoleLog {
 	return &ConsoleLog{
-		tail:      nil,
-		stopChan:  make(chan bool),
-		parser:    newLogParser(),
-		readers:   make(map[EventType][]chan<- LogEvent),
-		readersMu: &sync.RWMutex{},
+		tail:           nil,
+		stopChan:       make(chan bool),
+		logBroadcaster: broadcater,
 	}
 }
 
 // ConsoleLog handles "tail"-ing the console.log file that TF2 produces. Some useful
 // events are parsed out into typed events. Remaining events are also returned in a raw form.
 type ConsoleLog struct {
-	tail       *tail.Tail
-	parser     *logParser
-	stopChan   chan bool
-	readers    map[EventType][]chan<- LogEvent
-	readersAny []chan<- LogEvent
-	readersMu  *sync.RWMutex
+	tail           *tail.Tail
+	stopChan       chan bool
+	logBroadcaster *LogBroadcaster
 }
 
 func (l *ConsoleLog) Open(filePath string) error {
@@ -74,52 +67,6 @@ func (l *ConsoleLog) Open(filePath string) error {
 	return nil
 }
 
-func (l *ConsoleLog) RegisterHandler(logType EventType, handler chan<- LogEvent) {
-	l.readersMu.Lock()
-	defer l.readersMu.Unlock()
-
-	// Any case is handled more generally
-	if logType == EvtAny {
-		l.readersAny = append(l.readersAny, handler)
-
-		return
-	}
-
-	if _, found := l.readers[logType]; !found {
-		l.readers[logType] = make([]chan<- LogEvent, 0)
-	}
-
-	l.readers[logType] = append(l.readers[logType], handler)
-}
-
-func (l *ConsoleLog) handleLine(rawLine string) {
-	line := strings.TrimSuffix(rawLine, "\r")
-	if line == "" {
-		return
-	}
-
-	var logEvent LogEvent
-	if err := l.parser.parse(line, &logEvent); err != nil || errors.Is(err, ErrNoMatch) {
-		// This is sent as a "raw" line so that the console view can show it even if it doesn't
-		// match any supported events.
-		logEvent.Raw = line
-		logEvent.Type = EvtAny
-	}
-
-	l.readersMu.RLock()
-	defer l.readersMu.RUnlock()
-
-	if handlers, found := l.readers[logEvent.Type]; found {
-		for _, handler := range handlers {
-			handler <- logEvent
-		}
-	}
-
-	for _, handler := range l.readersAny {
-		handler <- logEvent
-	}
-}
-
 // start begins reading incoming log events, parsing events from the lines and emitting any found events as a LogEvent.
 func (l *ConsoleLog) start() {
 	if len(os.Getenv("DEBUG")) > 0 {
@@ -145,7 +92,8 @@ func (l *ConsoleLog) start() {
 				// Happens on linux only?
 				continue
 			}
-			l.handleLine(msg.Text)
+
+			l.logBroadcaster.Send(msg.Text)
 		case <-l.stopChan:
 			if errStop := l.tail.Stop(); errStop != nil {
 				slog.Error("Failed to stop tailing console.log cleanly", slog.String("error", errStop.Error()))
