@@ -46,10 +46,10 @@ const (
 	colMetaSize   playerTableColSize = 8
 )
 
-func newPlayerTableModel(team tf.Team, selfSID steamid.SteamID) tablePlayerModel {
+func newPlayerTableModel(team tf.Team, selfSID steamid.SteamID) *tablePlayerModel {
 	zoneID := zone.NewPrefix()
 
-	return tablePlayerModel{
+	return &tablePlayerModel{
 		id:           zoneID,
 		team:         team,
 		selectedTeam: tf.RED,
@@ -71,11 +71,11 @@ type tablePlayerModel struct {
 	selfSteamID     steamid.SteamID
 }
 
-func (m tablePlayerModel) Init() tea.Cmd {
+func (m *tablePlayerModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case config.Config:
 		m.selfSteamID = msg.SteamID
@@ -108,7 +108,9 @@ func (m tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.selectedSteamID = item.SteamID
 					m.selectedTeam = m.team
 
-					return m, tea.Sequence(selectTeam(m.team), selectRow(m.selectedSteamID), selectedPlayer(item))
+					return m, tea.Sequence(
+						selectTeam(m.team),
+						selectPlayer(item))
 				}
 			}
 
@@ -141,19 +143,19 @@ func (m tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		switch {
 		case key.Matches(msg, DefaultKeyMap.up):
-			m, cmd = m.moveSelection(up)
-
+			cmd = m.moveSelection(up)
 			return m, cmd
 		case key.Matches(msg, DefaultKeyMap.down):
-			m, cmd = m.moveSelection(down)
-
+			cmd = m.moveSelection(down)
 			return m, cmd
 		}
 
-	case SelectedTableRowMsg:
-		m.selectedSteamID = msg.selectedSteamID
+	case SelectedPlayerMsg:
+		m.selectedSteamID = msg.player.SteamID
 
 		return m, nil
+	case SelectedTeamMsg:
+		m.selectedTeam = msg.selectedTeam
 	case Players:
 		return m.updatePlayers(msg)
 	}
@@ -161,7 +163,7 @@ func (m tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m tablePlayerModel) moveSelection(direction direction) (tablePlayerModel, tea.Cmd) {
+func (m *tablePlayerModel) moveSelection(direction direction) tea.Cmd {
 	currentRow := m.currentRowIndex()
 	switch direction { //nolint:exhaustive
 	case up:
@@ -187,21 +189,20 @@ func (m tablePlayerModel) moveSelection(direction direction) (tablePlayerModel, 
 		}
 		m.selectedSteamID = m.data.players[currentRow+1].SteamID
 	default:
-		return m, nil
+		return nil
 	}
-
-	cmds := []tea.Cmd{selectRow(m.selectedSteamID)}
+	cmds := []tea.Cmd{}
 
 	if m.selectedTeam == m.team {
 		if player, ok := m.currentPlayer(); ok {
-			cmds = append(cmds, selectedPlayer(player))
+			cmds = append(cmds, selectPlayer(player))
 		}
 	}
 
-	return m, tea.Batch(cmds...)
+	return tea.Batch(cmds...)
 }
 
-func (m tablePlayerModel) currentPlayer() (Player, bool) {
+func (m *tablePlayerModel) currentPlayer() (Player, bool) {
 	if m.selectedTeam != m.team {
 		return Player{}, false
 	}
@@ -214,7 +215,7 @@ func (m tablePlayerModel) currentPlayer() (Player, bool) {
 	return Player{}, false
 }
 
-func (m tablePlayerModel) currentRowIndex() int {
+func (m *tablePlayerModel) currentRowIndex() int {
 	for rowIdx, player := range m.data.players {
 		if player.SteamID == m.selectedSteamID {
 			return rowIdx
@@ -224,21 +225,24 @@ func (m tablePlayerModel) currentRowIndex() int {
 	return -1
 }
 
-func (m tablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.Cmd) {
+func (m *tablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.Cmd) {
 	m.data = newTablePlayerData(m.id, playersUpdate, m.team)
 	m.data.Sort(m.data.sortColumn, m.data.asc)
 	m.table.Data(m.data)
 
+	var selectedPlayer Player
 	if m.selectedTeam == m.team {
 		oldID := m.selectedSteamID
 		if player, ok := m.currentPlayer(); !ok && len(m.data.players) > 0 {
 			m.selectedSteamID = m.data.players[0].SteamID
+			selectedPlayer = m.data.players[0]
 		} else {
 			m.selectedSteamID = player.SteamID
+			selectedPlayer = player
 		}
 
 		if !oldID.Equal(m.selectedSteamID) {
-			return m, tea.Sequence(selectTeam(m.selectedTeam), selectRow(m.selectedSteamID))
+			return m, tea.Sequence(selectTeam(m.selectedTeam), selectPlayer(selectedPlayer))
 		}
 
 		return m, nil
@@ -247,7 +251,7 @@ func (m tablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.C
 	return m, nil
 }
 
-func (m tablePlayerModel) View() string {
+func (m *tablePlayerModel) View() string {
 	selectedRowIdx := m.currentRowIndex()
 
 	return m.table.

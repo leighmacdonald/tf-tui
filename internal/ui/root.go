@@ -142,10 +142,10 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 				m.currentView = viewConfig
 			}
 		case key.Matches(msg, DefaultKeyMap.left):
-			return m, selectTeam(tf.BLU)
+			return m, selectTeam(tf.RED)
 
 		case key.Matches(msg, DefaultKeyMap.right):
-			return m, selectTeam(tf.RED)
+			return m, selectTeam(tf.BLU)
 		}
 	case SetViewMsg:
 		m.currentView = msg.view
