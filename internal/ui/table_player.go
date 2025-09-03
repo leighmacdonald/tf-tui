@@ -156,6 +156,8 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case SelectedTeamMsg:
 		m.selectedTeam = msg.selectedTeam
+		cmd := m.selectClosestPlayer()
+		return m, cmd
 	case Players:
 		return m.updatePlayers(msg)
 	}
@@ -225,11 +227,7 @@ func (m *tablePlayerModel) currentRowIndex() int {
 	return -1
 }
 
-func (m *tablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.Cmd) {
-	m.data = newTablePlayerData(m.id, playersUpdate, m.team)
-	m.data.Sort(m.data.sortColumn, m.data.asc)
-	m.table.Data(m.data)
-
+func (m *tablePlayerModel) selectClosestPlayer() tea.Cmd {
 	var selectedPlayer Player
 	if m.selectedTeam == m.team {
 		oldID := m.selectedSteamID
@@ -242,13 +240,19 @@ func (m *tablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.
 		}
 
 		if !oldID.Equal(m.selectedSteamID) {
-			return m, tea.Sequence(selectTeam(m.selectedTeam), selectPlayer(selectedPlayer))
+			return tea.Sequence(selectTeam(m.selectedTeam), selectPlayer(selectedPlayer))
 		}
-
-		return m, nil
 	}
 
-	return m, nil
+	return nil
+}
+
+func (m *tablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.Cmd) {
+	m.data = newTablePlayerData(m.id, playersUpdate, m.team)
+	m.data.Sort(m.data.sortColumn, m.data.asc)
+	m.table.Data(m.data)
+
+	return m, m.selectClosestPlayer()
 }
 
 func (m *tablePlayerModel) View() string {
