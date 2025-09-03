@@ -40,3 +40,4 @@ dist/
 *.svg
 tf-tui
 !cmd/tf-tui
+.cache

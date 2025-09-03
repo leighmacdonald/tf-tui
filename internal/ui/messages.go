@@ -4,7 +4,6 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 )
@@ -30,7 +29,7 @@ type SortPlayersMsg struct {
 	asc        bool
 }
 
-func selectedPlayer(player Player) func() tea.Msg {
+func selectPlayer(player Player) func() tea.Msg {
 	return func() tea.Msg {
 		return SelectedPlayerMsg{player: player}
 	}
@@ -49,16 +48,6 @@ func selectTeam(team tf.Team) func() tea.Msg {
 
 type SelectedTeamMsg struct {
 	selectedTeam tf.Team
-}
-
-func selectRow(steamID steamid.SteamID) func() tea.Msg {
-	return func() tea.Msg {
-		return SelectedTableRowMsg{selectedSteamID: steamID}
-	}
-}
-
-type SelectedTableRowMsg struct {
-	selectedSteamID steamid.SteamID
 }
 
 type clearStatusMessageMsg struct{}

@@ -132,7 +132,7 @@ func (l *ConsoleLog) start() {
 
 				scanner := bufio.NewScanner(reader)
 				for scanner.Scan() {
-					l.handleLine(scanner.Text())
+					//	l.handleLine(scanner.Text())
 					time.Sleep(time.Millisecond * 50)
 				}
 			}
