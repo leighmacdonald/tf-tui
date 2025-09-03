@@ -40,9 +40,18 @@ type Config struct {
 	ConsoleLogPath string          `yaml:"console_log_path"`
 	UpdateFreqMs   int             `yaml:"update_freq_ms,omitempty"`
 	APIBaseURL     string          `yaml:"api_base_url,omitempty"`
-	BDLists        []UserList      `yaml:"bd_lists"`
-	Links          []UserLink      `yaml:"links"`
-	ConfigPath     string          `yaml:"-"`
+	// ServerModeEnabled controls if the app is running in server mode where instead
+	// of connecting to your local TF2 client, you can removely monitor a server over RCON.
+	// Similar to other tools like HLSW, you can receive server logs over UDP when setup
+	// correctly.
+	ServerModeEnabled bool `yaml:"server_mode_enabled"`
+	// ServerLogPassword handles authenticating a server if its using sv_logsecret.
+	ServerLogPassword int `yaml:"server_log_password"`
+	// ServerLogAddress should point to an address where the server can reach you to send logs.
+	ServerLogAddress string     `yaml:"server_log_address"`
+	BDLists          []UserList `yaml:"bd_lists"`
+	Links            []UserLink `yaml:"links"`
+	ConfigPath       string     `yaml:"-"`
 }
 
 type SIDFormats string
