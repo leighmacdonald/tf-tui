@@ -144,9 +144,11 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, DefaultKeyMap.up):
 			cmd = m.moveSelection(up)
+
 			return m, cmd
 		case key.Matches(msg, DefaultKeyMap.down):
 			cmd = m.moveSelection(down)
+
 			return m, cmd
 		}
 
@@ -156,8 +158,8 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case SelectedTeamMsg:
 		m.selectedTeam = msg.selectedTeam
-		cmd := m.selectClosestPlayer()
-		return m, cmd
+
+		return m, m.selectClosestPlayer()
 	case Players:
 		return m.updatePlayers(msg)
 	}
