@@ -18,6 +18,7 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf/console"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 	"github.com/spf13/cobra"
 	_ "modernc.org/sqlite"
@@ -140,20 +141,30 @@ func run(_ *cobra.Command, _ []string) error {
 
 	// Setup a log source depending on the operating mode.
 	logBroadcater := tf.NewLogBroadcaster()
-	var logSource LogSource
+	var logSource console.Source
 
 	if userConfig.ServerModeEnabled {
-		listener, errListener := tf.NewSRCDSListener(logBroadcater, tf.SRCDSListenerOpts{})
+		listener, errListener := console.NewRemote(logBroadcater, console.SRCDSListenerOpts{})
 		if errListener != nil {
-			return errListener
+			return errors.Join(errListener, errApp)
 		}
 		logSource = listener
 	} else {
-		logSource = tf.NewConsoleLog(logBroadcater)
+		logSource = console.NewLocal(logBroadcater, userConfig.ConsoleLogPath)
+	}
+
+	defer logSource.Close(ctx)
+
+	if len(os.Getenv("DEBUG")) > 0 {
+		consoleDebug := console.NewDebug("testdata/console.log", logBroadcater)
+		if errDebug := consoleDebug.Open(ctx); errDebug != nil {
+			return errors.Join(errDebug, errApp)
+		}
+		go consoleDebug.Start(ctx)
+		defer consoleDebug.Close(ctx)
 	}
 
 	done := make(chan any)
-
 	app := NewApp(userConfig, metaFetcher, bdFetcher, database, logBroadcater, logSource)
 
 	go func() {

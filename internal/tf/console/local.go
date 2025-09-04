@@ -1,40 +1,44 @@
-package tf
+package console
 
 import (
-	"bufio"
+	"context"
 	"errors"
 	"io"
 	"log/slog"
-	"os"
-	"time"
 
 	"github.com/nxadm/tail"
 )
 
-var (
-	errConsoleLog     = errors.New("failed to read console.log")
-	errDuration       = errors.New("failed to parse connected duration")
-	errParseTimestamp = errors.New("failed to parse timestamp")
-)
-
-func NewConsoleLog(broadcater *LogBroadcaster) *ConsoleLog {
-	return &ConsoleLog{
+func NewLocal(broadcater Receiver, filePath string) *Local {
+	return &Local{
 		tail:           nil,
-		stopChan:       make(chan bool),
+		stopChan:       make(chan any),
 		logBroadcaster: broadcater,
+		filePath:       filePath,
 	}
 }
 
-// ConsoleLog handles "tail"-ing the console.log file that TF2 produces. Some useful
+// Local handles "tail"-ing the console.log file that TF2 produces. Some useful
 // events are parsed out into typed events. Remaining events are also returned in a raw form.
-type ConsoleLog struct {
+type Local struct {
 	tail           *tail.Tail
-	stopChan       chan bool
-	logBroadcaster *LogBroadcaster
+	stopChan       chan any
+	logBroadcaster Receiver
+	filePath       string
 }
 
-func (l *ConsoleLog) Open(filePath string) error {
-	if l.tail != nil && l.tail.Filename == filePath {
+func (l *Local) Close(_ context.Context) error {
+	if l.tail == nil || l.stopChan == nil {
+		return nil
+	}
+
+	l.stopChan <- "ahh!"
+
+	return nil
+}
+
+func (l *Local) Open(ctx context.Context) error {
+	if l.tail != nil && l.tail.Filename == l.filePath {
 		return nil
 	}
 
@@ -52,9 +56,9 @@ func (l *ConsoleLog) Open(filePath string) error {
 		// Poll:      runtime.GOOS == "windows",
 	}
 
-	tailFile, errTail := tail.TailFile(filePath, tailConfig)
+	tailFile, errTail := tail.TailFile(l.filePath, tailConfig)
 	if errTail != nil {
-		return errors.Join(errTail, errConsoleLog)
+		return errors.Join(errTail, ErrOpen)
 	}
 
 	if l.tail != nil {
@@ -62,35 +66,18 @@ func (l *ConsoleLog) Open(filePath string) error {
 	}
 
 	l.tail = tailFile
-	go l.start()
+	go l.Start(ctx)
 
 	return nil
 }
 
 // start begins reading incoming log events, parsing events from the lines and emitting any found events as a LogEvent.
-func (l *ConsoleLog) start() {
-	if len(os.Getenv("DEBUG")) > 0 {
-		go func() {
-			for {
-				reader, errReader := os.Open("testdata/console.log")
-				if errReader != nil {
-					panic(errReader)
-				}
-
-				scanner := bufio.NewScanner(reader)
-				for scanner.Scan() {
-					//	l.handleLine(scanner.Text())
-					time.Sleep(time.Millisecond * 50)
-				}
-			}
-		}()
-	}
+func (l *Local) Start(_ context.Context) {
 	for {
 		select {
 		case msg := <-l.tail.Lines:
 			if msg == nil {
-				// Happens on linux only?
-				continue
+				continue // Happens on linux only?
 			}
 
 			l.logBroadcaster.Send(msg.Text)

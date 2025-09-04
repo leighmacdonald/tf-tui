@@ -3,6 +3,7 @@ package tf
 import (
 	"bufio"
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/internal/tf/rcon"
 )
 
 type DumpPlayer struct {
@@ -26,6 +28,8 @@ type DumpPlayer struct {
 	Valid     [MaxPlayerCount]bool
 	UserID    [MaxPlayerCount]int
 }
+
+var ErrDumpQuery = errors.New("failed to query g15_dumpplayer")
 
 func NewDumpFetcher(address string, password string) DumpFetcher {
 	return DumpFetcher{
@@ -43,14 +47,14 @@ type DumpFetcher struct {
 }
 
 func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, error) {
-	conn := newRconConnection(f.Address, f.Password)
-	response, errExec := conn.exec(ctx, "g15_dumpplayer", true)
+	conn := rcon.New(f.Address, f.Password)
+	response, errExec := conn.Exec(ctx, "g15_dumpplayer", true)
 	if errExec != nil {
 		if f.lastUpdate.SteamID[0].Valid() {
 			return f.lastUpdate, nil
 		}
 		if len(os.Getenv("DEBUG")) == 0 {
-			return DumpPlayer{}, errExec
+			return DumpPlayer{}, errors.Join(errExec, ErrDumpQuery)
 		}
 		// FIXME remove this test data generation eventually
 		var data DumpPlayer

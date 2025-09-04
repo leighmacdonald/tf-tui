@@ -12,18 +12,14 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf/console"
 	"github.com/leighmacdonald/tf-tui/internal/ui"
 )
-
-type LogSource interface {
-	Start(ctx context.Context)
-}
 
 // App is the main application container.
 type App struct {
 	ui            *ui.UI
 	config        config.Config
-	console       *tf.ConsoleLog
 	metaFetcher   *internal.MetaFetcher
 	dumpFetcher   tf.DumpFetcher
 	bdFetcher     *internal.BDFetcher
@@ -33,15 +29,13 @@ type App struct {
 	uiUpdates     chan any
 	configUpdates chan config.Config
 	broadcaster   *tf.LogBroadcaster
-	srcdsListener *tf.SRCDSListener
-
-	logSource LogSource
+	logSource     console.Source
 }
 
 // NewApp returns a new application instance. To actually start the app you must call
 // Start().
 func NewApp(conf config.Config, metaFetcher *internal.MetaFetcher, bdFetcher *internal.BDFetcher, database *sql.DB,
-	broadcaster *tf.LogBroadcaster, logSource LogSource,
+	broadcaster *tf.LogBroadcaster, logSource console.Source,
 ) *App {
 	app := &App{
 		config:        conf,
@@ -74,7 +68,7 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 	go app.bdFetcher.Update(ctx)
 
 	// Open the console log and start processing events.
-	if err := app.console.Open(app.config.ConsoleLogPath); err != nil {
+	if err := app.logSource.Open(ctx); err != nil {
 		slog.Warn("Failed to open console file", slog.String("error", err.Error()),
 			slog.String("path", app.config.ConsoleLogPath))
 	}
