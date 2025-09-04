@@ -168,6 +168,8 @@ func run(_ *cobra.Command, _ []string) error {
 
 	defer logSource.Close(ctx)
 
+	go logSource.Start(ctx, logBroadcater)
+
 	if len(os.Getenv("DEBUG")) > 0 {
 		consoleDebug := console.NewDebug("testdata/console.log")
 		if errDebug := consoleDebug.Open(ctx); errDebug != nil {

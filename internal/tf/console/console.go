@@ -19,7 +19,8 @@ type Source interface {
 }
 
 var (
-	ErrOpen  = errors.New("failed to open console source")
-	ErrSetup = errors.New("failed to setup log source")
-	ErrClose = errors.New("failed to close log source")
+	ErrOpen   = errors.New("failed to open console source")
+	ErrSetup  = errors.New("failed to setup log source")
+	ErrClose  = errors.New("failed to close log source")
+	ErrConfig = errors.New("config error")
 )
