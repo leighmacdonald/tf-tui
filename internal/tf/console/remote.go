@@ -40,23 +40,16 @@ type SRCDSListenerOpts struct {
 }
 
 func NewRemote(opts SRCDSListenerOpts) (*Remote, error) {
-	udpAddr, errResolveUDP := net.ResolveUDPAddr("udp4", opts.ListenAddress)
-	if errResolveUDP != nil {
-		return nil, errors.Join(errResolveUDP, ErrSetup)
-	}
-
-	connection, errListenUDP := net.ListenUDP("udp4", udpAddr)
-	if errListenUDP != nil {
-		return nil, errors.Join(errListenUDP, ErrSetup)
-	}
-
 	if opts.ExternalAddress == "" {
 		opts.ExternalAddress = opts.ListenAddress
 	}
 
+	// TODO better validations
+	if opts.RemoteAddress == "" {
+		return nil, ErrConfig
+	}
+
 	return &Remote{
-		udpAddr:         udpAddr,
-		conn:            connection,
 		remoteAddress:   opts.RemoteAddress,
 		remotePassword:  opts.RemotePassword,
 		secret:          opts.Secret,
@@ -88,6 +81,18 @@ func (l *Remote) Close(ctx context.Context) error {
 }
 
 func (l *Remote) Open(ctx context.Context) error {
+	udpAddr, errResolveUDP := net.ResolveUDPAddr("udp4", l.listenAddress)
+	if errResolveUDP != nil {
+		return errors.Join(errResolveUDP, ErrSetup)
+	}
+
+	connection, errListenUDP := net.ListenUDP("udp4", udpAddr)
+	if errListenUDP != nil {
+		return errors.Join(errListenUDP, ErrSetup)
+	}
+
+	l.conn = connection
+
 	conn := rcon.New(l.remoteAddress, l.remotePassword)
 	_, errExec := conn.Exec(ctx, "logaddress_add "+l.externalAddress, false)
 	if errExec != nil {
@@ -109,7 +114,7 @@ func (l *Remote) Open(ctx context.Context) error {
 // Start initiates the udp network log read loop. DNS names are used/to
 // map the server logs to the internal known server id. The DNS is updated
 // every 60 minutes so that it remains up to date.
-func (l *Remote) Start(ctx context.Context, logBroadcaster Receiver) {
+func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 	insecureCount := uint64(0)
 
 	slog.Info("Starting log reader", slog.String("listen_addr", l.udpAddr.String()+"/udp"))
@@ -138,7 +143,7 @@ func (l *Remote) Start(ctx context.Context, logBroadcaster Receiver) {
 					insecureCount++
 				}
 
-				logBroadcaster.Send(strings.TrimSpace(string(buffer)))
+				receiver.Send(strings.TrimSpace(string(buffer)))
 			case s2aLogString2: // Secure format (with secret)
 				line := string(buffer)
 
@@ -163,7 +168,7 @@ func (l *Remote) Start(ctx context.Context, logBroadcaster Receiver) {
 					continue
 				}
 
-				logBroadcaster.Send(strings.TrimSpace(line[idx:readLen]))
+				receiver.Send(strings.TrimSpace(line[idx:readLen]))
 			}
 		}
 	}
