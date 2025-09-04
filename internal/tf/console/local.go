@@ -9,22 +9,20 @@ import (
 	"github.com/nxadm/tail"
 )
 
-func NewLocal(broadcater Receiver, filePath string) *Local {
+func NewLocal(filePath string) *Local {
 	return &Local{
-		tail:           nil,
-		stopChan:       make(chan any),
-		logBroadcaster: broadcater,
-		filePath:       filePath,
+		tail:     nil,
+		stopChan: make(chan any),
+		filePath: filePath,
 	}
 }
 
 // Local handles "tail"-ing the console.log file that TF2 produces. Some useful
 // events are parsed out into typed events. Remaining events are also returned in a raw form.
 type Local struct {
-	tail           *tail.Tail
-	stopChan       chan any
-	logBroadcaster Receiver
-	filePath       string
+	tail     *tail.Tail
+	stopChan chan any
+	filePath string
 }
 
 func (l *Local) Close(_ context.Context) error {
@@ -37,7 +35,7 @@ func (l *Local) Close(_ context.Context) error {
 	return nil
 }
 
-func (l *Local) Open(ctx context.Context) error {
+func (l *Local) Open(_ context.Context) error {
 	if l.tail != nil && l.tail.Filename == l.filePath {
 		return nil
 	}
@@ -66,25 +64,35 @@ func (l *Local) Open(ctx context.Context) error {
 	}
 
 	l.tail = tailFile
-	go l.Start(ctx)
 
 	return nil
 }
 
 // start begins reading incoming log events, parsing events from the lines and emitting any found events as a LogEvent.
-func (l *Local) Start(_ context.Context) {
+func (l *Local) Start(ctx context.Context, receiver Receiver) {
+	stop := func() {
+		if l.tail == nil {
+			return
+		}
+		if errStop := l.tail.Stop(); errStop != nil {
+			slog.Error("Failed to stop tailing console.log cleanly", slog.String("error", errStop.Error()))
+		}
+	}
+
 	for {
 		select {
+		case <-ctx.Done():
+			stop()
+
+			return
 		case msg := <-l.tail.Lines:
 			if msg == nil {
 				continue // Happens on linux only?
 			}
 
-			l.logBroadcaster.Send(msg.Text)
+			receiver.Send(msg.Text)
 		case <-l.stopChan:
-			if errStop := l.tail.Stop(); errStop != nil {
-				slog.Error("Failed to stop tailing console.log cleanly", slog.String("error", errStop.Error()))
-			}
+			stop()
 
 			return
 		}

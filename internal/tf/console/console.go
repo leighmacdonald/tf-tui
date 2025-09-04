@@ -5,12 +5,15 @@ import (
 	"errors"
 )
 
+// Receiver handles incoming raw log message lines.
 type Receiver interface {
 	Send(string)
 }
 
+// Source is responsible for setting up and sending console log messages
+// to a Receiver.
 type Source interface {
-	Start(ctx context.Context)
+	Start(ctx context.Context, receiver Receiver)
 	Open(ctx context.Context) error
 	Close(ctx context.Context) error
 }

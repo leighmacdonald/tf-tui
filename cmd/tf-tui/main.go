@@ -147,23 +147,33 @@ func run(_ *cobra.Command, _ []string) error {
 	var logSource console.Source
 
 	if userConfig.ServerModeEnabled {
-		listener, errListener := console.NewRemote(logBroadcater, console.SRCDSListenerOpts{})
+		listener, errListener := console.NewRemote(console.SRCDSListenerOpts{
+			ExternalAddress: userConfig.ServerLogAddress,
+			Secret:          userConfig.ServerLogSecret,
+			ListenAddress:   userConfig.ServerListenAddress,
+			RemoteAddress:   userConfig.Address,
+			RemotePassword:  userConfig.Password,
+		})
 		if errListener != nil {
 			return errors.Join(errListener, errApp)
 		}
 		logSource = listener
 	} else {
-		logSource = console.NewLocal(logBroadcater, userConfig.ConsoleLogPath)
+		logSource = console.NewLocal(userConfig.ConsoleLogPath)
+	}
+
+	if errOpen := logSource.Open(ctx); errOpen != nil {
+		return errors.Join(errOpen, errApp)
 	}
 
 	defer logSource.Close(ctx)
 
 	if len(os.Getenv("DEBUG")) > 0 {
-		consoleDebug := console.NewDebug("testdata/console.log", logBroadcater)
+		consoleDebug := console.NewDebug("testdata/console.log")
 		if errDebug := consoleDebug.Open(ctx); errDebug != nil {
 			return errors.Join(errDebug, errApp)
 		}
-		go consoleDebug.Start(ctx)
+		go consoleDebug.Start(ctx, logBroadcater)
 		defer consoleDebug.Close(ctx)
 	}
 
