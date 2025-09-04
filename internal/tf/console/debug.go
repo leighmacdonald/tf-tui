@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-func NewDebug(logPath string, logBroadcaster Receiver) Debug {
-	return Debug{logPath: logPath, logBroadcaster: logBroadcaster}
+func NewDebug(logPath string) Debug {
+	return Debug{logPath: logPath}
 }
 
 type Debug struct {
@@ -40,7 +40,7 @@ func (c *Debug) Close(_ context.Context) error {
 	return nil
 }
 
-func (c *Debug) Start(ctx context.Context) {
+func (c *Debug) Start(ctx context.Context, receiver Receiver) {
 	var (
 		logFreq = time.NewTicker(time.Millisecond * 50)
 		scanner = bufio.NewScanner(c.file)
@@ -52,7 +52,7 @@ func (c *Debug) Start(ctx context.Context) {
 			return
 		case <-logFreq.C:
 			if scanner.Scan() {
-				c.logBroadcaster.Send(scanner.Text())
+				receiver.Send(scanner.Text())
 			}
 		}
 	}

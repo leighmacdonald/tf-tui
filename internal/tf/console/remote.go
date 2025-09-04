@@ -29,7 +29,6 @@ type Remote struct {
 	remotePassword  string
 	externalAddress string
 	listenAddress   string
-	logBroadcaster  Receiver
 }
 
 type SRCDSListenerOpts struct {
@@ -40,7 +39,7 @@ type SRCDSListenerOpts struct {
 	Secret          int64
 }
 
-func NewRemote(broadcaster Receiver, opts SRCDSListenerOpts) (*Remote, error) {
+func NewRemote(opts SRCDSListenerOpts) (*Remote, error) {
 	udpAddr, errResolveUDP := net.ResolveUDPAddr("udp4", opts.ListenAddress)
 	if errResolveUDP != nil {
 		return nil, errors.Join(errResolveUDP, ErrSetup)
@@ -63,7 +62,6 @@ func NewRemote(broadcaster Receiver, opts SRCDSListenerOpts) (*Remote, error) {
 		secret:          opts.Secret,
 		externalAddress: opts.ExternalAddress,
 		listenAddress:   opts.ListenAddress,
-		logBroadcaster:  broadcaster,
 	}, nil
 }
 
@@ -71,7 +69,7 @@ func (l *Remote) Close(ctx context.Context) error {
 	var err error
 	// Be cool and remove ourselves from the log address list.
 	conn := rcon.New(l.remoteAddress, l.remotePassword)
-	_, errExec := conn.Exec(ctx, "logaddress_del "+l.listenAddress, false)
+	_, errExec := conn.Exec(ctx, "logaddress_del "+l.externalAddress, false)
 	if errExec != nil {
 		err = errors.Join(err, errExec)
 	}
@@ -91,7 +89,7 @@ func (l *Remote) Close(ctx context.Context) error {
 
 func (l *Remote) Open(ctx context.Context) error {
 	conn := rcon.New(l.remoteAddress, l.remotePassword)
-	_, errExec := conn.Exec(ctx, "logaddress_add "+l.listenAddress, false)
+	_, errExec := conn.Exec(ctx, "logaddress_add "+l.externalAddress, false)
 	if errExec != nil {
 		return errors.Join(errExec, ErrOpen)
 	}
@@ -111,7 +109,7 @@ func (l *Remote) Open(ctx context.Context) error {
 // Start initiates the udp network log read loop. DNS names are used/to
 // map the server logs to the internal known server id. The DNS is updated
 // every 60 minutes so that it remains up to date.
-func (l *Remote) Start(ctx context.Context) {
+func (l *Remote) Start(ctx context.Context, logBroadcaster Receiver) {
 	insecureCount := uint64(0)
 
 	slog.Info("Starting log reader", slog.String("listen_addr", l.udpAddr.String()+"/udp"))
@@ -140,7 +138,7 @@ func (l *Remote) Start(ctx context.Context) {
 					insecureCount++
 				}
 
-				l.logBroadcaster.Send(strings.TrimSpace(string(buffer)))
+				logBroadcaster.Send(strings.TrimSpace(string(buffer)))
 			case s2aLogString2: // Secure format (with secret)
 				line := string(buffer)
 
@@ -165,7 +163,7 @@ func (l *Remote) Start(ctx context.Context) {
 					continue
 				}
 
-				l.logBroadcaster.Send(strings.TrimSpace(line[idx:readLen]))
+				logBroadcaster.Send(strings.TrimSpace(line[idx:readLen]))
 			}
 		}
 	}

@@ -20,7 +20,6 @@ import (
 var (
 	errConfigWrite = errors.New("failed to write config file")
 	errConfigRead  = errors.New("failed to read config file")
-	errInvalidPath = errors.New("invalid path")
 	errLoggerInit  = errors.New("failed to initialize logger")
 )
 
@@ -45,13 +44,14 @@ type Config struct {
 	// Similar to other tools like HLSW, you can receive server logs over UDP when setup
 	// correctly.
 	ServerModeEnabled bool `yaml:"server_mode_enabled"`
-	// ServerLogPassword handles authenticating a server if its using sv_logsecret.
-	ServerLogPassword int `yaml:"server_log_password"`
 	// ServerLogAddress should point to an address where the server can reach you to send logs.
-	ServerLogAddress string     `yaml:"server_log_address"`
-	BDLists          []UserList `yaml:"bd_lists"`
-	Links            []UserLink `yaml:"links"`
-	ConfigPath       string     `yaml:"-"`
+	ServerLogAddress string `yaml:"server_log_address"`
+	// ServerLogSecret is the sv_logsecret values used for log message auth.
+	ServerLogSecret     int64      `yaml:"server_log_secret"`
+	ServerListenAddress string     `yaml:"server_listen_address"`
+	BDLists             []UserList `yaml:"bd_lists"`
+	Links               []UserLink `yaml:"links"`
+	ConfigPath          string     `yaml:"-"`
 }
 
 type SIDFormats string
@@ -87,13 +87,14 @@ type UserList struct {
 }
 
 var defaultConfig = Config{
-	Address:        "127.0.0.1:27015",
-	Password:       "tf-tui",
-	ConsoleLogPath: defaultConsoleLogPath(),
-	APIBaseURL:     "https://tf-api.roto.lol/",
-	UpdateFreqMs:   2000,
-	BDLists:        []UserList{},
-	Links:          []UserLink{},
+	Address:           "127.0.0.1:27015",
+	Password:          "tf-tui",
+	ConsoleLogPath:    defaultConsoleLogPath(),
+	APIBaseURL:        "https://tf-api.roto.lol/",
+	UpdateFreqMs:      2000,
+	ServerModeEnabled: false,
+	BDLists:           []UserList{},
+	Links:             []UserLink{},
 }
 
 // PathConfig generates a path pointing to the filename under this apps defined $XDG_CONFIG_HOME.
@@ -154,6 +155,10 @@ func Read(configPath string) (Config, error) {
 
 	if config.Password == "" {
 		config.Password = defaultConfig.Password
+	}
+
+	if config.ServerListenAddress == "" {
+		config.ServerListenAddress = "0.0.0.0:27115"
 	}
 
 	config.ConfigPath = configPath
