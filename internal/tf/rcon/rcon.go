@@ -1,4 +1,4 @@
-package tf
+package rcon
 
 import (
 	"context"
@@ -12,21 +12,21 @@ import (
 
 var errRCON = errors.New("errors making rcon request")
 
-type rconConnection struct {
+type Connection struct {
 	addr     string
 	password string
 	timeout  time.Duration
 }
 
-func newRconConnection(addr string, password string) rconConnection {
-	return rconConnection{
+func New(addr string, password string) Connection {
+	return Connection{
 		addr:     addr,
 		password: password,
 		timeout:  time.Second,
 	}
 }
 
-func (r rconConnection) exec(ctx context.Context, cmd string, large bool) (string, error) {
+func (r Connection) Exec(ctx context.Context, cmd string, large bool) (string, error) {
 	conn, errConn := rcon.Dial(ctx, r.addr, r.password, r.timeout)
 	if errConn != nil {
 		return "", errors.Join(errConn, fmt.Errorf("%w: %s", errRCON, r.addr))
@@ -40,7 +40,7 @@ func (r rconConnection) exec(ctx context.Context, cmd string, large bool) (strin
 	return r.rcon(conn, cmd)
 }
 
-func (r rconConnection) rcon(conn *rcon.RemoteConsole, cmd string) (string, error) {
+func (r Connection) rcon(conn *rcon.RemoteConsole, cmd string) (string, error) {
 	cmdID, errWrite := conn.Write(cmd)
 	if errWrite != nil {
 		return "", errors.Join(errWrite, errRCON)
@@ -59,7 +59,7 @@ func (r rconConnection) rcon(conn *rcon.RemoteConsole, cmd string) (string, erro
 }
 
 // rconLarge is used for rcon responses that exceed the size of a single rcon packet (g15_dumpplayer).
-func (r rconConnection) rconLarge(conn *rcon.RemoteConsole, cmd string) (string, error) {
+func (r Connection) rconLarge(conn *rcon.RemoteConsole, cmd string) (string, error) {
 	cmdID, errWrite := conn.Write(cmd)
 	if errWrite != nil {
 		return "", errors.Join(errWrite, errRCON)

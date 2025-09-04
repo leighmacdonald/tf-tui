@@ -1,4 +1,4 @@
-package tf
+package console
 
 import (
 	"context"
@@ -7,28 +7,21 @@ import (
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/leighmacdonald/tf-tui/internal/tf/rcon"
 )
 
 type srcdsPacket byte
 
 const (
-	// Normal log messages (unsupported).
+	// Normal log messages.
 	s2aLogString srcdsPacket = 0x52
-	// Sent when using sv_logsecret.
+	// Sent when using sv_logsecret for "authentication".
 	s2aLogString2 srcdsPacket = 0x53
 )
 
-var (
-	ErrResolve    = errors.New("failed to resolve UDP address")
-	ErrUDPListen  = errors.New("failed to listen on UDP address")
-	ErrUDPSetup   = errors.New("failed to configure logaddress")
-	ErrRateLimit  = errors.New("rate limited")
-	ErrUnknownIP  = errors.New("unknown source ip")
-	ErrSecretAuth = errors.New("failed secret auth")
-)
-
-// SRCDSListener handles reading inbound srcds log packets.
-type SRCDSListener struct {
+// Remote handles reading inbound srcds log packets.
+type Remote struct {
 	udpAddr         *net.UDPAddr
 	conn            *net.UDPConn
 	secret          int64
@@ -36,7 +29,7 @@ type SRCDSListener struct {
 	remotePassword  string
 	externalAddress string
 	listenAddress   string
-	logBroadcaster  *LogBroadcaster
+	logBroadcaster  Receiver
 }
 
 type SRCDSListenerOpts struct {
@@ -47,22 +40,22 @@ type SRCDSListenerOpts struct {
 	Secret          int64
 }
 
-func NewSRCDSListener(broadcaster *LogBroadcaster, opts SRCDSListenerOpts) (*SRCDSListener, error) {
+func NewRemote(broadcaster Receiver, opts SRCDSListenerOpts) (*Remote, error) {
 	udpAddr, errResolveUDP := net.ResolveUDPAddr("udp4", opts.ListenAddress)
 	if errResolveUDP != nil {
-		return nil, errors.Join(errResolveUDP, ErrResolve)
+		return nil, errors.Join(errResolveUDP, ErrSetup)
 	}
 
 	connection, errListenUDP := net.ListenUDP("udp4", udpAddr)
 	if errListenUDP != nil {
-		return nil, errors.Join(errListenUDP, ErrUDPListen)
+		return nil, errors.Join(errListenUDP, ErrSetup)
 	}
 
 	if opts.ExternalAddress == "" {
 		opts.ExternalAddress = opts.ListenAddress
 	}
 
-	return &SRCDSListener{
+	return &Remote{
 		udpAddr:         udpAddr,
 		conn:            connection,
 		remoteAddress:   opts.RemoteAddress,
@@ -74,20 +67,42 @@ func NewSRCDSListener(broadcaster *LogBroadcaster, opts SRCDSListenerOpts) (*SRC
 	}, nil
 }
 
-func (l *SRCDSListener) setup(ctx context.Context) error {
-	conn := newRconConnection(l.remoteAddress, l.remotePassword)
-	_, errExec := conn.exec(ctx, "logaddress_add "+l.listenAddress, false)
+func (l *Remote) Close(ctx context.Context) error {
+	var err error
+	// Be cool and remove ourselves from the log address list.
+	conn := rcon.New(l.remoteAddress, l.remotePassword)
+	_, errExec := conn.Exec(ctx, "logaddress_del "+l.listenAddress, false)
 	if errExec != nil {
-		return errExec
+		err = errors.Join(err, errExec)
 	}
 
-	resp, err := conn.exec(ctx, "logaddress_list", false)
+	if l.conn != nil {
+		if errConnClose := l.conn.Close(); errConnClose != nil {
+			err = errors.Join(err, errConnClose)
+		}
+	}
+
 	if err != nil {
-		return err
+		return errors.Join(err, ErrClose)
+	}
+
+	return nil
+}
+
+func (l *Remote) Open(ctx context.Context) error {
+	conn := rcon.New(l.remoteAddress, l.remotePassword)
+	_, errExec := conn.Exec(ctx, "logaddress_add "+l.listenAddress, false)
+	if errExec != nil {
+		return errors.Join(errExec, ErrOpen)
+	}
+
+	resp, err := conn.Exec(ctx, "logaddress_list", false)
+	if err != nil {
+		return errors.Join(err, ErrOpen)
 	}
 
 	if !strings.Contains(resp, l.externalAddress) {
-		return ErrUDPSetup
+		return ErrOpen
 	}
 
 	return nil
@@ -96,17 +111,8 @@ func (l *SRCDSListener) setup(ctx context.Context) error {
 // Start initiates the udp network log read loop. DNS names are used/to
 // map the server logs to the internal known server id. The DNS is updated
 // every 60 minutes so that it remains up to date.
-func (l *SRCDSListener) Start(ctx context.Context) {
-	defer func() {
-		if errConnClose := l.conn.Close(); errConnClose != nil {
-			slog.Error("Failed to close connection cleanly", slog.String("error", errConnClose.Error()))
-		}
-	}()
-
-	var (
-		insecureCount = uint64(0)
-		buffer        = make([]byte, 1024)
-	)
+func (l *Remote) Start(ctx context.Context) {
+	insecureCount := uint64(0)
 
 	slog.Info("Starting log reader", slog.String("listen_addr", l.udpAddr.String()+"/udp"))
 
@@ -115,7 +121,7 @@ func (l *SRCDSListener) Start(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			clear(buffer)
+			buffer := make([]byte, 1024)
 			readLen, _, errReadUDP := l.conn.ReadFromUDP(buffer)
 			if errReadUDP != nil {
 				slog.Warn("UDP log read error", slog.String("error", errReadUDP.Error()))

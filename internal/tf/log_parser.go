@@ -12,7 +12,11 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 )
 
-var ErrNoMatch = errors.New("no match found")
+var (
+	ErrNoMatch        = errors.New("no match found")
+	errParseTimestamp = errors.New("failed to parse timestamp")
+	errDuration       = errors.New("failed to parse connected duration")
+)
 
 type EventType int
 
