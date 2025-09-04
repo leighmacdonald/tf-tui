@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/charmbracelet/fang"
 	tftui "github.com/leighmacdonald/tf-tui/internal"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/store"
@@ -38,10 +39,12 @@ var (
 	}
 
 	versionCmd = &cobra.Command{
-		Use:   "version",
-		Short: "Print version information",
-		Long:  "Print detailed version information about tf-tui",
-		Run:   version,
+		Use:               "version",
+		Short:             "Print version information",
+		Long:              "Print detailed version information about tf-tui",
+		Args:              cobra.NoArgs,
+		ValidArgsFunction: cobra.NoFileCompletions,
+		Run:               version,
 	}
 )
 
@@ -54,7 +57,7 @@ func main() {
 		"Config file path")
 	rootCmd.AddCommand(versionCmd)
 
-	if err := rootCmd.Execute(); err != nil {
+	if err := fang.Execute(context.Background(), rootCmd); err != nil {
 		slog.Error("Exited with error", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
