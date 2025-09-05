@@ -42,12 +42,8 @@ type SelectedPlayerMsg struct {
 
 func selectTeam(team tf.Team) func() tea.Msg {
 	return func() tea.Msg {
-		return SelectedTeamMsg{selectedTeam: team}
+		return team
 	}
-}
-
-type SelectedTeamMsg struct {
-	selectedTeam tf.Team
 }
 
 type clearStatusMessageMsg struct{}
@@ -70,13 +66,10 @@ func setStatusMessage(msg string, err bool) tea.Cmd {
 }
 
 // SetViewMsg will Switch the currently displayed center content view.
-type SetViewMsg struct {
-	view contentView
-}
 
 func setContentView(view contentView) tea.Cmd {
 	return func() tea.Msg {
-		return SetViewMsg{view: view}
+		return view
 	}
 }
 

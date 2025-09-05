@@ -116,8 +116,8 @@ func (m consoleModel) onLogs(log events.Event) consoleModel {
 
 	newRow := LogRow{Content: safeString(parts[1]), CreatedOn: time.Now(), EventType: log.Type}
 	m.rowsMu.Lock()
-	// This does not use JoinVertical currently as it takes *way* more and more CPU as time goes on
-	// and the console log fills.
+	// This does not use JoinVertical currently as it takes more and more CPU as time goes on
+	// and the console log fills becoming unusuable.
 	m.rowsRendered = m.rowsRendered + "\n" + newRow.Render(m.width-10)
 	m.rowsMu.Unlock()
 
@@ -143,9 +143,3 @@ func (m consoleModel) Render(height int) string {
 
 	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View())
 }
-
-// func (m ConsoleModel) logTick() tea.Cmd {
-// 	return tea.Tick(time.Second, func(lastTime time.Time) tea.Msg {
-// 		return ConsoleLogMsg{t: lastTime, logs: m.console.Dequeue()}
-// 	})
-// }

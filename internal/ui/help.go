@@ -45,8 +45,8 @@ func (m helpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, setContentView(viewPlayerTables)
 			}
 		}
-	case SetViewMsg:
-		m.view = msg.view
+	case contentView:
+		m.view = msg
 	}
 
 	return m, nil

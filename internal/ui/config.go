@@ -189,8 +189,8 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.fields[fieldTFAPIBaseURL], cmds[4] = m.fields[fieldTFAPIBaseURL].Update(msg)
 
 	switch msg := msg.(type) {
-	case SetViewMsg:
-		m.activeView = msg.view
+	case contentView:
+		m.activeView = msg
 		if m.activeView == viewConfig {
 			cmds = append(cmds, m.fields[fieldSteamID].focus()) //nolint:makezero
 		}
