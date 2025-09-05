@@ -80,8 +80,6 @@ func setContentView(view contentView) tea.Cmd {
 	}
 }
 
-type TabChangeMsg tabView
-
 func setTab(tab tabView) tea.Cmd {
 	return func() tea.Msg { return tab }
 }
