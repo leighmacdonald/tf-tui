@@ -127,6 +127,9 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 			buffer := make([]byte, 1024)
 			readLen, _, errReadUDP := l.conn.ReadFromUDP(buffer)
 			if errReadUDP != nil {
+				if errors.Is(errReadUDP, net.ErrClosed) {
+					return
+				}
 				slog.Warn("UDP log read error", slog.String("error", errReadUDP.Error()))
 
 				continue
