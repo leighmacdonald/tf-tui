@@ -41,3 +41,4 @@ dist/
 tf-tui
 !cmd/tf-tui
 .cache
+tf-tui.yaml
