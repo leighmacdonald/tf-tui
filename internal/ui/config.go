@@ -4,10 +4,10 @@ import (
 	"os"
 	"path"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/key"
+	"github.com/charmbracelet/bubbles/v2/textinput"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
@@ -145,7 +145,7 @@ type configModel struct {
 	height     int
 }
 
-func newConfigModal(config config.Config) tea.Model {
+func newConfigModal(config config.Config) *configModel {
 	homedir, err := os.UserHomeDir()
 	if err != nil {
 		homedir = "/"
@@ -179,7 +179,7 @@ func (m *configModel) Init() tea.Cmd {
 	})
 }
 
-func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *configModel) Update(msg tea.Msg) (*configModel, tea.Cmd) {
 	cmds := make([]tea.Cmd, 5)
 
 	m.fields[fieldAddress], cmds[0] = m.fields[fieldAddress].Update(msg)

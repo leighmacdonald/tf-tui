@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/viewport"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/dustin/go-humanize"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
@@ -17,7 +17,7 @@ import (
 func newDetailPanelModel(links []config.UserLink) detailPanelModel {
 	return detailPanelModel{
 		links:    links,
-		viewport: viewport.New(1, 1),
+		viewport: viewport.New(),
 	}
 }
 
@@ -46,12 +46,13 @@ func (m detailPanelModel) Update(msg tea.Msg) (detailPanelModel, tea.Cmd) {
 		m.width = msg.width
 		m.height = msg.height
 		if !m.ready {
-			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)
+			m.viewport = viewport.New()
+			m.viewport.SetWidth(m.width)
 			m.ready = true
-		} else {
-			m.contentViewPortHeight = msg.contentViewPortHeight
-			m.viewport.Height = msg.contentViewPortHeight
 		}
+		m.contentViewPortHeight = msg.contentViewPortHeight
+		m.viewport.SetHeight(msg.contentViewPortHeight)
+
 	case SelectedPlayerMsg:
 		m.player = msg.player
 	}
@@ -144,7 +145,7 @@ func (m detailPanelModel) Render(height int) string {
 	m.viewport.SetContent(lipgloss.JoinVertical(lipgloss.Top, rows...))
 
 	titleBar := renderTitleBar(m.width, "Player Overview")
-	m.viewport.Height = height - lipgloss.Height(titleBar)
+	m.viewport.SetHeight(height - lipgloss.Height(titleBar))
 
 	return lipgloss.JoinVertical(lipgloss.Top, titleBar, "", m.viewport.View())
 }

@@ -8,7 +8,7 @@ import (
 
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
-	zone "github.com/lrstanley/bubblezone"
+	zone "github.com/lrstanley/bubblezone/v2"
 	"golang.org/x/exp/slices"
 )
 

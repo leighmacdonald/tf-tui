@@ -3,7 +3,7 @@ package styles
 import (
 	"fmt"
 
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 )
 
 var (

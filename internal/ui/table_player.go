@@ -1,15 +1,15 @@
 package ui
 
 import (
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
+	"github.com/charmbracelet/bubbles/v2/key"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss/v2/table"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
-	zone "github.com/lrstanley/bubblezone"
+	zone "github.com/lrstanley/bubblezone/v2"
 )
 
 // direction defines the cardinal directions the users can use in the UI.
@@ -83,7 +83,7 @@ func (m *tablePlayerModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *tablePlayerModel) Update(msg tea.Msg) (*tablePlayerModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case config.Config:
 		m.selfSteamID = msg.SteamID
@@ -99,59 +99,61 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.data.Sort(msg.sortColumn, msg.asc)
 
 		return m, nil
-	case tea.MouseMsg:
-		switch msg.Button { //nolint:exhaustive
-		case tea.MouseButtonWheelUp:
-			// return m.moveSelection(Up)
-		case tea.MouseButtonWheelDown:
-			// return m.moveSelection(Down)
-		default:
-			if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
+	case tea.MouseReleaseMsg:
+		if msg.Mouse().Button != tea.MouseLeft {
+			return m, nil
+		}
+
+		for _, item := range m.data.players {
+			// Check each item to see if it's in bounds.
+			if zone.Get(m.id + item.SteamID.String()).InBounds(msg) {
+				m.selectedSteamID = item.SteamID
+				m.selectedTeam = m.team
+
+				return m, tea.Sequence(
+					selectTeam(m.team),
+					selectPlayer(item))
+			}
+		}
+
+		for _, markID := range []string{"name", "uid", "score", "meta", "deaths", "ping", "address", "loss", "time"} {
+			if zone.Get(m.id + markID).InBounds(msg) {
+				var col playerTableCol
+				switch markID {
+				case "uid":
+					col = colUID
+				case "score":
+					col = colScore
+				case "deaths":
+					col = colDeaths
+				case "ping":
+					col = colPing
+				case "meta":
+					col = colMeta
+				case "address":
+					col = colAddress
+				case "loss":
+					col = colLoss
+				case "time":
+					col = colTime
+				default:
+					col = colName
+				}
+				m.data.Sort(col, !m.data.asc)
+
 				return m, nil
 			}
+		}
 
-			for _, item := range m.data.players {
-				// Check each item to see if it's in bounds.
-				if zone.Get(m.id + item.SteamID.String()).InBounds(msg) {
-					m.selectedSteamID = item.SteamID
-					m.selectedTeam = m.team
+		return m, nil
+	case tea.MouseMsg:
+		switch msg.Mouse().Button { //nolint:exhaustive
+		case tea.MouseWheelUp:
+			// return m.moveSelection(Up)
+		case tea.MouseWheelDown:
+			// return m.moveSelection(Down)
+		default:
 
-					return m, tea.Sequence(
-						selectTeam(m.team),
-						selectPlayer(item))
-				}
-			}
-
-			for _, markID := range []string{"name", "uid", "score", "meta", "deaths", "ping", "address", "loss", "time"} {
-				if zone.Get(m.id + markID).InBounds(msg) {
-					var col playerTableCol
-					switch markID {
-					case "uid":
-						col = colUID
-					case "score":
-						col = colScore
-					case "deaths":
-						col = colDeaths
-					case "ping":
-						col = colPing
-					case "meta":
-						col = colMeta
-					case "address":
-						col = colAddress
-					case "loss":
-						col = colLoss
-					case "time":
-						col = colTime
-					default:
-						col = colName
-					}
-					m.data.Sort(col, !m.data.asc)
-
-					return m, nil
-				}
-			}
-
-			return m, nil
 		}
 	case tea.KeyMsg:
 		var cmd tea.Cmd
@@ -263,7 +265,7 @@ func (m *tablePlayerModel) selectClosestPlayer() tea.Cmd {
 	return nil
 }
 
-func (m *tablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.Cmd) {
+func (m *tablePlayerModel) updatePlayers(playersUpdate Players) (*tablePlayerModel, tea.Cmd) {
 	m.data = newTablePlayerData(m.id, m.serverMode, playersUpdate, m.team)
 	m.data.Sort(m.data.sortColumn, m.data.asc)
 	m.table.Data(m.data)

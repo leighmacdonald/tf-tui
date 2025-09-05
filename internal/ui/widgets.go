@@ -1,20 +1,22 @@
 package ui
 
 import (
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
+	"github.com/charmbracelet/bubbles/v2/textinput"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss/v2/table"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
 func newTextInputModel(value string, placeholder string) textinput.Model {
 	input := textinput.New()
-	input.Cursor.Style = styles.CursorStyle
+	input.Styles.Cursor.Shape = tea.CursorBar
 	input.SetValue(value)
 	input.CharLimit = 127
 	input.Placeholder = placeholder
-	input.PromptStyle = styles.NoStyle
-	input.TextStyle = styles.NoStyle
+	input.Styles.Focused.Prompt = styles.NoStyle
+	// input.PromptStyle = styles.NoStyle
+	// input.TextStyle = styles.NoStyle
 
 	return input
 }

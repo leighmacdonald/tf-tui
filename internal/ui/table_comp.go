@@ -4,10 +4,10 @@ import (
 	"slices"
 	"time"
 
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
+	"github.com/charmbracelet/bubbles/v2/viewport"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss/v2/table"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
@@ -62,11 +62,11 @@ func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 		m.height = msg.height
 		m.table.Height(msg.contentViewPortHeight - 2)
 		if !m.ready {
-			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)
+			m.viewport = viewport.New()
+			m.viewport.SetWidth(m.width)
 			m.ready = true
-		} else {
-			m.viewport.Height = msg.contentViewPortHeight - 1
 		}
+		m.viewport.SetHeight(msg.contentViewPortHeight - 1)
 	case SelectedPlayerMsg:
 		m.player = msg.player
 		m.table.ClearRows()
@@ -151,7 +151,7 @@ func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 
 func (m tableCompModel) Render(height int) string {
 	titlebar := renderTitleBar(m.width, "League History")
-	m.viewport.Height = height - lipgloss.Height(titlebar)
+	m.viewport.SetHeight(height - lipgloss.Height(titlebar))
 
 	return lipgloss.JoinVertical(lipgloss.Left, titlebar, m.viewport.View())
 }
