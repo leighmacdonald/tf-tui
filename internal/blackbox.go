@@ -80,6 +80,9 @@ func (b *BlackBox) start(ctx context.Context) {
 				b.match.Tags = strings.Split(event.MetaData, ",")
 			case events.Lobby:
 			case events.StatusID:
+			case events.Map:
+			case events.Stats:
+			case events.Any:
 			}
 
 			if err != nil {

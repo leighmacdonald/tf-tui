@@ -5,22 +5,25 @@ import (
 	"sync"
 )
 
-func NewBroadcaster() *Broadcaster {
-	return &Broadcaster{
+func NewRouter() *Router {
+	return &Router{
 		parser:    newParser(),
 		readers:   make(map[EventType][]chan<- Event),
 		readersMu: &sync.RWMutex{},
 	}
 }
 
-type Broadcaster struct {
+// Router handles receiving raw log line events from a console.Source, parsing them into
+// a Event and sending the parsed event to any registered handlers for the parsed event.
+type Router struct {
 	readersAny []chan<- Event
 	readers    map[EventType][]chan<- Event
 	readersMu  *sync.RWMutex
 	parser     *parser
 }
 
-func (l *Broadcaster) ListenFor(logType EventType, handler chan<- Event) {
+// ListenFor registers a channel to start receiving events for the specified event.
+func (l *Router) ListenFor(logType EventType, handler chan<- Event) {
 	l.readersMu.Lock()
 	defer l.readersMu.Unlock()
 
@@ -38,7 +41,8 @@ func (l *Broadcaster) ListenFor(logType EventType, handler chan<- Event) {
 	l.readers[logType] = append(l.readers[logType], handler)
 }
 
-func (l *Broadcaster) Send(line string) {
+// Send is responding for parsing and sending the result to any matching registered channels.
+func (l *Router) Send(line string) {
 	var logEvent Event
 	if err := l.parser.parse(line, &logEvent); err != nil || errors.Is(err, ErrNoMatch) {
 		// This is sent as a "raw" line so that the console view can show it even if it doesn't

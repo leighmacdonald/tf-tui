@@ -45,6 +45,10 @@ func (r LogRow) Render(width int) string {
 		body = styles.ConsoleLobby.Render(body)
 	case events.Kill:
 		body = styles.ConsoleKill.Render(body)
+	case events.Stats:
+		body = styles.ConsoleKill.Render(body)
+	case events.Any:
+		fallthrough
 	default:
 		body = styles.ConsoleOther.Render(body)
 	}
@@ -59,6 +63,7 @@ type consoleModel struct {
 	width        int
 	viewPort     viewport.Model
 	focused      bool
+	filterNoisy  bool
 }
 
 func newConsoleModel() consoleModel {
@@ -102,22 +107,24 @@ func (m consoleModel) onLogs(log events.Event) consoleModel {
 		return m
 	}
 
-	valid := true
-	for _, prefix := range []string{"# ", "version ", "steamid ", "players ", "map ", "account ", "edicts "} {
-		if strings.HasPrefix(parts[1], prefix) {
-			valid = false
+	if m.filterNoisy {
+		valid := true
+		for _, prefix := range []string{"# ", "version ", "steamid ", "players ", "map ", "account ", "edicts "} {
+			if strings.HasPrefix(parts[1], prefix) {
+				valid = false
 
-			break
+				break
+			}
 		}
-	}
-	if !valid {
-		return m
+		if !valid {
+			return m
+		}
 	}
 
 	newRow := LogRow{Content: safeString(parts[1]), CreatedOn: time.Now(), EventType: log.Type}
 	m.rowsMu.Lock()
 	// This does not use JoinVertical currently as it takes more and more CPU as time goes on
-	// and the console log fills becoming unusuable.
+	// and the console log fills becoming unusable.
 	m.rowsRendered = m.rowsRendered + "\n" + newRow.Render(m.width-10)
 	m.rowsMu.Unlock()
 

@@ -3,11 +3,15 @@ package internal
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 )
 
@@ -15,6 +19,9 @@ type Player struct {
 	SteamID       steamid.SteamID
 	Name          string
 	Ping          int
+	Loss          int
+	Address       string
+	Time          int
 	Score         int
 	Deaths        int
 	Connected     bool
@@ -31,20 +38,100 @@ type Player struct {
 
 type Players []Player
 
-func NewPlayerStates() *PlayerStates {
+func NewPlayerStates(router *events.Router, conf config.Config, metaFetcher *MetaFetcher, bdFetcher *BDFetcher) *PlayerStates {
+	incomingEvents := make(chan events.Event)
+	router.ListenFor(events.StatusID, incomingEvents)
+
 	return &PlayerStates{
-		mu:            &sync.RWMutex{},
-		players:       Players{},
-		expiration:    time.Second * 30,
-		checkInterval: time.Second,
+		mu:             &sync.RWMutex{},
+		players:        Players{},
+		expiration:     time.Second * 30,
+		checkInterval:  time.Second,
+		metaFetcher:    metaFetcher,
+		bdFetcher:      bdFetcher,
+		dumpFetcher:    tf.NewDumpFetcher(conf.Address, conf.Password, conf.ServerModeEnabled),
+		incomingEvents: incomingEvents,
 	}
 }
 
 type PlayerStates struct {
-	mu            *sync.RWMutex
-	players       Players
-	expiration    time.Duration
-	checkInterval time.Duration
+	mu             *sync.RWMutex
+	players        Players
+	expiration     time.Duration
+	checkInterval  time.Duration
+	incomingEvents chan events.Event
+	metaInFlight   atomic.Bool
+	metaFetcher    *MetaFetcher
+	dumpFetcher    tf.DumpFetcher
+	bdFetcher      *BDFetcher
+}
+
+func (s *PlayerStates) Start(ctx context.Context) {
+	// Load the bot detector lists
+	go s.bdFetcher.Update(ctx)
+
+	removeTicker := time.NewTicker(s.checkInterval)
+	dumpTicker := time.NewTicker(time.Second * 2)
+
+	for {
+		select {
+		case event := <-s.incomingEvents:
+			if err := s.onIncomingEvent(event); err != nil {
+				slog.Error("failed handling incoming log event", slog.String("error", err.Error()))
+			}
+		case <-dumpTicker.C:
+			s.onDumpTick(ctx)
+		case <-removeTicker.C:
+			s.removeExpired()
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (s *PlayerStates) onDumpTick(ctx context.Context) {
+	if s.metaInFlight.Load() {
+		return
+	}
+	waitGroup := &sync.WaitGroup{}
+	waitGroup.Add(3)
+
+	go func() {
+		defer waitGroup.Done()
+		s.updateMetaProfile(ctx)
+	}()
+
+	go func() {
+		defer waitGroup.Done()
+		s.updateBD()
+	}()
+
+	go func() {
+		defer waitGroup.Done()
+		s.updateDump(ctx)
+	}()
+
+	waitGroup.Wait()
+}
+
+func (s *PlayerStates) onIncomingEvent(event events.Event) error {
+	switch event.Type { //nolint:exhaustive,gocritic
+	case events.StatusID:
+		player, errPlayer := s.Player(event.PlayerSID)
+		if errPlayer != nil {
+			if !errors.Is(errPlayer, errPlayerNotFound) {
+				return errPlayer
+			}
+
+			player = Player{SteamID: event.PlayerSID, Meta: tfapi.MetaProfile{Bans: []tfapi.Ban{}}}
+		}
+
+		player.Name = event.Player
+
+		s.SetPlayer(player)
+	}
+
+	return nil
 }
 
 func (s *PlayerStates) UpdateDumpPlayer(stats tf.DumpPlayer) {
@@ -73,6 +160,9 @@ func (s *PlayerStates) UpdateDumpPlayer(stats tf.DumpPlayer) {
 		player.Score = stats.Score[idx]
 		player.Connected = stats.Connected[idx]
 		player.Name = stats.Names[idx]
+		player.Loss = stats.Loss[idx]
+		player.Address = stats.Address[idx]
+		player.Time = stats.Time[idx]
 		player.Team = tf.Team(stats.Team[idx])
 		player.UserID = stats.UserID[idx]
 		player.G15UpdatedOn = time.Now()
@@ -135,19 +225,6 @@ func (s *PlayerStates) Players() Players {
 	return s.players
 }
 
-func (s *PlayerStates) Cleaner(ctx context.Context) {
-	ticker := time.NewTicker(s.checkInterval)
-
-	for {
-		select {
-		case <-ticker.C:
-			s.removeExpired()
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
 func (s *PlayerStates) removeExpired() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -162,4 +239,60 @@ func (s *PlayerStates) removeExpired() {
 	}
 
 	s.players = valid
+}
+
+func (s *PlayerStates) updateBD() {
+	var (
+		players = s.Players()
+		updates = make(Players, len(players))
+	)
+
+	for idx, player := range players {
+		player.BDMatches = s.bdFetcher.Search(player.SteamID)
+		updates[idx] = player
+	}
+
+	s.SetPlayer(updates...)
+}
+
+func (s *PlayerStates) updateDump(ctx context.Context) {
+	dump, errDump := s.dumpFetcher.Fetch(ctx)
+	if errDump != nil {
+		// s.uiUpdates <- ui.StatusMsg{
+		// 	Err:     true,
+		// 	Message: errDump.Error(),
+		// }
+		//
+		// An error result will return a copy of the last successful dump still.
+		slog.Error("Failed to fetch player dump", slog.String("error", errDump.Error()))
+	}
+
+	s.UpdateDumpPlayer(dump)
+}
+
+func (s *PlayerStates) updateMetaProfile(ctx context.Context) {
+	s.metaInFlight.Store(true)
+	defer s.metaInFlight.Store(false)
+
+	var expires steamid.Collection
+	for _, player := range s.Players() {
+		if time.Since(player.MetaUpdatedOn) > time.Hour*24 {
+			expires = append(expires, player.SteamID)
+		}
+	}
+
+	if len(expires) == 0 {
+		return
+	}
+
+	mProfiles, errProfiles := s.metaFetcher.MetaProfiles(ctx, expires)
+	if errProfiles != nil {
+		slog.Error("Failed to fetch meta profiles", slog.String("error", errProfiles.Error()))
+
+		return
+	}
+
+	for _, profile := range mProfiles {
+		s.UpdateMetaProfile(profile)
+	}
 }

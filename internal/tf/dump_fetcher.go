@@ -4,13 +4,16 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/leighmacdonald/steamid/v4/extra"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/tf/rcon"
 )
@@ -27,6 +30,10 @@ type DumpPlayer struct {
 	SteamID   [MaxPlayerCount]steamid.SteamID
 	Valid     [MaxPlayerCount]bool
 	UserID    [MaxPlayerCount]int
+	Loss      [MaxPlayerCount]int
+	State     [MaxPlayerCount]string
+	Address   [MaxPlayerCount]string
+	Time      [MaxPlayerCount]int
 }
 
 var ErrDumpQuery = errors.New("failed to query g15_dumpplayer")
@@ -50,7 +57,9 @@ type DumpFetcher struct {
 
 func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, error) {
 	command := "status"
-	if !f.serverMode {
+	if f.serverMode {
+		command = "status"
+	} else {
 		command = "g15_dumpplayer;" + command
 	}
 
@@ -92,7 +101,45 @@ func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, error) {
 		return data, nil
 	}
 
-	dump := f.parsePlayerState(strings.NewReader(response))
+	var dump DumpPlayer
+
+	if f.serverMode {
+		status, errStatus := extra.ParseStatus(response, true)
+		if errStatus != nil {
+			slog.Error("failed to parse status", slog.String("error", errStatus.Error()))
+		}
+
+		slices.SortStableFunc(status.Players, func(a extra.Player, b extra.Player) int {
+			if a.UserID > b.UserID {
+				return 1
+			} else if a.UserID < b.UserID {
+				return -1
+			}
+
+			return 0
+		})
+
+		for idx, player := range status.Players {
+			dump.Connected[idx] = player.State == "active"
+			dump.Names[idx] = player.Name
+			dump.Ping[idx] = player.Ping
+			dump.SteamID[idx] = player.SID
+			dump.Address[idx] = fmt.Sprintf("%s:%d", player.IP.String(), player.Port)
+			dump.Loss[idx] = player.Loss
+			dump.State[idx] = player.State
+			dump.Time[idx] = int(player.ConnectedTime.Seconds())
+			dump.UserID[idx] = player.UserID
+			// We have no way of knowing their real teams in server mode.
+			if idx%2 == 0 {
+				dump.Team[idx] = BLU
+			} else {
+				dump.Team[idx] = RED
+			}
+		}
+	} else {
+		dump = f.parsePlayerState(strings.NewReader(response))
+	}
+
 	f.lastUpdate = dump
 
 	return dump, nil

@@ -22,7 +22,7 @@ var (
 type EventType int
 
 const (
-	Any = iota - 1
+	Any EventType = iota - 1
 	Kill
 	Msg
 	Connect
@@ -33,6 +33,7 @@ const (
 	Tags
 	Address
 	Lobby
+	Stats
 )
 
 type Event struct {
@@ -100,6 +101,7 @@ const (
 	updateTags
 	changeMap
 	updateTeam
+	updateStats
 	updateTestPlayer = 1000
 )
 
@@ -123,6 +125,8 @@ func (ut updateType) String() string {
 		return "team"
 	case updateTestPlayer:
 		return "test_player"
+	case updateStats:
+		return "stats"
 	default:
 		return "unknown"
 	}
@@ -142,6 +146,9 @@ func newParser() *parser {
 			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\stags\s{4}:\s(.+?)$`),
 			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\sudp/ip\s{2}:\s(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5})$`),
 			regexp.MustCompile(`^\s{2}(Member|Pending)\[\d+]\s+(?P<sid>\[.+?]).+?TF_GC_TEAM_(?P<team>(DEFENDERS|INVADERS))\s{2}type\s=\sMATCH_PLAYER$`),
+			// CPU    In_(KB/s)  Out_(KB/s)  Uptime  Map_changes  FPS      Players  Connects
+			// 0.00   82.99      619.13      287     14           66.67    64       900
+			regexp.MustCompile(`^(\d+)\.(\d{1,2})\s+(\d+)\.(\d{1,2})\s+(\d+)\.(\d{1,2})\s+(\d+)\s+(\d+)\s+(\d+)\.(\d{1,2})\s+(\d+)\s+(\d+)$`),
 		},
 	}
 }
@@ -162,6 +169,8 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 		}
 
 		switch outEvent.Type {
+		case Stats:
+			// TODO
 		case Connect:
 			outEvent.Player = match[2]
 		case Disconnect:
