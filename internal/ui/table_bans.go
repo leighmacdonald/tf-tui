@@ -3,10 +3,10 @@ package ui
 import (
 	"time"
 
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
+	"github.com/charmbracelet/bubbles/v2/viewport"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss/v2/table"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
@@ -52,12 +52,12 @@ func (m tableBansModel) Update(msg tea.Msg) (tableBansModel, tea.Cmd) {
 		m.width = msg.width
 		m.height = msg.height
 		if !m.ready {
-			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)
+			m.viewport = viewport.New()
+			m.viewport.SetWidth(m.width)
 			m.ready = true
-		} else {
-			m.contentViewPortHeight = msg.contentViewPortHeight
-			m.viewport.Height = msg.contentViewPortHeight
 		}
+		m.contentViewPortHeight = msg.contentViewPortHeight
+		m.viewport.SetHeight(msg.contentViewPortHeight)
 	case SelectedPlayerMsg:
 		m.player = msg.player
 		m.table.ClearRows()
@@ -88,7 +88,7 @@ func (m tableBansModel) Update(msg tea.Msg) (tableBansModel, tea.Cmd) {
 }
 
 func (m tableBansModel) Render(height int) string {
-	m.viewport.Height = height
+	m.viewport.SetHeight(height)
 	var content string
 	if len(m.player.Bans) == 0 {
 		content = styles.InfoMessage.Width(m.width).Render("No bans found " + styles.IconNoBans)

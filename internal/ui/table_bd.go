@@ -1,9 +1,9 @@
 package ui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss/v2/table"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
@@ -23,15 +23,15 @@ type statusBarModel struct {
 	version     string
 }
 
-func newStatusBarModel(version string) *statusBarModel {
-	return &statusBarModel{version: version}
+func newStatusBarModel(version string) statusBarModel {
+	return statusBarModel{version: version}
 }
 
 func (m statusBarModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m statusBarModel) Update(msg tea.Msg) (statusBarModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case Players:
 		var (

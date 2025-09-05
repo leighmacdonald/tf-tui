@@ -3,16 +3,21 @@ package ui
 import (
 	"log/slog"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/key"
+	"github.com/charmbracelet/bubbles/v2/textinput"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
-	zone "github.com/lrstanley/bubblezone"
+	zone "github.com/lrstanley/bubblezone/v2"
 )
+
+type Model interface {
+	tea.Model
+	tea.ViewModel
+}
 
 // rootModel is the root model for the rootModel side of the app.
 type rootModel struct {
@@ -27,14 +32,14 @@ type rootModel struct {
 	banTable              tableBansModel
 	compTable             tableCompModel
 	bdTable               tableBDModel
-	configModel           tea.Model
-	helpModel             tea.Model
+	configModel           *configModel
+	helpModel             helpModel
 	notesModel            notesModel
-	tabsModel             tea.Model
-	statusModel           tea.Model
+	tabsModel             tabsModel
+	statusModel           statusBarModel
 	chatModel             chatModel
-	redTable              tea.Model
-	bluTable              tea.Model
+	redTable              *tablePlayerModel
+	bluTable              *tablePlayerModel
 	contentViewPortHeight int
 	footerHeight          int
 	headerHeight          int
@@ -220,19 +225,19 @@ func (m rootModel) isInitialized() bool {
 
 func (m rootModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
 	cmds := make([]tea.Cmd, 14)
-	m.redTable, cmds[1] = m.redTable.Update(msg)
-	m.bluTable, cmds[2] = m.bluTable.Update(msg)
-	m.banTable, cmds[3] = m.banTable.Update(msg)
-	m.helpModel, cmds[4] = m.helpModel.Update(msg)
-	m.detailPanel, cmds[5] = m.detailPanel.Update(msg)
-	m.tabsModel, cmds[6] = m.tabsModel.Update(msg)
-	m.notesModel, cmds[7] = m.notesModel.Update(msg)
-	m.compTable, cmds[8] = m.compTable.Update(msg)
-	m.consoleView, cmds[9] = m.consoleView.Update(msg)
-	m.statusModel, cmds[10] = m.statusModel.Update(msg)
-	m.chatModel, cmds[11] = m.chatModel.Update(msg)
-	m.configModel, cmds[12] = m.configModel.Update(msg)
-	m.bdTable, cmds[13] = m.bdTable.Update(msg)
+	m.redTable, cmds[0] = m.redTable.Update(msg)
+	m.bluTable, cmds[1] = m.bluTable.Update(msg)
+	m.banTable, cmds[2] = m.banTable.Update(msg)
+	m.helpModel, cmds[3] = m.helpModel.Update(msg)
+	m.detailPanel, cmds[4] = m.detailPanel.Update(msg)
+	m.tabsModel, cmds[5] = m.tabsModel.Update(msg)
+	m.notesModel, cmds[6] = m.notesModel.Update(msg)
+	m.compTable, cmds[7] = m.compTable.Update(msg)
+	m.consoleView, cmds[8] = m.consoleView.Update(msg)
+	m.statusModel, cmds[9] = m.statusModel.Update(msg)
+	m.chatModel, cmds[10] = m.chatModel.Update(msg)
+	m.configModel, cmds[11] = m.configModel.Update(msg)
+	m.bdTable, cmds[12] = m.bdTable.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }

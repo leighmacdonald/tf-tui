@@ -1,11 +1,11 @@
 package ui
 
 import (
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/key"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
-	zone "github.com/lrstanley/bubblezone"
+	zone "github.com/lrstanley/bubblezone/v2"
 )
 
 type tabView int
@@ -25,8 +25,8 @@ type tabLabel struct {
 	id    string
 }
 
-func newTabsModel() tea.Model {
-	return &tabsModel{
+func newTabsModel() tabsModel {
+	return tabsModel{
 		tabs: []tabLabel{
 			{
 				label: styles.IconInfo + " Overview",
@@ -74,11 +74,11 @@ func (m tabsModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m tabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m tabsModel) Update(msg tea.Msg) (tabsModel, tea.Cmd) {
 	changed := false
 	switch msg := msg.(type) {
-	case tea.MouseMsg:
-		if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
+	case tea.MouseReleaseMsg:
+		if msg.Mouse().Button != tea.MouseLeft {
 			return m, nil
 		}
 		for _, item := range m.tabs {

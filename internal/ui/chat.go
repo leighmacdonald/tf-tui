@@ -3,9 +3,9 @@ package ui
 import (
 	"time"
 
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/viewport"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
@@ -90,10 +90,10 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 		if !m.ready {
-			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)
+			m.viewport = viewport.New()
 			m.ready = true
 		} else {
-			m.viewport.Height = msg.contentViewPortHeight
+			m.viewport.SetHeight(msg.contentViewPortHeight)
 		}
 	case Players:
 		m.players = msg
@@ -132,7 +132,7 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 
 func (m chatModel) View(height int) string {
 	titleBar := renderTitleBar(m.width, "Game Chat")
-	m.viewport.Height = height - lipgloss.Height(titleBar)
+	m.viewport.SetHeight(height - lipgloss.Height(titleBar))
 
 	return lipgloss.JoinVertical(lipgloss.Left, titleBar, m.viewport.View())
 }

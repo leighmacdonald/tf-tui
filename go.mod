@@ -4,26 +4,21 @@ go 1.24.4
 
 require (
 	github.com/adrg/xdg v0.5.3
-	github.com/charmbracelet/bubbles v0.21.0
-	github.com/charmbracelet/bubbletea v1.3.6
-	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
+	github.com/charmbracelet/bubbles/v2 v2.0.0-beta.1
+	github.com/charmbracelet/bubbletea/v2 v2.0.0-beta1
+	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/joho/godotenv v1.5.1
 	github.com/leighmacdonald/rcon v1.0.10
 	github.com/leighmacdonald/steamid/v4 v4.0.6
-	github.com/lrstanley/bubblezone v1.0.0
+	github.com/lrstanley/bubblezone/v2 v2.0.0-alpha.2
 	github.com/muesli/reflow v0.3.0
 	github.com/nxadm/tail v1.4.11
 	github.com/oapi-codegen/runtime v1.1.2
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.38.2
-)
-
-require (
-	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta.3 // indirect
-	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250603201427-c31516f43444 // indirect
 )
 
 require (
@@ -69,21 +64,26 @@ require (
 	github.com/ccojocar/zxcvbn-go v1.0.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charithe/durationcheck v0.0.10 // indirect
+	github.com/charmbracelet/bubbletea v1.3.6 // indirect
 	github.com/charmbracelet/colorprofile v0.3.2 // indirect
 	github.com/charmbracelet/fang v0.4.0
 	github.com/charmbracelet/glamour v0.10.0 // indirect
 	github.com/charmbracelet/keygen v0.5.3 // indirect
+	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834 // indirect
 	github.com/charmbracelet/log v0.4.1 // indirect
 	github.com/charmbracelet/ssh v0.0.0-20250128164007-98fd5ae11894 // indirect
 	github.com/charmbracelet/vhs v0.10.0 // indirect
 	github.com/charmbracelet/wish v1.4.7 // indirect
 	github.com/charmbracelet/x/ansi v0.10.1 // indirect
-	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
+	github.com/charmbracelet/x/cellbuf v0.0.14-0.20250501183327-ad3bc78c6a81 // indirect
 	github.com/charmbracelet/x/conpty v0.1.0 // indirect
 	github.com/charmbracelet/x/errors v0.0.0-20240904165849-e8e43e13f84b // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250603201427-c31516f43444 // indirect
 	github.com/charmbracelet/x/exp/slice v0.0.0-20250327172914-2fdc97757edf // indirect
+	github.com/charmbracelet/x/input v0.3.5-0.20250424101541-abb4d9a9b197 // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/charmbracelet/x/termios v0.1.0 // indirect
+	github.com/charmbracelet/x/windows v0.2.1 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
 	github.com/ckaznocha/intrange v0.3.1 // indirect
 	github.com/creack/pty v1.1.24 // indirect

@@ -1,10 +1,10 @@
 package ui
 
 import (
-	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/bubbles/key"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/help"
+	"github.com/charmbracelet/bubbles/v2/key"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
@@ -33,7 +33,7 @@ func (m helpModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m helpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m helpModel) Update(msg tea.Msg) (helpModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch { //nolint:gocritic

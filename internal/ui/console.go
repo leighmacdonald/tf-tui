@@ -6,9 +6,9 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/viewport"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	"github.com/muesli/reflow/wordwrap"
@@ -69,7 +69,7 @@ type consoleModel struct {
 func newConsoleModel() consoleModel {
 	model := consoleModel{
 		rowsMu:   &sync.RWMutex{},
-		viewPort: viewport.New(10, 20),
+		viewPort: viewport.New(),
 	}
 
 	return model
@@ -87,7 +87,7 @@ func (m consoleModel) Update(msg tea.Msg) (consoleModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
-		m.viewPort.Width = msg.width
+		m.viewPort.SetWidth(msg.width)
 	case events.Event:
 		return m.onLogs(msg), tea.Batch(cmds...)
 	}
@@ -141,7 +141,7 @@ func safeString(s string) string {
 
 func (m consoleModel) Render(height int) string {
 	title := renderTitleBar(m.width, "Console Log")
-	m.viewPort.Height = height - lipgloss.Height(title)
+	m.viewPort.SetHeight(height - lipgloss.Height(title))
 	wasBottom := m.viewPort.AtBottom()
 	m.viewPort.SetContent(m.rowsRendered)
 	if wasBottom {

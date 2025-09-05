@@ -8,9 +8,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/textinput"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
@@ -74,15 +74,15 @@ func (m *validatingTextInputModel) View() string {
 }
 
 func (m *validatingTextInputModel) focus() tea.Cmd {
-	m.input.PromptStyle = styles.FocusedStyle
-	m.input.TextStyle = styles.FocusedStyle
+	m.input.Styles.Focused.Prompt = styles.FocusedStyle
+	m.input.Styles.Focused.Text = styles.FocusedStyle
 
 	return m.input.Focus()
 }
 
 func (m *validatingTextInputModel) blur() {
-	m.input.PromptStyle = styles.NoStyle
-	m.input.TextStyle = styles.NoStyle
+	m.input.Styles.Blurred.Placeholder = styles.NoStyle
+	m.input.Styles.Blurred.Text = styles.NoStyle
 	m.input.Blur()
 }
 
