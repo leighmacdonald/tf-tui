@@ -127,8 +127,12 @@ func run(_ *cobra.Command, _ []string) error {
 	if errClient != nil {
 		return errors.Join(errClient, errApp)
 	}
+
+	// Setup a log source depending on the operating mode.
+	router := events.NewRouter()
 	metaFetcher := tftui.NewMetaFetcher(client, cache)
 	bdFetcher := tftui.NewBDFetcher(httpClient, userConfig.BDLists, cache)
+	states := tftui.NewPlayerStates(router, userConfig, metaFetcher, bdFetcher)
 
 	// Setup the sqlite database system.
 	database, errDB := store.Open(ctx, config.PathConfig(config.DefaultDBName), true)
@@ -142,27 +146,26 @@ func run(_ *cobra.Command, _ []string) error {
 		}
 	}()
 
-	// Setup a log source depending on the operating mode.
-	logBroadcater := events.NewBroadcaster()
 	logSource, errLogSource := openLogSource(ctx, userConfig)
 	if errLogSource != nil {
 		return errors.Join(errLogSource, errApp)
 	}
 	defer logSource.Close(ctx)
 
-	go logSource.Start(ctx, logBroadcater)
+	go logSource.Start(ctx, router)
 
 	if len(os.Getenv("DEBUG")) > 0 {
 		consoleDebug := console.NewDebug("testdata/console.log")
 		if errDebug := consoleDebug.Open(ctx); errDebug != nil {
 			return errors.Join(errDebug, errApp)
 		}
-		go consoleDebug.Start(ctx, logBroadcater)
+		go consoleDebug.Start(ctx, router)
 		defer consoleDebug.Close(ctx)
 	}
 
 	done := make(chan any)
-	app := NewApp(userConfig, metaFetcher, bdFetcher, database, logBroadcater, logSource)
+
+	app := NewApp(userConfig, states, database, router, logSource)
 
 	go func() {
 		if err := app.createUI(ctx).Run(); err != nil {

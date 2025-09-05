@@ -34,6 +34,9 @@ type Player struct {
 	ProfileState             tfapi.MetaProfileProfileState
 	RealName                 string
 	TimeCreated              int64
+	Address                  string
+	Loss                     int
+	Time                     int
 }
 
 type Players []Player

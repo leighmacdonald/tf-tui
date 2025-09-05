@@ -47,8 +47,8 @@ func newRootModel(config config.Config, doSetup bool, buildVersion string, build
 		previousView: viewPlayerTables,
 		activeTab:    tabOverview,
 		helpModel:    newHelpModel(buildVersion, buildDate, buildCommit),
-		redTable:     newPlayerTableModel(tf.RED, config.SteamID),
-		bluTable:     newPlayerTableModel(tf.BLU, config.SteamID),
+		redTable:     newPlayerTableModel(tf.RED, config.SteamID, config.ServerModeEnabled),
+		bluTable:     newPlayerTableModel(tf.BLU, config.SteamID, config.ServerModeEnabled),
 		banTable:     newTableBansModel(),
 		configModel:  newConfigModal(config),
 		compTable:    newTableCompModel(),
@@ -118,7 +118,7 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, setContentViewPortHeight(m.contentViewPortHeight, m.height, m.width)
 	case tabView:
-		m.activeTab = tabView(msg)
+		m.activeTab = msg
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, DefaultKeyMap.quit):

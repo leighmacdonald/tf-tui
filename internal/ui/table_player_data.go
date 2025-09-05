@@ -3,6 +3,7 @@ package ui
 import (
 	"cmp"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/leighmacdonald/tf-tui/internal/tf"
@@ -11,16 +12,29 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func newTablePlayerData(parentZoneID string, playersUpdate Players, team tf.Team, cols ...playerTableCol) *tablePlayerData {
-	data := tablePlayerData{
-		zoneID:         parentZoneID,
-		enabledColumns: []playerTableCol{colMeta, colName, colScore, colDeaths, colPing},
-		sortColumn:     colScore,
-		asc:            true,
+var (
+	defaultLocalColumns  = []playerTableCol{colMeta, colName, colScore, colDeaths, colPing}
+	defaultServerColumns = []playerTableCol{colMeta, colName, colLoss, colPing, colAddress}
+)
+
+func newTablePlayerData(parentZoneID string, serverMode bool, playersUpdate Players, team tf.Team, cols ...playerTableCol) *tablePlayerData {
+	var enabledCols []playerTableCol
+	switch {
+	case len(cols) > 0:
+		enabledCols = cols
+	case serverMode:
+		enabledCols = defaultServerColumns
+	default:
+		enabledCols = defaultLocalColumns
 	}
 
-	if len(cols) > 0 {
-		data.enabledColumns = cols
+	data := tablePlayerData{
+		zoneID:         parentZoneID,
+		sortColumn:     colScore,
+		asc:            true,
+		serverMode:     serverMode,
+		players:        Players{},
+		enabledColumns: enabledCols,
 	}
 
 	for _, player := range playersUpdate {
@@ -45,6 +59,7 @@ type tablePlayerData struct {
 	enabledColumns []playerTableCol
 	sortColumn     playerTableCol
 	asc            bool
+	serverMode     bool
 }
 
 func (m *tablePlayerData) Headers() []string {
@@ -63,6 +78,12 @@ func (m *tablePlayerData) Headers() []string {
 			headers = append(headers, zone.Mark(m.zoneID+"ping", "Ping"))
 		case colMeta:
 			headers = append(headers, zone.Mark(m.zoneID+"meta", "Meta"))
+		case colAddress:
+			headers = append(headers, zone.Mark(m.zoneID+"address", "Address"))
+		case colLoss:
+			headers = append(headers, zone.Mark(m.zoneID+"loss", "Loss"))
+		case colTime:
+			headers = append(headers, zone.Mark(m.zoneID+"time", "Time"))
 		}
 	}
 
@@ -85,6 +106,13 @@ func (m *tablePlayerData) Sort(column playerTableCol, asc bool) {
 			return cmp.Compare(a.Deaths, b.Deaths)
 		case colPing:
 			return cmp.Compare(a.Ping, b.Ping)
+		case colAddress:
+			// TODO proper IP numerical compare
+			return strings.Compare(a.Address, b.Address)
+		case colLoss:
+			return cmp.Compare(a.Loss, b.Loss)
+		case colTime:
+			return cmp.Compare(a.Time, b.Time)
 		case colMeta:
 			av := len(a.Bans) + int(a.NumberOfVacBans)
 			bv := len(b.Bans) + int(b.NumberOfVacBans)
@@ -130,6 +158,17 @@ func (m *tablePlayerData) At(row int, col int) string {
 		return fmt.Sprintf("%d", player.Ping)
 	case colMeta:
 		return m.metaColumn(player)
+	case colAddress:
+		parts := strings.Split(player.Address, ":")
+		if len(parts) > 0 {
+			return parts[0]
+		}
+
+		return ""
+	case colLoss:
+		return strconv.Itoa(player.Loss)
+	case colTime:
+		return strconv.Itoa(player.Time)
 	}
 
 	return "?"

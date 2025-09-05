@@ -32,35 +32,43 @@ const (
 	colDeaths
 	colPing
 	colMeta
+	colAddress
+	colLoss
+	colTime
 )
 
 // playerTableColSize defines the sizes of the player columns.
 type playerTableColSize int
 
 const (
-	colUIDSize    playerTableColSize = 6
-	colNameSize   playerTableColSize = 0
-	colScoreSize  playerTableColSize = 7
-	colDeathsSize playerTableColSize = 7
-	colPingSize   playerTableColSize = 5
-	colMetaSize   playerTableColSize = 8
+	colUIDSize     playerTableColSize = 6
+	colNameSize    playerTableColSize = 0
+	colScoreSize   playerTableColSize = 7
+	colDeathsSize  playerTableColSize = 7
+	colPingSize    playerTableColSize = 5
+	colMetaSize    playerTableColSize = 8
+	colAddressSize playerTableColSize = 15
+	colLossSize    playerTableColSize = 5
+	colTimeSize    playerTableColSize = 5
 )
 
-func newPlayerTableModel(team tf.Team, selfSID steamid.SteamID) *tablePlayerModel {
+func newPlayerTableModel(team tf.Team, selfSID steamid.SteamID, serverMode bool) *tablePlayerModel {
 	zoneID := zone.NewPrefix()
 
 	return &tablePlayerModel{
 		id:           zoneID,
 		team:         team,
 		selectedTeam: tf.RED,
-		data:         newTablePlayerData(zoneID, Players{}, team),
+		data:         newTablePlayerData(zoneID, serverMode, Players{}, team),
 		table:        newUnstyledTable(),
 		selfSteamID:  selfSID,
+		serverMode:   serverMode,
 	}
 }
 
 type tablePlayerModel struct {
 	id              string
+	serverMode      bool
 	table           *table.Table
 	data            *tablePlayerData
 	team            tf.Team
@@ -114,7 +122,7 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-			for _, markID := range []string{"name", "uid", "score", "meta", "deaths", "ping"} {
+			for _, markID := range []string{"name", "uid", "score", "meta", "deaths", "ping", "address", "loss", "time"} {
 				if zone.Get(m.id + markID).InBounds(msg) {
 					var col playerTableCol
 					switch markID {
@@ -128,6 +136,12 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						col = colPing
 					case "meta":
 						col = colMeta
+					case "address":
+						col = colAddress
+					case "loss":
+						col = colLoss
+					case "time":
+						col = colTime
 					default:
 						col = colName
 					}
@@ -250,7 +264,7 @@ func (m *tablePlayerModel) selectClosestPlayer() tea.Cmd {
 }
 
 func (m *tablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.Cmd) {
-	m.data = newTablePlayerData(m.id, playersUpdate, m.team)
+	m.data = newTablePlayerData(m.id, m.serverMode, playersUpdate, m.team)
 	m.data.Sort(m.data.sortColumn, m.data.asc)
 	m.table.Data(m.data)
 
@@ -280,6 +294,12 @@ func (m *tablePlayerModel) View() string {
 				width = colPingSize
 			case colMeta:
 				width = colMetaSize
+			case colAddress:
+				width = colAddressSize
+			case colLoss:
+				width = colLossSize
+			case colTime:
+				width = colTimeSize
 			}
 			switch {
 			case row == table.HeaderRow:

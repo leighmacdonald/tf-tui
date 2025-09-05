@@ -61,7 +61,7 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 	case events.Event:
-		switch msg.Type {
+		switch msg.Type { //nolint:exhaustive
 		case events.Hostname:
 			m.hostname = msg.MetaData
 		case events.Map:
