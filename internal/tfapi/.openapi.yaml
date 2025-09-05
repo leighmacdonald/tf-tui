@@ -1,5 +1,5 @@
 package: tfapi
-output: internal/tfapi/tfapi.gen.go
+output: tfapi.gen.go
 output-options:
   prefer-skip-optional-pointer: true
 generate:

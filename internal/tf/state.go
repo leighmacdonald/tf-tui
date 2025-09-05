@@ -31,11 +31,12 @@ type DumpPlayer struct {
 
 var ErrDumpQuery = errors.New("failed to query g15_dumpplayer")
 
-func NewDumpFetcher(address string, password string) DumpFetcher {
+func NewDumpFetcher(address string, password string, serverMode bool) DumpFetcher {
 	return DumpFetcher{
-		Address:  address,
-		Password: password,
-		g15re:    regexp.MustCompile(`^(m_szName|m_iPing|m_iScore|m_iDeaths|m_bConnected|m_iTeam|m_bAlive|m_iHealth|m_iAccountID|m_bValid|m_iUserID)\[(\d+)]\s(integer|bool|string)\s\((.+?)?\)$`),
+		Address:    address,
+		Password:   password,
+		serverMode: serverMode,
+		g15re:      regexp.MustCompile(`^(m_szName|m_iPing|m_iScore|m_iDeaths|m_bConnected|m_iTeam|m_bAlive|m_iHealth|m_iAccountID|m_bValid|m_iUserID)\[(\d+)]\s(integer|bool|string)\s\((.+?)?\)$`),
 	}
 }
 
@@ -43,12 +44,17 @@ type DumpFetcher struct {
 	Address    string
 	Password   string
 	lastUpdate DumpPlayer
+	serverMode bool
 	g15re      *regexp.Regexp
 }
 
 func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, error) {
-	conn := rcon.New(f.Address, f.Password)
-	response, errExec := conn.Exec(ctx, "g15_dumpplayer", true)
+	command := "status"
+	if !f.serverMode {
+		command = "g15_dumpplayer;" + command
+	}
+
+	response, errExec := rcon.New(f.Address, f.Password).Exec(ctx, command, true)
 	if errExec != nil {
 		if f.lastUpdate.SteamID[0].Valid() {
 			return f.lastUpdate, nil

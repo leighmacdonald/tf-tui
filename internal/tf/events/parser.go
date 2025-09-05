@@ -1,4 +1,4 @@
-package tf
+package events
 
 import (
 	"errors"
@@ -10,36 +10,37 @@ import (
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/internal/tf"
 )
 
 var (
 	ErrNoMatch        = errors.New("no match found")
-	errParseTimestamp = errors.New("failed to parse timestamp")
-	errDuration       = errors.New("failed to parse connected duration")
+	ErrParseTimestamp = errors.New("failed to parse timestamp")
+	ErrDuration       = errors.New("failed to parse connected duration")
 )
 
 type EventType int
 
 const (
-	EvtAny = iota - 1
-	EvtKill
-	EvtMsg
-	EvtConnect
-	EvtDisconnect
-	EvtStatusID
-	EvtHostname
-	EvtMap
-	EvtTags
-	EvtAddress
-	EvtLobby
+	Any = iota - 1
+	Kill
+	Msg
+	Connect
+	Disconnect
+	StatusID
+	Hostname
+	Map
+	Tags
+	Address
+	Lobby
 )
 
-type LogEvent struct {
+type Event struct {
 	Type            EventType
 	Player          string
 	PlayerPing      int
 	PlayerConnected time.Duration
-	Team            Team
+	Team            tf.Team
 	UserID          int
 	PlayerSID       steamid.SteamID
 	Victim          string
@@ -52,7 +53,7 @@ type LogEvent struct {
 	Raw             string
 }
 
-func (e *LogEvent) ApplyTimestamp(tsString string) error {
+func (e *Event) ApplyTimestamp(tsString string) error {
 	ts, errTS := parseTimestamp(tsString)
 	if errTS != nil {
 		return errTS
@@ -63,8 +64,8 @@ func (e *LogEvent) ApplyTimestamp(tsString string) error {
 	return nil
 }
 
-type logParser struct {
-	evtChan     chan LogEvent
+type parser struct {
+	evtChan     chan Event
 	ReadChannel chan string
 	rx          []*regexp.Regexp
 	logger      *slog.Logger
@@ -82,7 +83,7 @@ const logTimestampFormat = "01/02/2006 - 15:04:05"
 func parseTimestamp(timestamp string) (time.Time, error) {
 	parsedTime, errParse := time.Parse(logTimestampFormat, timestamp)
 	if errParse != nil {
-		return time.Time{}, errors.Join(errParse, errParseTimestamp)
+		return time.Time{}, errors.Join(errParse, ErrParseTimestamp)
 	}
 
 	return parsedTime, nil
@@ -127,8 +128,8 @@ func (ut updateType) String() string {
 	}
 }
 
-func newLogParser() *logParser {
-	return &logParser{
+func newParser() *parser {
+	return &parser{
 		rx: []*regexp.Regexp{
 			// 08/16/2025 - 01:25:53: Completed demo, recording time 369.4, game frames 23494.?
 			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s(.+?)\skilled\s(.+?)\swith\s(.+)(\.|\. \(crit\))$`),
@@ -145,7 +146,7 @@ func newLogParser() *logParser {
 	}
 }
 
-func (parser *logParser) parse(msg string, outEvent *LogEvent) error {
+func (parser *parser) parse(msg string, outEvent *Event) error {
 	// the index must match the index of the EventType const values
 	for parserIdx, rxMatcher := range parser.rx {
 		match := rxMatcher.FindStringSubmatch(msg)
@@ -154,29 +155,29 @@ func (parser *logParser) parse(msg string, outEvent *LogEvent) error {
 		}
 		outEvent.Raw = msg
 		outEvent.Type = EventType(parserIdx)
-		if outEvent.Type != EvtLobby {
+		if outEvent.Type != Lobby {
 			if errTS := outEvent.ApplyTimestamp(match[1]); errTS != nil {
 				slog.Error("Failed to parse timestamp", slog.String("error", errTS.Error()))
 			}
 		}
 
 		switch outEvent.Type {
-		case EvtConnect:
+		case Connect:
 			outEvent.Player = match[2]
-		case EvtDisconnect:
+		case Disconnect:
 			outEvent.MetaData = match[2]
-		case EvtMsg:
+		case Msg:
 			name := match[2]
 			dead := false
 			team := false
 
-			if strings.HasPrefix(name, teamPrefix) {
-				name = strings.TrimPrefix(name, teamPrefix)
+			if after, ok := strings.CutPrefix(name, teamPrefix); ok {
+				name = after
 				team = true
 			}
 
-			if strings.HasPrefix(name, deadTeamPrefix) {
-				name = strings.TrimPrefix(name, deadTeamPrefix)
+			if after, ok := strings.CutPrefix(name, deadTeamPrefix); ok {
+				name = after
 				dead = true
 				team = true
 			} else if strings.HasPrefix(name, deadPrefix) {
@@ -188,7 +189,7 @@ func (parser *logParser) parse(msg string, outEvent *LogEvent) error {
 			outEvent.Dead = dead
 			outEvent.Player = name
 			outEvent.Message = match[3]
-		case EvtStatusID:
+		case StatusID:
 			userID, errUserID := strconv.ParseInt(match[2], 10, 32)
 			if errUserID != nil {
 				slog.Error("Failed to parse status userid", slog.String("error", errUserID.Error()))
@@ -215,25 +216,25 @@ func (parser *logParser) parse(msg string, outEvent *LogEvent) error {
 			outEvent.PlayerSID = steamid.New(match[4])
 			outEvent.PlayerConnected = dur
 			outEvent.PlayerPing = int(ping)
-		case EvtKill:
+		case Kill:
 			outEvent.Player = match[2]
 			outEvent.Victim = match[3]
-		case EvtHostname:
+		case Hostname:
 			outEvent.MetaData = match[2]
-		case EvtMap:
+		case Map:
 			outEvent.MetaData = match[2]
-		case EvtTags:
+		case Tags:
 			outEvent.MetaData = match[2]
-		case EvtAddress:
+		case Address:
 			outEvent.MetaData = match[2]
-		case EvtLobby:
+		case Lobby:
 			outEvent.PlayerSID = steamid.New(match[2])
 			if match[3] == "INVADERS" {
-				outEvent.Team = BLU
+				outEvent.Team = tf.BLU
 			} else {
-				outEvent.Team = RED
+				outEvent.Team = tf.RED
 			}
-		case EvtAny:
+		case Any:
 		}
 
 		return nil
@@ -261,7 +262,7 @@ func parseConnected(d string) (time.Duration, error) {
 	}
 
 	if parseErr != nil {
-		return 0, errors.Join(parseErr, errDuration)
+		return 0, errors.Join(parseErr, ErrDuration)
 	}
 
 	return dur, nil

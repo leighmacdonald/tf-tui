@@ -1,4 +1,7 @@
 .PHONY: config
+
+all: build
+
 debug:
 	dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient
 
@@ -14,8 +17,7 @@ update:
 	make generate
 
 generate:
-	go tool oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/openapi-3.0.yaml
-	go tool sqlc generate -f .sqlc.yaml
+	go generate ./...
 
 race:
 	GORACE="race.txt" DEBUG=1 go run -race .
