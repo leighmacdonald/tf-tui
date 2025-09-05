@@ -156,8 +156,8 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedSteamID = msg.player.SteamID
 
 		return m, nil
-	case SelectedTeamMsg:
-		m.selectedTeam = msg.selectedTeam
+	case tf.Team:
+		m.selectedTeam = msg
 
 		return m, m.selectClosestPlayer()
 	case Players:

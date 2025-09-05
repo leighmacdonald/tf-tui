@@ -117,15 +117,14 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		m.contentViewPortHeight = m.height - m.headerHeight - m.footerHeight
 
 		return m, setContentViewPortHeight(m.contentViewPortHeight, m.height, m.width)
-	case tab	View:
+	case tabView:
 		m.activeTab = tabView(msg)
-	// Is it a key press?
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, DefaultKeyMap.quit):
 			if m.currentView != viewPlayerTables {
 				break
-			}	
+			}
 
 			return m, tea.Quit
 		case key.Matches(msg, DefaultKeyMap.help):
@@ -148,8 +147,8 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, DefaultKeyMap.right):
 			return m, selectTeam(tf.BLU)
 		}
-	case SetViewMsg:
-		m.currentView = msg.view
+	case contentView:
+		m.currentView = msg
 	}
 
 	return m.propagate(inMsg)
