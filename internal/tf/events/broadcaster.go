@@ -1,50 +1,50 @@
-package tf
+package events
 
 import (
 	"errors"
 	"sync"
 )
 
-func NewLogBroadcaster() *LogBroadcaster {
-	return &LogBroadcaster{
-		parser:    newLogParser(),
-		readers:   make(map[EventType][]chan<- LogEvent),
+func NewBroadcaster() *Broadcaster {
+	return &Broadcaster{
+		parser:    newParser(),
+		readers:   make(map[EventType][]chan<- Event),
 		readersMu: &sync.RWMutex{},
 	}
 }
 
-type LogBroadcaster struct {
-	readersAny []chan<- LogEvent
-	readers    map[EventType][]chan<- LogEvent
+type Broadcaster struct {
+	readersAny []chan<- Event
+	readers    map[EventType][]chan<- Event
 	readersMu  *sync.RWMutex
-	parser     *logParser
+	parser     *parser
 }
 
-func (l *LogBroadcaster) ListenFor(logType EventType, handler chan<- LogEvent) {
+func (l *Broadcaster) ListenFor(logType EventType, handler chan<- Event) {
 	l.readersMu.Lock()
 	defer l.readersMu.Unlock()
 
 	// Any case is handled more generally
-	if logType == EvtAny {
+	if logType == Any {
 		l.readersAny = append(l.readersAny, handler)
 
 		return
 	}
 
 	if _, found := l.readers[logType]; !found {
-		l.readers[logType] = make([]chan<- LogEvent, 0)
+		l.readers[logType] = make([]chan<- Event, 0)
 	}
 
 	l.readers[logType] = append(l.readers[logType], handler)
 }
 
-func (l *LogBroadcaster) Send(line string) {
-	var logEvent LogEvent
+func (l *Broadcaster) Send(line string) {
+	var logEvent Event
 	if err := l.parser.parse(line, &logEvent); err != nil || errors.Is(err, ErrNoMatch) {
 		// This is sent as a "raw" line so that the console view can show it even if it doesn't
 		// match any supported events.
 		logEvent.Raw = line
-		logEvent.Type = EvtAny
+		logEvent.Type = Any
 	}
 
 	l.readersMu.RLock()

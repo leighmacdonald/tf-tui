@@ -7,7 +7,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	tf2 "github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
@@ -16,16 +17,16 @@ type ChatRow struct {
 	name      string
 	createdOn time.Time
 	message   string
-	team      tf2.Team
+	team      tf.Team
 	dead      bool
 }
 
 func (m ChatRow) View() string {
 	var name string
 	switch m.team {
-	case tf2.RED:
+	case tf.RED:
 		name = styles.ChatNameRed.Render(m.name)
-	case tf2.BLU:
+	case tf.BLU:
 		name = styles.ChatNameBlu.Render(m.name)
 	default:
 		name = styles.ChatNameOther.Render(m.name)
@@ -96,8 +97,8 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 		}
 	case Players:
 		m.players = msg
-	case tf2.LogEvent:
-		if msg.Type != tf2.EvtMsg {
+	case events.Event:
+		if msg.Type != events.Msg {
 			break
 		}
 

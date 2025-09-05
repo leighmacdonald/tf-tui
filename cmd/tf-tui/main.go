@@ -18,8 +18,8 @@ import (
 	tftui "github.com/leighmacdonald/tf-tui/internal"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/store"
-	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/console"
+	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 	"github.com/spf13/cobra"
 	_ "modernc.org/sqlite"
@@ -143,29 +143,11 @@ func run(_ *cobra.Command, _ []string) error {
 	}()
 
 	// Setup a log source depending on the operating mode.
-	logBroadcater := tf.NewLogBroadcaster()
-	var logSource console.Source
-
-	if userConfig.ServerModeEnabled {
-		listener, errListener := console.NewRemote(console.SRCDSListenerOpts{
-			ExternalAddress: userConfig.ServerLogAddress,
-			Secret:          userConfig.ServerLogSecret,
-			ListenAddress:   userConfig.ServerListenAddress,
-			RemoteAddress:   userConfig.Address,
-			RemotePassword:  userConfig.Password,
-		})
-		if errListener != nil {
-			return errors.Join(errListener, errApp)
-		}
-		logSource = listener
-	} else {
-		logSource = console.NewLocal(userConfig.ConsoleLogPath)
+	logBroadcater := events.NewBroadcaster()
+	logSource, errLogSource := openLogSource(ctx, userConfig)
+	if errLogSource != nil {
+		return errors.Join(errLogSource, errApp)
 	}
-
-	if errOpen := logSource.Open(ctx); errOpen != nil {
-		return errors.Join(errOpen, errApp)
-	}
-
 	defer logSource.Close(ctx)
 
 	go logSource.Start(ctx, logBroadcater)
@@ -193,4 +175,29 @@ func run(_ *cobra.Command, _ []string) error {
 	app.Start(ctx, done)
 
 	return nil
+}
+
+func openLogSource(ctx context.Context, userConfig config.Config) (console.Source, error) {
+	var logSource console.Source
+	if userConfig.ServerModeEnabled {
+		listener, errListener := console.NewRemote(console.SRCDSListenerOpts{
+			ExternalAddress: userConfig.ServerLogAddress,
+			Secret:          userConfig.ServerLogSecret,
+			ListenAddress:   userConfig.ServerListenAddress,
+			RemoteAddress:   userConfig.Address,
+			RemotePassword:  userConfig.Password,
+		})
+		if errListener != nil {
+			return nil, errListener
+		}
+		logSource = listener
+	} else {
+		logSource = console.NewLocal(userConfig.ConsoleLogPath)
+	}
+
+	if errOpen := logSource.Open(ctx); errOpen != nil {
+		return nil, errOpen
+	}
+
+	return logSource, nil
 }

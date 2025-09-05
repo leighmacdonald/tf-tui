@@ -11,6 +11,7 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 )
 
 var errBlackBox = errors.New("failed to save blackbox event")
@@ -49,13 +50,13 @@ type Match struct {
 // BlackBox handles recording various game events for long term storage.
 type BlackBox struct {
 	db        *store.Queries
-	logEvents chan tf.LogEvent
+	logEvents chan events.Event
 	validIDs  []steamid.SteamID
 	match     Match
 }
 
 func NewBlackBox(conn *store.Queries) *BlackBox {
-	return &BlackBox{db: conn, logEvents: make(chan tf.LogEvent)}
+	return &BlackBox{db: conn, logEvents: make(chan events.Event)}
 }
 
 func (b *BlackBox) start(ctx context.Context) {
@@ -64,21 +65,21 @@ func (b *BlackBox) start(ctx context.Context) {
 		case event := <-b.logEvents:
 			var err error
 			switch event.Type {
-			case tf.EvtMsg:
+			case events.Msg:
 				err = b.onMsg(ctx, event)
-			case tf.EvtKill:
+			case events.Kill:
 				b.onKill(ctx, event)
-			case tf.EvtConnect:
+			case events.Connect:
 				b.onConnect(ctx, event)
-			case tf.EvtDisconnect:
-			case tf.EvtAddress:
+			case events.Disconnect:
+			case events.Address:
 				b.match.Address = event.MetaData
-			case tf.EvtHostname:
+			case events.Hostname:
 				b.match.Hostname = event.MetaData
-			case tf.EvtTags:
+			case events.Tags:
 				b.match.Tags = strings.Split(event.MetaData, ",")
-			case tf.EvtLobby:
-			case tf.EvtStatusID:
+			case events.Lobby:
+			case events.StatusID:
 			}
 
 			if err != nil {
@@ -90,7 +91,7 @@ func (b *BlackBox) start(ctx context.Context) {
 	}
 }
 
-func (b *BlackBox) onConnect(_ context.Context, _ tf.LogEvent) {
+func (b *BlackBox) onConnect(_ context.Context, _ events.Event) {
 	// if len(b.match.Players) > 0 {
 	// 	// Save it
 	// }
@@ -114,7 +115,7 @@ func (b *BlackBox) player(steamID steamid.SteamID) *PlayerHistory {
 	return player
 }
 
-func (b *BlackBox) onKill(_ context.Context, event tf.LogEvent) {
+func (b *BlackBox) onKill(_ context.Context, event events.Event) {
 	player := b.player(event.PlayerSID)
 	player.Kills = append(player.Kills, PlayerKill{
 		Source:    event.PlayerSID,
@@ -146,7 +147,7 @@ func (b *BlackBox) ensureSID(ctx context.Context, steamID steamid.SteamID) error
 	return nil
 }
 
-func (b *BlackBox) onMsg(ctx context.Context, event tf.LogEvent) error {
+func (b *BlackBox) onMsg(ctx context.Context, event events.Event) error {
 	if errEnsure := b.ensureSID(ctx, event.PlayerSID); errEnsure != nil {
 		return errEnsure
 	}

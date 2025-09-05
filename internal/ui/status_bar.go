@@ -6,7 +6,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	tf2 "github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
@@ -40,9 +41,9 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		for _, player := range msg {
 			switch player.Team {
-			case tf2.RED:
+			case tf.RED:
 				red++
-			case tf2.BLU:
+			case tf.BLU:
 				blu++
 			}
 		}
@@ -59,11 +60,11 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusMsg = ""
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
-	case tf2.LogEvent:
+	case events.Event:
 		switch msg.Type {
-		case tf2.EvtHostname:
+		case events.Hostname:
 			m.hostname = msg.MetaData
-		case tf2.EvtMap:
+		case events.Map:
 			m.mapName = msg.MetaData
 		}
 	}

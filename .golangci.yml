@@ -98,7 +98,7 @@ linters:
         - sourcebans.
         - client.
       ignore-package-globs:
-        - github.com/leighmacdonald/tf-api*
+        - github.com/leighmacdonald/tf-tui/internal/*
   exclusions:
     generated: lax
     presets:

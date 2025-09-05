@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	"github.com/muesli/reflow/wordwrap"
 )
@@ -17,7 +17,7 @@ import (
 type LogRow struct {
 	Content   string
 	CreatedOn time.Time
-	EventType tf.EventType
+	EventType events.EventType
 }
 
 func (r LogRow) Render(width int) string {
@@ -25,25 +25,25 @@ func (r LogRow) Render(width int) string {
 	body := " " + strings.TrimSpace(wordwrap.String(r.Content, width-lipgloss.Width(timeStamp)-2)) + " "
 
 	switch r.EventType {
-	case tf.EvtMsg:
+	case events.Msg:
 		body = styles.ConsoleMsg.Render(body)
-	case tf.EvtConnect:
+	case events.Connect:
 		body = styles.ConsoleConnect.Render(body)
-	case tf.EvtDisconnect:
+	case events.Disconnect:
 		body = styles.ConsoleDisconnect.Render(body)
-	case tf.EvtAddress:
+	case events.Address:
 		body = styles.ConsoleAddress.Render(body)
-	case tf.EvtHostname:
+	case events.Hostname:
 		body = styles.ConsoleHostname.Render(body)
-	case tf.EvtStatusID:
+	case events.StatusID:
 		body = styles.ConsoleStatusID.Render(body)
-	case tf.EvtMap:
+	case events.Map:
 		body = styles.ConsoleMap.Render(body)
-	case tf.EvtTags:
+	case events.Tags:
 		body = styles.ConsoleTags.Render(body)
-	case tf.EvtLobby:
+	case events.Lobby:
 		body = styles.ConsoleLobby.Render(body)
-	case tf.EvtKill:
+	case events.Kill:
 		body = styles.ConsoleKill.Render(body)
 	default:
 		body = styles.ConsoleOther.Render(body)
@@ -83,14 +83,14 @@ func (m consoleModel) Update(msg tea.Msg) (consoleModel, tea.Cmd) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
-	case tf.LogEvent:
+	case events.Event:
 		return m.onLogs(msg), tea.Batch(cmds...)
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m consoleModel) onLogs(log tf.LogEvent) consoleModel {
+func (m consoleModel) onLogs(log events.Event) consoleModel {
 	// if slices.Contains([]tf.EventType{tf.EvtStatusID, tf.EvtHostname, tf.EvtMsg, tf.EvtTags, tf.EvtAddress, tf.EvtLobby}, log.Type) {
 	// 	return m
 	// }

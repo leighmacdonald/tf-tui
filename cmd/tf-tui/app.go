@@ -13,6 +13,7 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/console"
+	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui"
 )
 
@@ -28,21 +29,21 @@ type App struct {
 	blackBox      *internal.BlackBox
 	uiUpdates     chan any
 	configUpdates chan config.Config
-	broadcaster   *tf.LogBroadcaster
+	broadcaster   *events.Broadcaster
 	logSource     console.Source
 }
 
 // NewApp returns a new application instance. To actually start the app you must call
 // Start().
 func NewApp(conf config.Config, metaFetcher *internal.MetaFetcher, bdFetcher *internal.BDFetcher, database *sql.DB,
-	broadcaster *tf.LogBroadcaster, logSource console.Source,
+	broadcaster *events.Broadcaster, logSource console.Source,
 ) *App {
 	app := &App{
 		config:        conf,
 		metaFetcher:   metaFetcher,
 		bdFetcher:     bdFetcher,
 		players:       internal.NewPlayerStates(),
-		dumpFetcher:   tf.NewDumpFetcher(conf.Address, conf.Password),
+		dumpFetcher:   tf.NewDumpFetcher(conf.Address, conf.Password, conf.ServerModeEnabled),
 		configUpdates: make(chan config.Config),
 		uiUpdates:     make(chan any),
 		blackBox:      internal.NewBlackBox(store.New(database)),
@@ -98,8 +99,8 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 
 // logEventUpdater sends console log events to the UI for display.
 func (app *App) logEventUpdater(ctx context.Context) {
-	eventChan := make(chan tf.LogEvent)
-	app.broadcaster.ListenFor(tf.EvtAny, eventChan)
+	eventChan := make(chan events.Event)
+	app.broadcaster.ListenFor(events.Any, eventChan)
 	for {
 		select {
 		case evt := <-eventChan:

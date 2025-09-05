@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -91,7 +92,7 @@ func (m rootModel) Init() tea.Cmd {
 func logMsg(inMsg tea.Msg) {
 	// Filter out very noisy stuff
 	switch inMsg.(type) {
-	case tf.LogEvent:
+	case events.Event:
 		break
 	case Players:
 		break
@@ -203,6 +204,7 @@ func (m rootModel) View() string {
 		content = lipgloss.JoinVertical(
 			lipgloss.Top,
 			playerTables,
+
 			lipgloss.NewStyle().
 				Width(m.width-2).
 				Height(playerHeight).
@@ -211,7 +213,7 @@ func (m rootModel) View() string {
 
 	ctr := styles.ContentContainerStyle.Height(contentViewPortHeight).Render(content)
 
-	return zone.Scan(lipgloss.JoinVertical(lipgloss.Center, hdr, ctr, ftr))
+	return zone.Scan(lipgloss.JoinVertical(lipgloss.Left, hdr, ctr, ftr))
 }
 
 func (m rootModel) isInitialized() bool {
