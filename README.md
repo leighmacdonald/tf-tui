@@ -7,7 +7,6 @@
 Add the following launch options:
 `+con_timestamp 1 -rpt -g15 -usercon +ip 0.0.0.0 +sv_rcon_whitelist_address 127.0.0.1 +rcon_password tf-tui`
 
-
 ## Config file
 
 There is a config editor in the app, however its currently *very* limited and only supports a couple fields. You can
@@ -22,7 +21,10 @@ Windows: `%LOCALAPPDATA%\tf-tui\tf-tui.yaml`
 steam_id: "76561197970000000"
 
 # rcon server config
+# If server_mode_enable is true, this is the remote server address.
 address: 127.0.0.1:27015
+
+# If server_mode_enable is true, this is the remote server password.
 password: tf-tui
 
 # Path to your console.log
@@ -30,6 +32,19 @@ console_log_path: /home/<username>/.steam/steam/steamapps/common/Team Fortress 2
 
 # API URL
 api_base_url: https://tf-api.roto.lol/
+
+# Use server mode instead of local. In this mode you connect to a remote server. This is meant for server
+# operators to be able to monitor servers similar to HLSW type tools.
+server_mode_enabled: false
+
+# The address that the remote server should send logs to. This must be a routeable ip/host from the server.
+server_log_address: 100.10.10.3:27115
+
+# The logsecret used to authenticate the logs
+server_log_secret: 123455678
+
+# The address that is bound to on the local machine to accept requests on.
+server_listen_address: 100.10.10.3:27115
 
 # Set of custom bot detector lists
 # Doesn't currently use the data, but it will eventually.
@@ -45,6 +60,11 @@ links:
     name: demos.tf
     format: "steam64"
 ```
+
+## Server Mode
+
+Server mode is a alternate running mode in which instead of connecting to your local game client, you connect
+to a srcds instance for remote monitoring. This works the same way as tools like HLSW.
 
 ## Debug log
 
