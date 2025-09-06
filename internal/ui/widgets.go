@@ -24,11 +24,9 @@ func renderTitleBar(width int, value string) string {
 		NewStyle().
 		Width(width - 2).
 		Bold(false).
-		Align(lipgloss.Center).
+		AlignHorizontal(lipgloss.Center).
 		Background(styles.Black).
 		Foreground(styles.ColourStrange).
-		PaddingLeft(0).
-		PaddingRight(0).
 		Render(value)
 }
 

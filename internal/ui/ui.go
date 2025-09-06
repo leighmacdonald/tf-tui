@@ -28,7 +28,7 @@ type UI struct {
 	program *tea.Program
 }
 
-func New(ctx context.Context, config config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string) *UI {
+func New(ctx context.Context, config config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string, loader ConfigWriter) *UI {
 	zone.NewGlobal()
 
 	return &UI{
@@ -38,7 +38,8 @@ func New(ctx context.Context, config config.Config, doSetup bool, buildVersion s
 				doSetup,
 				buildVersion,
 				buildDate,
-				buildCommit),
+				buildCommit,
+				loader),
 			tea.WithMouseCellMotion(),
 			tea.WithAltScreen(),
 			tea.WithContext(ctx)),

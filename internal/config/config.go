@@ -12,9 +12,7 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
-	"github.com/joho/godotenv"
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -25,33 +23,35 @@ var (
 
 const (
 	ConfigDirName      = "tf-tui"
-	DefaultConfigName  = "tf-tui.yaml"
+	DefaultConfigName  = "tf-tui"
 	DefaultDBName      = "tf-tui.db"
 	DefaultLogName     = "tf-tui.log"
 	CacheDirName       = "cache"
+	EnvPrefix          = "tftui"
 	DefaultHTTPTimeout = 15 * time.Second
 )
 
 type Config struct {
-	SteamID        steamid.SteamID `yaml:"steam_id"`
-	Address        string          `yaml:"address"`
-	Password       string          `yaml:"password"`
-	ConsoleLogPath string          `yaml:"console_log_path"`
-	UpdateFreqMs   int             `yaml:"update_freq_ms,omitempty"`
-	APIBaseURL     string          `yaml:"api_base_url,omitempty"`
+	// TODO implement encoding.TextUnmarshaler so we can decode directly with viper/mapstructure
+	SteamID        steamid.SteamID `mapstructure:"-"`
+	SteamIDString  string          `mapstructure:"steam_id"`
+	Address        string          `mapstructure:"address"`
+	Password       string          `mapstructure:"password"`
+	ConsoleLogPath string          `mapstructure:"console_log_path"`
+	UpdateFreqMs   int             `mapstructure:"update_freq_ms,omitempty"`
+	APIBaseURL     string          `mapstructure:"api_base_url,omitempty"`
 	// ServerModeEnabled controls if the app is running in server mode where instead
 	// of connecting to your local TF2 client, you can removely monitor a server over RCON.
 	// Similar to other tools like HLSW, you can receive server logs over UDP when setup
 	// correctly.
-	ServerModeEnabled bool `yaml:"server_mode_enabled"`
+	ServerModeEnabled bool `mapstructure:"server_mode_enabled"`
 	// ServerLogAddress should point to an address where the server can reach you to send logs.
-	ServerLogAddress string `yaml:"server_log_address"`
+	ServerLogAddress string `mapstructure:"server_log_address"`
 	// ServerLogSecret is the sv_logsecret values used for log message auth.
-	ServerLogSecret     int64      `yaml:"server_log_secret"`
-	ServerListenAddress string     `yaml:"server_listen_address"`
-	BDLists             []UserList `yaml:"bd_lists"`
-	Links               []UserLink `yaml:"links"`
-	ConfigPath          string     `yaml:"-"`
+	ServerLogSecret     int64      `mapstructure:"server_log_secret"`
+	ServerListenAddress string     `mapstructure:"server_listen_address"`
+	BDLists             []UserList `mapstructure:"bd_lists"`
+	Links               []UserLink `mapstructure:"links"`
 }
 
 type SIDFormats string
@@ -63,9 +63,9 @@ const (
 )
 
 type UserLink struct {
-	URL    string     `yaml:"url"`
-	Name   string     `yaml:"name"`
-	Format SIDFormats `yaml:"format"`
+	URL    string     `mapstructure:"url"`
+	Name   string     `mapstructure:"name"`
+	Format SIDFormats `mapstructure:"format"`
 }
 
 func (u UserLink) Generate(steamID steamid.SteamID) string {
@@ -82,23 +82,12 @@ func (u UserLink) Generate(steamID steamid.SteamID) string {
 }
 
 type UserList struct {
-	URL  string `yaml:"url"`
-	Name string `yaml:"name"`
+	URL  string `mapstructure:"url"`
+	Name string `mapstructure:"name"`
 }
 
-var defaultConfig = Config{
-	Address:           "127.0.0.1:27015",
-	Password:          "tf-tui",
-	ConsoleLogPath:    defaultConsoleLogPath(),
-	APIBaseURL:        "https://tf-api.roto.lol/",
-	UpdateFreqMs:      2000,
-	ServerModeEnabled: false,
-	BDLists:           []UserList{},
-	Links:             []UserLink{},
-}
-
-// PathConfig generates a path pointing to the filename under this apps defined $XDG_CONFIG_HOME.
-func PathConfig(name string) string {
+// Path generates a path pointing to the filename under this apps defined $XDG_CONFIG_HOME.
+func Path(name string) string {
 	fullPath, errFullPath := xdg.ConfigFile(path.Join(ConfigDirName, name))
 	if errFullPath != nil {
 		panic(errFullPath)
@@ -114,56 +103,6 @@ func PathCache(name string) string {
 	}
 
 	return path.Join(xdg.CacheHome, ConfigDirName, name)
-}
-
-func Read(configPath string) (Config, error) {
-	errDotEnv := godotenv.Load()
-	if errDotEnv != nil {
-		slog.Debug("Could not load .env file", slog.String("error", errDotEnv.Error()))
-	}
-
-	inFile, errOpen := os.Open(configPath)
-	if errOpen != nil {
-		return defaultConfig, errors.Join(errOpen, errConfigRead)
-	}
-	defer func(closer io.Closer) {
-		if err := closer.Close(); err != nil {
-			slog.Error("Failed to close config file", slog.String("error", err.Error()))
-		}
-	}(inFile)
-
-	var config Config
-	if err := yaml.NewDecoder(inFile).Decode(&config); err != nil {
-		return defaultConfig, errors.Join(err, errConfigRead)
-	}
-
-	if config.APIBaseURL == "" {
-		config.APIBaseURL = "https://tf-api.roto.lol/"
-	}
-
-	if config.ConsoleLogPath == "" {
-		config.ConsoleLogPath = defaultConsoleLogPath()
-	}
-
-	if config.UpdateFreqMs <= 0 {
-		config.UpdateFreqMs = defaultConfig.UpdateFreqMs
-	}
-
-	if config.Address == "" {
-		config.Address = defaultConfig.Address
-	}
-
-	if config.Password == "" {
-		config.Password = defaultConfig.Password
-	}
-
-	if config.ServerListenAddress == "" {
-		config.ServerListenAddress = "0.0.0.0:27115"
-	}
-
-	config.ConfigPath = configPath
-
-	return config, nil
 }
 
 func defaultConsoleLogPath() string {
@@ -189,25 +128,6 @@ func defaultConsoleLogPath() string {
 	default:
 		return ""
 	}
-}
-
-func Write(name string, config Config) error {
-	outFile, errOpen := os.Create(PathConfig(name))
-	if errOpen != nil {
-		return errors.Join(errOpen, errConfigWrite)
-	}
-
-	defer func(file io.Closer) {
-		if err := file.Close(); err != nil {
-			slog.Error("Failed to close config file", slog.String("error", err.Error()))
-		}
-	}(outFile)
-
-	if err := yaml.NewEncoder(outFile).Encode(&config); err != nil {
-		return errors.Join(err, errConfigWrite)
-	}
-
-	return nil
 }
 
 // LoggerInit sets up the slog global handler to use a log file as we cant print to the console.

@@ -51,7 +51,7 @@ var (
 var errApp = errors.New("application error")
 
 func main() {
-	configPath := config.PathConfig(config.DefaultConfigName)
+	configPath := config.Path(config.DefaultConfigName)
 	// cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", configPath,
 		"Config file path")
@@ -93,12 +93,14 @@ func run(_ *cobra.Command, _ []string) error {
 		return errors.Join(err, errApp)
 	}
 
-	// Try and load the users config, uses default config on error.
-	userConfig, errConfig := config.Read(cfgFile)
-	if errConfig != nil {
-		slog.Error("Failed to load config", slog.String("error", errConfig.Error()))
-	}
+	var userConfig config.Config
+	configUpdates := make(chan config.Config)
 
+	loader := config.NewLoader(configUpdates)
+	userConfig, errConfig := loader.Read()
+	if errConfig != nil {
+		return errors.Join(errConfig, errApp)
+	}
 	// Setup file based logger. This is very useful for us as our console is taken over by the ui.
 	logFile, errLogger := config.LoggerInit(config.DefaultLogName, slog.LevelDebug)
 	if errLogger != nil {
@@ -135,7 +137,7 @@ func run(_ *cobra.Command, _ []string) error {
 	states := tftui.NewStateTracker(router, userConfig, metaFetcher, bdFetcher)
 
 	// Setup the sqlite database system.
-	database, errDB := store.Open(ctx, config.PathConfig(config.DefaultDBName), true)
+	database, errDB := store.Open(ctx, config.Path(config.DefaultDBName), true)
 	if errDB != nil {
 		return errors.Join(errDB, errApp)
 	}
@@ -165,10 +167,10 @@ func run(_ *cobra.Command, _ []string) error {
 
 	done := make(chan any)
 
-	app := NewApp(userConfig, states, database, router, logSource)
+	app := NewApp(userConfig, states, database, router, logSource, configUpdates)
 
 	go func() {
-		if err := app.createUI(ctx).Run(); err != nil {
+		if err := app.createUI(ctx, loader).Run(); err != nil {
 			slog.Error("Failed to run UI", slog.String("error", err.Error()))
 		}
 

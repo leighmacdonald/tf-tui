@@ -26,13 +26,14 @@ type App struct {
 }
 
 // NewApp returns a new application instance. To actually start the app you must call
-// Start().
-func NewApp(conf config.Config, states *internal.StateTracker, database *sql.DB, broadcaster *events.Router, logSource console.Source,
+// Start(). App is mostly just responsible for routing messages between different systems.
+func NewApp(conf config.Config, states *internal.StateTracker, database *sql.DB, broadcaster *events.Router,
+	logSource console.Source, configUpdates chan config.Config,
 ) *App {
 	app := &App{
 		config:        conf,
 		state:         states,
-		configUpdates: make(chan config.Config),
+		configUpdates: configUpdates,
 		uiUpdates:     make(chan any),
 		blackBox:      internal.NewBlackBox(store.New(database), broadcaster),
 		broadcaster:   broadcaster,
@@ -44,17 +45,19 @@ func NewApp(conf config.Config, states *internal.StateTracker, database *sql.DB,
 
 // Start brings up all the background goroutines and starts the main event processing loop.
 func (app *App) Start(ctx context.Context, done <-chan any) {
-	// Watch the config for writes
-	go config.Notify(ctx, config.DefaultConfigName, app.configUpdates)
-
-	// Handle removing expired players from the active player states
+	// Start collecting state updates.
 	go app.state.Start(ctx)
 
+	// Start recording events.
 	go app.blackBox.Start(ctx)
 
-	// Start sending player state updates to the UI.
+	// Start sending game state updates to the UI.
 	go app.stateSyncer(ctx)
+
+	// Start routing log events to the UI.
 	go app.logEventUpdater(ctx)
+
+	// Start sending UI updates to the UI.
 	go app.uiSender(ctx)
 
 	for {
@@ -155,9 +158,9 @@ func (app *App) updateUIState() {
 	app.ui.Send(app.state.Stats())
 }
 
-func (app *App) createUI(ctx context.Context) *ui.UI {
+func (app *App) createUI(ctx context.Context, loader ui.ConfigWriter) *ui.UI {
 	if app.ui == nil {
-		app.ui = ui.New(ctx, app.config, false, BuildVersion, BuildDate, BuildCommit)
+		app.ui = ui.New(ctx, app.config, false, BuildVersion, BuildDate, BuildCommit, loader)
 	}
 
 	return app.ui
