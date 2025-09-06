@@ -210,9 +210,6 @@ func newParser() *parser {
 			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\stags\s{4}:\s(.+?)$`),
 			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\sudp/ip\s{2}:\s(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5})$`),
 			regexp.MustCompile(`^\s{2}(Member|Pending)\[\d+]\s+(?P<sid>\[.+?]).+?TF_GC_TEAM_(?P<team>(DEFENDERS|INVADERS))\s{2}type\s=\sMATCH_PLAYER$`),
-			// CPU    In_(KB/s)  Out_(KB/s)  Uptime  Map_changes  FPS      Players  Connects
-			// 0.00   82.99      619.13      287     14           66.67    64       900
-			regexp.MustCompile(`^(\d+)\.(\d{1,2})\s+(\d+)\.(\d{1,2})\s+(\d+)\.(\d{1,2})\s+(\d+)\s+(\d+)\s+(\d+)\.(\d{1,2})\s+(\d+)\s+(\d+)$`),
 		},
 	}
 }
@@ -232,9 +229,7 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 			}
 		}
 
-		switch outEvent.Type {
-		case Stats:
-			outEvent.Data = parseStats(match)
+		switch outEvent.Type { //nolint:exhaustive
 		case Connect:
 			outEvent.Data = ConnectEvent{Player: match[2]}
 		case Disconnect:
@@ -352,58 +347,5 @@ func parseMsg(match []string) MsgEvent {
 		TeamOnly: team,
 		// PlayerSID: steamid.SteamID,
 		Message: match[3],
-	}
-}
-
-func parseStats(match []string) StatsEvent {
-	cpu, errCPU := strconv.ParseFloat(match[1], 32)
-	if errCPU != nil {
-		slog.Error("Failed to parse CPU", slog.String("error", errCPU.Error()))
-	}
-
-	inKBs, errInKBs := strconv.ParseFloat(match[1], 32)
-	if errInKBs != nil {
-		slog.Error("Failed to parse in kbs", slog.String("error", errInKBs.Error()))
-	}
-
-	outKBs, errOutKBs := strconv.ParseFloat(match[1], 32)
-	if errOutKBs != nil {
-		slog.Error("Failed to parse out kbs", slog.String("error", errOutKBs.Error()))
-	}
-
-	uptime, errUptime := strconv.ParseInt(match[1], 10, 64)
-	if errUptime != nil {
-		slog.Error("Failed to parse uptime", slog.String("error", errUptime.Error()))
-	}
-
-	mapChanges, errMapChanges := strconv.ParseInt(match[1], 10, 64)
-	if errMapChanges != nil {
-		slog.Error("Failed to parse map changes", slog.String("error", errMapChanges.Error()))
-	}
-
-	fps, errFPS := strconv.ParseFloat(match[1], 32)
-	if errFPS != nil {
-		slog.Error("Failed to parse fps", slog.String("error", errFPS.Error()))
-	}
-
-	players, errPlayers := strconv.ParseInt(match[1], 10, 64)
-	if errPlayers != nil {
-		slog.Error("Failed to parse players", slog.String("error", errPlayers.Error()))
-	}
-
-	connects, errConnects := strconv.ParseInt(match[1], 10, 64)
-	if errConnects != nil {
-		slog.Error("Failed to parse connects", slog.String("error", errConnects.Error()))
-	}
-
-	return StatsEvent{
-		CPU:        float32(cpu),
-		InKBs:      float32(inKBs),
-		OutKBs:     float32(outKBs),
-		FPS:        float32(fps),
-		Uptime:     int(uptime),
-		MapChanges: int(mapChanges),
-		Players:    int(players),
-		Connects:   int(connects),
 	}
 }

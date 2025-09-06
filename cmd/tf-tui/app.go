@@ -17,7 +17,7 @@ import (
 type App struct {
 	ui            *ui.UI
 	config        config.Config
-	playerStates  *internal.PlayerStates
+	playerStates  *internal.StateTracker
 	blackBox      *internal.BlackBox
 	uiUpdates     chan any
 	configUpdates chan config.Config
@@ -27,7 +27,7 @@ type App struct {
 
 // NewApp returns a new application instance. To actually start the app you must call
 // Start().
-func NewApp(conf config.Config, states *internal.PlayerStates, database *sql.DB, broadcaster *events.Router, logSource console.Source,
+func NewApp(conf config.Config, states *internal.StateTracker, database *sql.DB, broadcaster *events.Router, logSource console.Source,
 ) *App {
 	app := &App{
 		config:        conf,
