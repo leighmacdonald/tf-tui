@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -21,10 +20,12 @@ type statusBarModel struct {
 	redPlayers  int
 	bluPlayers  int
 	version     string
+	serverMode  bool
+	stats       events.StatsEvent
 }
 
-func newStatusBarModel(version string) *statusBarModel {
-	return &statusBarModel{version: version}
+func newStatusBarModel(version string, serverMode bool) *statusBarModel {
+	return &statusBarModel{version: version, serverMode: serverMode}
 }
 
 func (m statusBarModel) Init() tea.Cmd {
@@ -33,6 +34,8 @@ func (m statusBarModel) Init() tea.Cmd {
 
 func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case events.StatsEvent:
+		m.stats = msg
 	case Players:
 		var (
 			red int
@@ -54,7 +57,7 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusMsg = msg.Message
 		m.statusError = msg.Err
 
-		return m, clearErrorAfter(time.Second * 10)
+		return m, clearErrorAfter(clearMessageTimeout)
 	case clearStatusMessageMsg:
 		m.statusError = false
 		m.statusMsg = ""
@@ -73,13 +76,33 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m statusBarModel) View() string {
-	return lipgloss.NewStyle().Width(m.width).Background(styles.Black).Render(lipgloss.JoinHorizontal(lipgloss.Top,
-		styles.StatusRedTeam.Render(fmt.Sprintf("%3d", m.redPlayers)),
-		styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.bluPlayers)),
+	var args []string
+	if !m.serverMode {
+		args = append(args,
+			styles.StatusRedTeam.Render(fmt.Sprintf("%3d", m.redPlayers)),
+			styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.bluPlayers)))
+	} else {
+		if m.stats.FPS < 66 {
+			args = append(args, styles.StatusError.Underline(true).Render(fmt.Sprintf("FPS %.2f", m.stats.FPS)))
+		} else {
+			args = append(args, styles.StatusBluTeam.Render(fmt.Sprintf("FPS %.2f  ", m.stats.FPS)))
+		}
+		args = append(args,
+			styles.StatusRedTeam.Render(fmt.Sprintf("CPU %.2f  ", m.stats.CPU)),
+			styles.StatusMessage.Render(fmt.Sprintf("In/Out kb/s %.2f/%.2f", m.stats.InKBs, m.stats.OutKBs)),
+			styles.StatusRedTeam.Render(fmt.Sprintf("Up %d", m.stats.Uptime)),
+			styles.StatusMap.Render(fmt.Sprintf("Maps %d", m.stats.MapChanges)),
+			styles.StatusMap.Render(fmt.Sprintf("Plr %d", m.stats.Players)),
+			styles.StatusMap.Render(fmt.Sprintf("Con %d", m.stats.Connects)),
+		)
+	}
+	args = append(args,
 		styles.StatusVersion.Render(m.version),
 		styles.StatusHelp.Render(fmt.Sprintf("%s %s", DefaultKeyMap.help.Help().Key, DefaultKeyMap.help.Help().Desc)),
 		m.status(),
-		styles.StatusMap.Render(m.mapName)))
+		styles.StatusMap.Render(m.mapName))
+
+	return lipgloss.NewStyle().Width(m.width).Background(styles.Black).Render(lipgloss.JoinHorizontal(lipgloss.Top, args...))
 }
 
 func (m statusBarModel) status() string {

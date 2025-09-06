@@ -3,10 +3,15 @@ package ui
 import (
 	"context"
 	"errors"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	zone "github.com/lrstanley/bubblezone"
+)
+
+const (
+	clearMessageTimeout = time.Second * 10
 )
 
 var ErrUIExit = errors.New("ui error returned")

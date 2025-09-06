@@ -17,7 +17,7 @@ import (
 type App struct {
 	ui            *ui.UI
 	config        config.Config
-	playerStates  *internal.StateTracker
+	state         *internal.StateTracker
 	blackBox      *internal.BlackBox
 	uiUpdates     chan any
 	configUpdates chan config.Config
@@ -31,7 +31,7 @@ func NewApp(conf config.Config, states *internal.StateTracker, database *sql.DB,
 ) *App {
 	app := &App{
 		config:        conf,
-		playerStates:  states,
+		state:         states,
 		configUpdates: make(chan config.Config),
 		uiUpdates:     make(chan any),
 		blackBox:      internal.NewBlackBox(store.New(database), broadcaster),
@@ -48,7 +48,7 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 	go config.Notify(ctx, config.DefaultConfigName, app.configUpdates)
 
 	// Handle removing expired players from the active player states
-	go app.playerStates.Start(ctx)
+	go app.state.Start(ctx)
 
 	go app.blackBox.Start(ctx)
 
@@ -105,20 +105,20 @@ func (app *App) stateSyncer(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			app.sendPlayerStates()
+			app.updateUIState()
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (app *App) sendPlayerStates() {
+func (app *App) updateUIState() {
 	if app.ui == nil {
 		return
 	}
 
 	var players ui.Players
-	for _, player := range app.playerStates.Players() {
+	for _, player := range app.state.Players() {
 		players = append(players, ui.Player{
 			SteamID:                  player.SteamID,
 			Name:                     player.Name,
@@ -152,6 +152,7 @@ func (app *App) sendPlayerStates() {
 	}
 
 	app.ui.Send(players)
+	app.ui.Send(app.state.Stats())
 }
 
 func (app *App) createUI(ctx context.Context) *ui.UI {

@@ -47,7 +47,7 @@ func NewDumpFetcher(address string, password string, serverMode bool) DumpFetche
 		g15re:      regexp.MustCompile(`^(m_szName|m_iPing|m_iScore|m_iDeaths|m_bConnected|m_iTeam|m_bAlive|m_iHealth|m_iAccountID|m_bValid|m_iUserID)\[(\d+)]\s(integer|bool|string)\s\((.+?)?\)$`),
 		// CPU    In_(KB/s)  Out_(KB/s)  Uptime  Map_changes  FPS      Players  Connects
 		// 0.00   82.99      619.13      287     14           66.67    64       900
-		statsRe: regexp.MustCompile(`(\d+)\.(\d{1,2})\s+(\d+)\.(\d{1,2})\s+(\d+)\.(\d{1,2})\s+(\d+)\s+(\d+)\s+(\d+)\.(\d{1,2})\s+(\d+)\s+(\d+)`),
+		statsRe: regexp.MustCompile(`(\d+\.\d{1,2})\s+(\d+\.\d{1,2})\s+(\d+\.\d{1,2})\s+(\d+)\s+(\d+)\s+(\d+\.\d{1,2})\s+(\d+)\s+(\d+)`),
 	}
 }
 
@@ -159,43 +159,44 @@ func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, events.StatsEvent, 
 	return dump, stats, nil
 }
 
+// "CPU    In_(KB/s)  Out_(KB/s)  Uptime  Map_changes  FPS      Players  Connects\n49.76  80.38      1003.97     113     6            66.67    64       395     \nhostname: Uncletopia | Montréal | 1 | One Thousand Uncles\nversion : 9978583/24 9978583 secure\nudp/ip  : ?.?.?.?:?  (public IP from Steam: 148.113.198.21)\nsteamid : [G:1:4460663] (85568392924500087)\naccount : not logged in  (No account specified)\nmap     : pl_cashworks at: 0 x, 0 y, 0 z\ntags    : alltalk,bots,danepve,increased_maxplayers,norespawntime,pa...+5521 more".
 func (f *DumpFetcher) parseStats(match []string) events.StatsEvent {
 	cpu, errCPU := strconv.ParseFloat(match[1], 32)
 	if errCPU != nil {
 		slog.Error("Failed to parse CPU", slog.String("error", errCPU.Error()))
 	}
 
-	inKBs, errInKBs := strconv.ParseFloat(match[1], 32)
+	inKBs, errInKBs := strconv.ParseFloat(match[2], 32)
 	if errInKBs != nil {
 		slog.Error("Failed to parse in kbs", slog.String("error", errInKBs.Error()))
 	}
 
-	outKBs, errOutKBs := strconv.ParseFloat(match[1], 32)
+	outKBs, errOutKBs := strconv.ParseFloat(match[3], 32)
 	if errOutKBs != nil {
 		slog.Error("Failed to parse out kbs", slog.String("error", errOutKBs.Error()))
 	}
 
-	uptime, errUptime := strconv.ParseInt(match[1], 10, 64)
+	uptime, errUptime := strconv.ParseInt(match[4], 10, 64)
 	if errUptime != nil {
 		slog.Error("Failed to parse uptime", slog.String("error", errUptime.Error()))
 	}
 
-	mapChanges, errMapChanges := strconv.ParseInt(match[1], 10, 64)
+	mapChanges, errMapChanges := strconv.ParseInt(match[5], 10, 64)
 	if errMapChanges != nil {
 		slog.Error("Failed to parse map changes", slog.String("error", errMapChanges.Error()))
 	}
 
-	fps, errFPS := strconv.ParseFloat(match[1], 32)
+	fps, errFPS := strconv.ParseFloat(match[6], 32)
 	if errFPS != nil {
 		slog.Error("Failed to parse fps", slog.String("error", errFPS.Error()))
 	}
 
-	players, errPlayers := strconv.ParseInt(match[1], 10, 64)
+	players, errPlayers := strconv.ParseInt(match[7], 10, 64)
 	if errPlayers != nil {
 		slog.Error("Failed to parse players", slog.String("error", errPlayers.Error()))
 	}
 
-	connects, errConnects := strconv.ParseInt(match[1], 10, 64)
+	connects, errConnects := strconv.ParseInt(match[8], 10, 64)
 	if errConnects != nil {
 		slog.Error("Failed to parse connects", slog.String("error", errConnects.Error()))
 	}
