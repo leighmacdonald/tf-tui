@@ -22,13 +22,13 @@ type App struct {
 	uiUpdates     chan any
 	configUpdates chan config.Config
 	broadcaster   *events.Router
-	logSource     console.Source
+	logSources    []console.Source
 }
 
 // NewApp returns a new application instance. To actually start the app you must call
 // Start(). App is mostly just responsible for routing messages between different systems.
 func NewApp(conf config.Config, states *internal.StateTracker, database *sql.DB, broadcaster *events.Router,
-	logSource console.Source, configUpdates chan config.Config,
+	logSources []console.Source, configUpdates chan config.Config,
 ) *App {
 	app := &App{
 		config:        conf,
@@ -37,7 +37,7 @@ func NewApp(conf config.Config, states *internal.StateTracker, database *sql.DB,
 		uiUpdates:     make(chan any),
 		blackBox:      internal.NewBlackBox(store.New(database), broadcaster),
 		broadcaster:   broadcaster,
-		logSource:     logSource,
+		logSources:    logSources,
 	}
 
 	return app
