@@ -11,6 +11,7 @@ import (
 	"path"
 	"runtime"
 	"runtime/pprof"
+	"sync"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -134,7 +135,10 @@ func run(_ *cobra.Command, _ []string) error {
 	router := events.NewRouter()
 	metaFetcher := tftui.NewMetaFetcher(client, cache)
 	bdFetcher := tftui.NewBDFetcher(httpClient, userConfig.BDLists, cache)
-	states := tftui.NewStateTracker(router, userConfig, metaFetcher, bdFetcher)
+	states, errStates := tftui.NewStateTracker(router, userConfig, metaFetcher, bdFetcher)
+	if errStates != nil {
+		return errors.Join(errStates, errApp)
+	}
 
 	// Setup the sqlite database system.
 	database, errDB := store.Open(ctx, config.Path(config.DefaultDBName), true)
@@ -148,13 +152,13 @@ func run(_ *cobra.Command, _ []string) error {
 		}
 	}()
 
-	logSource, errLogSource := openLogSource(ctx, userConfig)
+	logSources, errLogSource := openLogSources(ctx, userConfig)
 	if errLogSource != nil {
 		return errors.Join(errLogSource, errApp)
 	}
-	defer logSource.Close(ctx)
+	defer logSources.Close(ctx)
 
-	go logSource.Start(ctx, router)
+	go logSources.Start(ctx, router)
 
 	if len(os.Getenv("DEBUG")) > 0 {
 		consoleDebug := console.NewDebug("testdata/console.log")
@@ -167,7 +171,7 @@ func run(_ *cobra.Command, _ []string) error {
 
 	done := make(chan any)
 
-	app := NewApp(userConfig, states, database, router, logSource, configUpdates)
+	app := NewApp(userConfig, states, database, router, logSources, configUpdates)
 
 	go func() {
 		if err := app.createUI(ctx, loader).Run(); err != nil {
@@ -182,8 +186,8 @@ func run(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func openLogSource(ctx context.Context, userConfig config.Config) (console.Source, error) {
-	var logSource console.Source
+func openLogSources(ctx context.Context, userConfig config.Config) ([]console.Source, error) {
+	var logSources []console.Source
 	if userConfig.ServerModeEnabled {
 		listener, errListener := console.NewRemote(console.SRCDSListenerOpts{
 			ExternalAddress: userConfig.ServerLogAddress,
@@ -195,14 +199,22 @@ func openLogSource(ctx context.Context, userConfig config.Config) (console.Sourc
 		if errListener != nil {
 			return nil, errListener
 		}
-		logSource = listener
+		logSources = append(logSources, listener)
 	} else {
-		logSource = console.NewLocal(userConfig.ConsoleLogPath)
+		logSources = append(logSources, console.NewLocal(userConfig.ConsoleLogPath))
 	}
 
-	if errOpen := logSource.Open(ctx); errOpen != nil {
-		return nil, errOpen
+	waitGroup := &sync.WaitGroup{}
+	for _, logSource := range logSources {
+		waitGroup.Add(1)
+		go func(source console.Source) {
+			defer waitGroup.Done()
+			if errOpen := source.Open(ctx); errOpen != nil {
+				slog.Error("Failed to open log source", slog.String("error", errOpen.Error()))
+			}
+		}(logSource)
 	}
+	waitGroup.Wait()
 
-	return logSource, nil
+	return logSources, nil
 }

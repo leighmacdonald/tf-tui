@@ -27,8 +27,6 @@ func NewLoader(changes chan<- Config) *Loader {
 		slog.Debug("Could not load .env file", slog.String("error", errDotEnv.Error()))
 	}
 	con.SetDefault("steam_id", "")
-	con.SetDefault("address", "127.0.0.1:27015")
-	con.SetDefault("password", "tf-tui")
 	con.SetDefault("console_log_path", defaultConsoleLogPath())
 	con.SetDefault("update_freq_ms", 2000)
 	con.SetDefault("server_mode_enabled", false)
@@ -36,11 +34,20 @@ func NewLoader(changes chan<- Config) *Loader {
 	con.SetDefault("server_log_secret", 1234)
 	con.SetDefault("server_listen_address", "1.2.3.4:27115")
 	con.SetDefault("api_base_url", "https://tf-api.roto.lol/")
-	con.SetDefault("bd_lists", map[string]string{})
-	con.SetDefault("links", map[string]string{
-		"url":    "https://demos.tf/profiles/%s",
-		"name":   "demos.tf",
-		"format": "",
+	con.SetDefault("bd_lists", []map[string]string{})
+	con.SetDefault("links", []map[string]string{
+		{
+			"url":    "https://demos.tf/profiles/%s",
+			"name":   "demos.tf",
+			"format": "",
+		},
+	})
+	con.SetDefault("servers", []map[string]string{
+		{
+			"address":    "127.0.0.1:27015",
+			"password":   "tf-tui",
+			"log_secret": "",
+		},
 	})
 	con.SetConfigName(DefaultConfigName)
 	con.SetConfigType("yaml")
@@ -81,8 +88,6 @@ func (cl *Loader) Write(config Config) error {
 	} else {
 		cl.viper.Set("steam_id", "")
 	}
-	cl.viper.Set("address", config.Address)
-	cl.viper.Set("password", config.Password)
 	cl.viper.Set("console_log_path", config.ConsoleLogPath)
 	cl.viper.Set("update_freq_ms", config.UpdateFreqMs)
 	cl.viper.Set("server_mode_enabled", config.ServerModeEnabled)
@@ -92,6 +97,7 @@ func (cl *Loader) Write(config Config) error {
 	cl.viper.Set("api_base_url", config.APIBaseURL)
 	cl.viper.Set("bd_lists", config.BDLists)
 	cl.viper.Set("links", config.Links)
+	cl.viper.Set("servers", config.Servers)
 
 	if err := cl.viper.WriteConfig(); err != nil {
 		return errors.Join(err, errConfigWrite)

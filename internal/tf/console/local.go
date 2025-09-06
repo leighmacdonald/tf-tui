@@ -90,7 +90,7 @@ func (l *Local) Start(ctx context.Context, receiver Receiver) {
 				continue // Happens on linux only?
 			}
 
-			receiver.Send(msg.Text)
+			receiver.Send(0, msg.Text)
 		case <-l.stopChan:
 			stop()
 

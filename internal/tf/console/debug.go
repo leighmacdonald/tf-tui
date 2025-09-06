@@ -52,7 +52,7 @@ func (c *Debug) Start(ctx context.Context, receiver Receiver) {
 			return
 		case <-logFreq.C:
 			if scanner.Scan() {
-				receiver.Send(scanner.Text())
+				receiver.Send(0, scanner.Text())
 			}
 		}
 	}

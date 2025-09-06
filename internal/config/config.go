@@ -52,6 +52,13 @@ type Config struct {
 	ServerListenAddress string     `mapstructure:"server_listen_address"`
 	BDLists             []UserList `mapstructure:"bd_lists"`
 	Links               []UserLink `mapstructure:"links"`
+	Servers             []Server   `mapstructure:"servers"`
+}
+
+type Server struct {
+	Address   string `mapstructure:"address"`
+	Password  string `mapstructure:"password"`
+	LogSecret int    `mapstructure:"log_secret"`
 }
 
 type SIDFormats string
@@ -82,8 +89,9 @@ func (u UserLink) Generate(steamID steamid.SteamID) string {
 }
 
 type UserList struct {
-	URL  string `mapstructure:"url"`
-	Name string `mapstructure:"name"`
+	URL       string `mapstructure:"url"`
+	Name      string `mapstructure:"name"`
+	LogSecret int    `mapstructure:"log_secret"`
 }
 
 // Path generates a path pointing to the filename under this apps defined $XDG_CONFIG_HOME.

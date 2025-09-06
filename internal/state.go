@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,29 +22,74 @@ const (
 	removeInterval = time.Second
 )
 
-func NewStateTracker(router *events.Router, conf config.Config, metaFetcher *MetaFetcher, bdFetcher *BDFetcher) *StateTracker {
+var (
+	errNoServersFound = errors.New("no servers configured")
+)
+
+type serverMetaUpdate struct {
+	serverAddress string
+	steamID       steamid.SteamID
+	profile       tfapi.MetaProfile
+}
+
+func NewStateTracker(router *events.Router, conf config.Config, metaFetcher *MetaFetcher, bdFetcher *BDFetcher) (*StateTracker, error) {
 	incomingEvents := make(chan events.Event)
 	router.ListenFor(events.StatusID, incomingEvents)
 
+	isLocal := func(address string) bool {
+		return strings.HasPrefix(address, "127.0.0.1") || strings.HasPrefix(address, "localhost")
+	}
+
+	var servers []*serverState
+	if conf.ServerModeEnabled {
+		servers = make([]*serverState, len(conf.Servers))
+		for i, server := range conf.Servers {
+			if isLocal(server.Address) {
+				continue
+			}
+			servers[i] = newServerState(server)
+		}
+	} else {
+		for _, server := range conf.Servers {
+			if isLocal(server.Address) {
+				servers = []*serverState{newServerState(conf.Servers[0])}
+
+				break
+			}
+		}
+	}
+
+	if len(servers) == 0 {
+		return nil, errNoServersFound
+	}
+
 	return &StateTracker{
 		mu:             &sync.RWMutex{},
-		players:        Players{},
+		serverStates:   []*serverState{},
 		metaFetcher:    metaFetcher,
 		bdFetcher:      bdFetcher,
 		dumpFetcher:    tf.NewDumpFetcher(conf.Address, conf.Password, conf.ServerModeEnabled),
 		incomingEvents: incomingEvents,
-	}
+	}, nil
 }
 
+// StateTracker is a struct that tracks the state of servers and handles incoming events, routing them
+// to the appropriate serverState.
+//
+// This is also responsible for fetching metaProfile updates. These are quite expensive calls, so they are
+// queued and processed synchronously.
 type StateTracker struct {
-	mu             *sync.RWMutex
-	players        Players
+	mu *sync.RWMutex
+	// serverStates contains the current state of each server. When in server mode, this will contain the state of all servers.
+	// When in client mode, this will contain the state of the single local server.
+	serverStates   []*serverState
 	incomingEvents chan events.Event
-	metaInFlight   atomic.Bool
 	metaFetcher    *MetaFetcher
 	dumpFetcher    tf.DumpFetcher
 	bdFetcher      *BDFetcher
 	stats          events.StatsEvent
+	metaQueue      chan serverMetaUpdate
+	metaInFlight   atomic.Bool
 }
 
 func (s *StateTracker) Start(ctx context.Context) {
@@ -62,7 +108,34 @@ func (s *StateTracker) Start(ctx context.Context) {
 		case <-dumpTicker.C:
 			s.onDumpTick(ctx)
 		case <-removeTicker.C:
-			s.removeExpired()
+			for _, server := range s.serverStates {
+				server.removeExpired()
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (s *StateTracker) metaUpdater(ctx context.Context) {
+	var queue []serverMetaUpdate
+
+	go func() {
+		updateTicker := time.NewTicker(time.Second)
+		for {
+			select {
+			case <-updateTicker.C:
+
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	for {
+		select {
+		case update := <-s.metaQueue:
+			queue = append(queue, update)
 		case <-ctx.Done():
 			return
 		}
@@ -70,26 +143,14 @@ func (s *StateTracker) Start(ctx context.Context) {
 }
 
 func (s *StateTracker) onDumpTick(ctx context.Context) {
-	if s.metaInFlight.Load() {
-		return
-	}
 	waitGroup := &sync.WaitGroup{}
-	waitGroup.Add(3)
-
-	go func() {
-		defer waitGroup.Done()
-		s.updateMetaProfile(ctx)
-	}()
-
-	go func() {
-		defer waitGroup.Done()
-		s.updateBD()
-	}()
-
-	go func() {
-		defer waitGroup.Done()
-		s.updateDump(ctx)
-	}()
+	for _, server := range s.serverStates {
+		waitGroup.Add(1)
+		go func() {
+			defer waitGroup.Done()
+			server.onDumpTick(ctx)
+		}()
+	}
 
 	waitGroup.Wait()
 }
@@ -114,113 +175,6 @@ func (s *StateTracker) onIncomingEvent(event events.Event) error {
 	return nil
 }
 
-func (s *StateTracker) UpdateDumpPlayer(stats tf.DumpPlayer) {
-	var players Players
-	for idx := range tf.MaxPlayerCount {
-		sid := stats.SteamID[idx]
-		if !sid.Valid() {
-			// TODO verify this is ok, however i think g15 is filled sequentially.
-			continue
-		}
-
-		player, playerErr := s.Player(sid)
-		if playerErr != nil {
-			if !errors.Is(playerErr, errPlayerNotFound) {
-				return
-			}
-			player = Player{SteamID: sid, Meta: tfapi.MetaProfile{Bans: []tfapi.Ban{}}}
-		}
-
-		player.Valid = stats.Valid[idx]
-		player.Health = stats.Health[idx]
-		player.Alive = stats.Alive[idx]
-		player.Deaths = stats.Deaths[idx]
-		player.Ping = stats.Ping[idx]
-		player.Health = stats.Health[idx]
-		player.Score = stats.Score[idx]
-		player.Connected = stats.Connected[idx]
-		player.Name = stats.Names[idx]
-		player.Loss = stats.Loss[idx]
-		player.Address = stats.Address[idx]
-		player.Time = stats.Time[idx]
-		player.Team = stats.Team[idx]
-		player.UserID = stats.UserID[idx]
-		player.G15UpdatedOn = time.Now()
-		players = append(players, player)
-	}
-
-	s.SetPlayer(players...)
-}
-
-func (s *StateTracker) SetPlayer(updates ...Player) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	var existing bool
-	for _, player := range updates {
-		for playerIdx := range s.players {
-			if s.players[playerIdx].SteamID.Equal(player.SteamID) {
-				s.players[playerIdx] = player
-				existing = true
-
-				continue
-			}
-		}
-		if !existing {
-			s.players = append(s.players, player)
-		}
-	}
-}
-
-func (s *StateTracker) UpdateMetaProfile(metaProfiles ...tfapi.MetaProfile) {
-	players := make(Players, len(metaProfiles))
-	for index, meta := range metaProfiles {
-		player, err := s.Player(steamid.New(meta.SteamId))
-		if err != nil {
-			return
-		}
-
-		player.Meta = meta
-		players[index] = player
-	}
-
-	s.SetPlayer(players...)
-}
-
-func (s *StateTracker) Player(steamID steamid.SteamID) (Player, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	for _, player := range s.players {
-		if steamID.Equal(player.SteamID) {
-			return player, nil
-		}
-	}
-
-	return Player{}, errPlayerNotFound
-}
-
-func (s *StateTracker) Players() Players {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	return s.players
-}
-
-func (s *StateTracker) removeExpired() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	var valid Players
-	for _, player := range s.players {
-		if time.Since(player.G15UpdatedOn) > playerTimeout {
-			continue
-		}
-
-		valid = append(valid, player)
-	}
-
-	s.players = valid
-}
-
 func (s *StateTracker) updateBD() {
 	var (
 		players = s.Players()
@@ -233,22 +187,6 @@ func (s *StateTracker) updateBD() {
 	}
 
 	s.SetPlayer(updates...)
-}
-
-func (s *StateTracker) updateDump(ctx context.Context) {
-	dump, stats, errDump := s.dumpFetcher.Fetch(ctx)
-	if errDump != nil {
-		// s.uiUpdates <- ui.StatusMsg{
-		// 	Err:     true,
-		// 	Message: errDump.Error(),
-		// }
-		//
-		// An error result will return a copy of the last successful dump still.
-		slog.Error("Failed to fetch player dump", slog.String("error", errDump.Error()))
-	}
-
-	s.UpdateStats(stats)
-	s.UpdateDumpPlayer(dump)
 }
 
 func (s *StateTracker) Stats() events.StatsEvent {
