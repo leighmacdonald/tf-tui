@@ -2,6 +2,7 @@ package events
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
 )
 
@@ -59,6 +60,10 @@ func (l *Router) Send(line string) {
 	}
 
 	for _, handler := range l.readersAny {
-		handler <- logEvent
+		select {
+		case handler <- logEvent:
+		default:
+			slog.Warn("Failed to send event", slog.String("event", line))
+		}
 	}
 }

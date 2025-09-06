@@ -14,7 +14,7 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 )
 
-// rootModel is the root model for the rootModel side of the app.
+// rootModel is the top level model for the ui side of the app.
 type rootModel struct {
 	currentView           contentView
 	previousView          contentView
