@@ -55,13 +55,13 @@ type BlackBox struct {
 }
 
 func NewBlackBox(conn *store.Queries, router *events.Router) *BlackBox {
-	incoming := make(chan events.Event)
+	incoming := make(chan events.Event, 10)
 	router.ListenFor(events.Any, incoming)
 
 	return &BlackBox{db: conn, logEvents: incoming}
 }
 
-func (b *BlackBox) start(ctx context.Context) {
+func (b *BlackBox) Start(ctx context.Context) {
 	for {
 		select {
 		case event := <-b.logEvents:

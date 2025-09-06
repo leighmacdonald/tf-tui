@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"log/slog"
 	"time"
 
 	"github.com/leighmacdonald/tf-tui/internal"
@@ -51,6 +50,8 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 	// Handle removing expired players from the active player states
 	go app.playerStates.Start(ctx)
 
+	go app.blackBox.Start(ctx)
+
 	// Start sending player state updates to the UI.
 	go app.stateSyncer(ctx)
 	go app.logEventUpdater(ctx)
@@ -70,18 +71,12 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 
 // logEventUpdater sends console log events to the UI for display.
 func (app *App) logEventUpdater(ctx context.Context) {
-	eventChan := make(chan events.Event)
+	eventChan := make(chan events.Event, 10)
 	app.broadcaster.ListenFor(events.Any, eventChan)
 	for {
 		select {
 		case evt := <-eventChan:
-			select {
-			case app.uiUpdates <- evt:
-			default:
-				slog.Warn("Event discarded", slog.Int("event_type", int(evt.Type)))
-
-				continue
-			}
+			app.uiUpdates <- evt
 		case <-ctx.Done():
 			return
 		}

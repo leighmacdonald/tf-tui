@@ -65,6 +65,8 @@ func (l *Remote) Close(ctx context.Context) error {
 	_, errExec := conn.Exec(ctx, "logaddress_del "+l.externalAddress, false)
 	if errExec != nil {
 		err = errors.Join(err, errExec)
+	} else {
+		slog.Debug("Successfulyl unregistered logaddress", slog.String("address", l.externalAddress))
 	}
 
 	if l.conn != nil {
@@ -104,6 +106,8 @@ func (l *Remote) Open(ctx context.Context) error {
 	if err != nil {
 		return errors.Join(err, ErrOpen)
 	}
+
+	slog.Debug("Successfulyl registered logaddress", slog.String("address", l.externalAddress))
 
 	if !strings.Contains(resp, l.externalAddress) {
 		return ErrOpen
