@@ -151,7 +151,7 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 					insecureCount++
 				}
 
-				receiver.Send(strings.TrimSpace(string(buffer)))
+				receiver.Send(0, strings.TrimSpace(string(buffer)))
 			case s2aLogString2: // Secure format (with secret)
 				line := string(buffer)
 
@@ -176,7 +176,7 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 					continue
 				}
 
-				receiver.Send(strings.TrimSpace(line[idx:readLen]))
+				receiver.Send(int(secret), strings.TrimSpace(line[idx:readLen]))
 			}
 		}
 	}
