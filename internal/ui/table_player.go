@@ -92,7 +92,14 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 		m.height = msg.height
-		m.table.Width(msg.width / 2)
+		// When the screen with is a odd number, increase the size of the right player table
+		// to ensure that it fills the screen fully.
+		half := msg.width / 2
+		if msg.width%2 != 0 && m.team == tf.BLU {
+			m.table.Width(half + 1)
+		} else {
+			m.table.Width(half)
+		}
 
 		return m, nil
 	case SortPlayersMsg:
