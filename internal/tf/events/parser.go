@@ -12,6 +12,14 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 )
 
+const (
+	teamPrefix     = "(TEAM) "
+	deadPrefix     = "*DEAD* "
+	deadTeamPrefix = "*DEAD*(TEAM) "
+	// coachPrefix    = "*COACH* ".
+	logTimestampFormat = "01/02/2006 - 15:04:05"
+)
+
 var (
 	ErrNoMatch        = errors.New("no match found")
 	ErrParseTimestamp = errors.New("failed to parse timestamp")
@@ -31,7 +39,6 @@ const (
 	Map
 	Tags
 	Address
-	Lobby
 	Stats
 )
 
@@ -136,14 +143,6 @@ type parser struct {
 	logger      *slog.Logger
 }
 
-const (
-	teamPrefix     = "(TEAM) "
-	deadPrefix     = "*DEAD* "
-	deadTeamPrefix = "*DEAD*(TEAM) "
-	// coachPrefix    = "*COACH* ".
-)
-const logTimestampFormat = "01/02/2006 - 15:04:05"
-
 // parseTimestamp will convert the source formatted log timestamps into a time.Time value.
 func parseTimestamp(timestamp string) (time.Time, error) {
 	parsedTime, errParse := time.Parse(logTimestampFormat, timestamp)
@@ -152,48 +151,6 @@ func parseTimestamp(timestamp string) (time.Time, error) {
 	}
 
 	return parsedTime, nil
-}
-
-type updateType int
-
-const (
-	updateKill updateType = iota
-	updateStatus
-	updateLobby
-	updateMap
-	updateHostname
-	updateTags
-	changeMap
-	updateTeam
-	updateStats
-	updateTestPlayer = 1000
-)
-
-func (ut updateType) String() string {
-	switch ut {
-	case updateKill:
-		return "kill"
-	case updateStatus:
-		return "status"
-	case updateLobby:
-		return "lobby"
-	case updateMap:
-		return "map_name"
-	case updateHostname:
-		return "hostname"
-	case updateTags:
-		return "tags"
-	case changeMap:
-		return "change_map"
-	case updateTeam:
-		return "team"
-	case updateTestPlayer:
-		return "test_player"
-	case updateStats:
-		return "stats"
-	default:
-		return "unknown"
-	}
 }
 
 func newParser() *parser {
@@ -209,7 +166,6 @@ func newParser() *parser {
 			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\smap\s{5}:\s(.+?)\sat.+?$`),
 			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\stags\s{4}:\s(.+?)$`),
 			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\sudp/ip\s{2}:\s(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5})$`),
-			regexp.MustCompile(`^\s{2}(Member|Pending)\[\d+]\s+(?P<sid>\[.+?]).+?TF_GC_TEAM_(?P<team>(DEFENDERS|INVADERS))\s{2}type\s=\sMATCH_PLAYER$`),
 		},
 	}
 }
@@ -223,10 +179,9 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 		}
 		outEvent.Raw = msg
 		outEvent.Type = EventType(parserIdx)
-		if outEvent.Type != Lobby {
-			if errTS := outEvent.ApplyTimestamp(match[1]); errTS != nil {
-				slog.Error("Failed to parse timestamp", slog.String("error", errTS.Error()))
-			}
+
+		if errTS := outEvent.ApplyTimestamp(match[1]); errTS != nil {
+			slog.Error("Failed to parse timestamp", slog.String("error", errTS.Error()))
 		}
 
 		switch outEvent.Type { //nolint:exhaustive
@@ -286,7 +241,6 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 			outEvent.Data = TagsEvent{Tags: strings.Split(match[2], ",")}
 		case Address:
 			outEvent.Data = AddressEvent{Address: match[2]}
-		case Lobby:
 		case Any:
 			outEvent.Data = AnyEvent{Raw: msg}
 		}

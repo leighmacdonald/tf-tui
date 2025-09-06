@@ -15,38 +15,19 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 )
 
-type Player struct {
-	SteamID       steamid.SteamID
-	Name          string
-	Ping          int
-	Loss          int
-	Address       string
-	Time          int
-	Score         int
-	Deaths        int
-	Connected     bool
-	Team          tf.Team
-	Alive         bool
-	Health        int
-	Valid         bool
-	UserID        int
-	BDMatches     []BDMatch
-	Meta          tfapi.MetaProfile
-	MetaUpdatedOn time.Time
-	G15UpdatedOn  time.Time
-}
+const (
+	playerTimeout  = time.Second * 30
+	checkInterval  = time.Second * 2
+	removeInterval = time.Second
+)
 
-type Players []Player
-
-func NewPlayerStates(router *events.Router, conf config.Config, metaFetcher *MetaFetcher, bdFetcher *BDFetcher) *StateTracker {
+func NewStateTracker(router *events.Router, conf config.Config, metaFetcher *MetaFetcher, bdFetcher *BDFetcher) *StateTracker {
 	incomingEvents := make(chan events.Event)
 	router.ListenFor(events.StatusID, incomingEvents)
 
 	return &StateTracker{
 		mu:             &sync.RWMutex{},
 		players:        Players{},
-		expiration:     time.Second * 30,
-		checkInterval:  time.Second,
 		metaFetcher:    metaFetcher,
 		bdFetcher:      bdFetcher,
 		dumpFetcher:    tf.NewDumpFetcher(conf.Address, conf.Password, conf.ServerModeEnabled),
@@ -57,21 +38,20 @@ func NewPlayerStates(router *events.Router, conf config.Config, metaFetcher *Met
 type StateTracker struct {
 	mu             *sync.RWMutex
 	players        Players
-	expiration     time.Duration
-	checkInterval  time.Duration
 	incomingEvents chan events.Event
 	metaInFlight   atomic.Bool
 	metaFetcher    *MetaFetcher
 	dumpFetcher    tf.DumpFetcher
 	bdFetcher      *BDFetcher
+	stats          events.StatsEvent
 }
 
 func (s *StateTracker) Start(ctx context.Context) {
 	// Load the bot detector lists
 	go s.bdFetcher.Update(ctx)
 
-	removeTicker := time.NewTicker(s.checkInterval)
-	dumpTicker := time.NewTicker(time.Second * 2)
+	removeTicker := time.NewTicker(removeInterval)
+	dumpTicker := time.NewTicker(checkInterval)
 
 	for {
 		select {
@@ -135,7 +115,7 @@ func (s *StateTracker) onIncomingEvent(event events.Event) error {
 }
 
 func (s *StateTracker) UpdateDumpPlayer(stats tf.DumpPlayer) {
-	var players Players //nolint:prealloc
+	var players Players
 	for idx := range tf.MaxPlayerCount {
 		sid := stats.SteamID[idx]
 		if !sid.Valid() {
@@ -229,9 +209,9 @@ func (s *StateTracker) removeExpired() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var valid Players //nolint:prealloc
+	var valid Players
 	for _, player := range s.players {
-		if time.Since(player.G15UpdatedOn) > s.expiration {
+		if time.Since(player.G15UpdatedOn) > playerTimeout {
 			continue
 		}
 
@@ -256,7 +236,7 @@ func (s *StateTracker) updateBD() {
 }
 
 func (s *StateTracker) updateDump(ctx context.Context) {
-	dump, _, errDump := s.dumpFetcher.Fetch(ctx)
+	dump, stats, errDump := s.dumpFetcher.Fetch(ctx)
 	if errDump != nil {
 		// s.uiUpdates <- ui.StatusMsg{
 		// 	Err:     true,
@@ -267,8 +247,22 @@ func (s *StateTracker) updateDump(ctx context.Context) {
 		slog.Error("Failed to fetch player dump", slog.String("error", errDump.Error()))
 	}
 
+	s.UpdateStats(stats)
 	s.UpdateDumpPlayer(dump)
+}
 
+func (s *StateTracker) Stats() events.StatsEvent {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.stats
+}
+
+func (s *StateTracker) UpdateStats(stats events.StatsEvent) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.stats = stats
 }
 
 func (s *StateTracker) updateMetaProfile(ctx context.Context) {

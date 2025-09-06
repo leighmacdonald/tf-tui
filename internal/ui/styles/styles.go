@@ -81,8 +81,9 @@ var (
 	StatusMessage  = lipgloss.NewStyle().Foreground(ColourGenuine).Background(Black).Align(lipgloss.Right).Bold(true).PaddingRight(2)
 	StatusRedTeam  = lipgloss.NewStyle().Foreground(Red).Background(Black).Bold(true).PaddingLeft(0).Align(lipgloss.Center).PaddingRight(0)
 	StatusBluTeam  = lipgloss.NewStyle().Foreground(Blu).Background(Black).Bold(true).PaddingLeft(0).Align(lipgloss.Center).PaddingRight(0)
-	StatusHelp     = lipgloss.NewStyle().Foreground(Gray).Background(Black).Bold(true).PaddingLeft(1).Align(lipgloss.Center).PaddingRight(0)
-	StatusVersion  = lipgloss.NewStyle().Foreground(ColourGenuine).Background(Black).Bold(true).PaddingLeft(1).Align(lipgloss.Center).PaddingRight(0)
+
+	StatusHelp    = lipgloss.NewStyle().Foreground(Gray).Background(Black).Bold(true).PaddingLeft(1).Align(lipgloss.Center).PaddingRight(0)
+	StatusVersion = lipgloss.NewStyle().Foreground(ColourGenuine).Background(Black).Bold(true).PaddingLeft(1).Align(lipgloss.Center).PaddingRight(0)
 
 	ChatNameOther = lipgloss.NewStyle().Foreground(ColourLimited).Bold(true).Align(lipgloss.Left)
 	ChatNameBlu   = lipgloss.NewStyle().Width(38).Foreground(Blu).Bold(true).Align(lipgloss.Left)

@@ -132,7 +132,7 @@ func run(_ *cobra.Command, _ []string) error {
 	router := events.NewRouter()
 	metaFetcher := tftui.NewMetaFetcher(client, cache)
 	bdFetcher := tftui.NewBDFetcher(httpClient, userConfig.BDLists, cache)
-	states := tftui.NewPlayerStates(router, userConfig, metaFetcher, bdFetcher)
+	states := tftui.NewStateTracker(router, userConfig, metaFetcher, bdFetcher)
 
 	// Setup the sqlite database system.
 	database, errDB := store.Open(ctx, config.PathConfig(config.DefaultDBName), true)

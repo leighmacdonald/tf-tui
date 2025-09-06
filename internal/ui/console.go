@@ -41,8 +41,6 @@ func (r LogRow) Render(width int) string {
 		body = styles.ConsoleMap.Render(body)
 	case events.Tags:
 		body = styles.ConsoleTags.Render(body)
-	case events.Lobby:
-		body = styles.ConsoleLobby.Render(body)
 	case events.Kill:
 		body = styles.ConsoleKill.Render(body)
 	case events.Stats:

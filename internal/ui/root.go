@@ -57,7 +57,7 @@ func newRootModel(config config.Config, doSetup bool, buildVersion string, build
 		notesModel:   newNotesModel(),
 		detailPanel:  newDetailPanelModel(config.Links),
 		consoleView:  newConsoleModel(),
-		statusModel:  newStatusBarModel(buildVersion),
+		statusModel:  newStatusBarModel(buildVersion, config.ServerModeEnabled),
 		chatModel:    newChatModel(),
 
 		contentViewPortHeight: 10,
