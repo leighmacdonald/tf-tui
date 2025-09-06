@@ -24,7 +24,7 @@ type DumpPlayer struct {
 	Score     [MaxPlayerCount]int
 	Deaths    [MaxPlayerCount]int
 	Connected [MaxPlayerCount]bool
-	Team      [MaxPlayerCount]int
+	Team      [MaxPlayerCount]Team
 	Alive     [MaxPlayerCount]bool
 	Health    [MaxPlayerCount]int
 	SteamID   [MaxPlayerCount]steamid.SteamID
@@ -181,7 +181,7 @@ func (f *DumpFetcher) parsePlayerState(reader io.Reader) DumpPlayer {
 		case "m_bConnected":
 			data.Connected[index] = parseBool(value)
 		case "m_iTeam":
-			data.Team[index] = parseInt(value, 0)
+			data.Team[index] = Team(parseInt(value, 0))
 		case "m_bAlive":
 			data.Alive[index] = parseBool(value)
 		case "m_iHealth":

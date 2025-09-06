@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"github.com/leighmacdonald/tf-tui/internal/tf"
 )
 
 var (
@@ -37,21 +36,10 @@ const (
 )
 
 type Event struct {
-	Type            EventType
-	Player          string
-	PlayerPing      int
-	PlayerConnected time.Duration
-	Team            tf.Team
-	UserID          int
-	PlayerSID       steamid.SteamID
-	Victim          string
-	VictimSID       steamid.SteamID
-	Message         string
-	Timestamp       time.Time
-	MetaData        string
-	Dead            bool
-	TeamOnly        bool
-	Raw             string
+	Type      EventType
+	Timestamp time.Time
+	Raw       string
+	Data      any
 }
 
 func (e *Event) ApplyTimestamp(tsString string) error {
@@ -63,6 +51,82 @@ func (e *Event) ApplyTimestamp(tsString string) error {
 	e.Timestamp = ts
 
 	return nil
+}
+
+type AnyEvent struct {
+	Raw string
+}
+
+type ConnectEvent struct {
+	Player string
+}
+
+type DisconnectEvent struct {
+	Player string
+}
+
+type StatusIDEvent struct {
+	UserID    int
+	Player    string
+	PlayerSID steamid.SteamID
+	Connected int
+	Ping      int
+	Loss      int
+	State     string
+	Address   string
+}
+
+type HostnameEvent struct {
+	Hostname string
+}
+
+type MapEvent struct {
+	MapName string
+}
+
+type TagsEvent struct {
+	Tags []string
+}
+
+type AddressEvent struct {
+	Address string
+}
+
+type LobbyEvent struct {
+	LobbyID string
+}
+
+type StatsEvent struct {
+	CPU        float32
+	InKBs      float32
+	OutKBs     float32
+	FPS        float32
+	Uptime     int
+	MapChanges int
+	Players    int
+	Connects   int
+}
+
+type MsgEvent struct {
+	Player    string
+	PlayerSID steamid.SteamID
+	Dead      bool
+	TeamOnly  bool
+	Message   string
+}
+
+type RawEvent struct {
+	Raw string
+}
+
+type KillEvent struct {
+	Event
+	Player    string
+	PlayerSID steamid.SteamID
+	Victim    string
+	VictimSID steamid.SteamID
+	Weapon    string
+	Crit      bool
 }
 
 type parser struct {
@@ -170,34 +234,13 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 
 		switch outEvent.Type {
 		case Stats:
-			// TODO
+			outEvent.Data = parseStats(match)
 		case Connect:
-			outEvent.Player = match[2]
+			outEvent.Data = ConnectEvent{Player: match[2]}
 		case Disconnect:
-			outEvent.MetaData = match[2]
+			outEvent.Data = DisconnectEvent{Player: match[2]}
 		case Msg:
-			name := match[2]
-			dead := false
-			team := false
-
-			if after, ok := strings.CutPrefix(name, teamPrefix); ok {
-				name = after
-				team = true
-			}
-
-			if after, ok := strings.CutPrefix(name, deadTeamPrefix); ok {
-				name = after
-				dead = true
-				team = true
-			} else if strings.HasPrefix(name, deadPrefix) {
-				dead = true
-				name = strings.TrimPrefix(name, deadPrefix)
-			}
-
-			outEvent.TeamOnly = team
-			outEvent.Dead = dead
-			outEvent.Player = name
-			outEvent.Message = match[3]
+			outEvent.Data = parseMsg(match)
 		case StatusID:
 			userID, errUserID := strconv.ParseInt(match[2], 10, 32)
 			if errUserID != nil {
@@ -213,6 +256,13 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 				continue
 			}
 
+			loss, errLoss := strconv.ParseInt(match[8], 10, 32)
+			if errLoss != nil {
+				slog.Error("Failed to parse status loss", slog.String("error", errLoss.Error()))
+
+				continue
+			}
+
 			dur, durErr := parseConnected(match[5])
 			if durErr != nil {
 				slog.Error("Failed to parse status duration", slog.String("error", durErr.Error()))
@@ -220,30 +270,30 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 				continue
 			}
 
-			outEvent.UserID = int(userID)
-			outEvent.Player = match[3]
-			outEvent.PlayerSID = steamid.New(match[4])
-			outEvent.PlayerConnected = dur
-			outEvent.PlayerPing = int(ping)
-		case Kill:
-			outEvent.Player = match[2]
-			outEvent.Victim = match[3]
-		case Hostname:
-			outEvent.MetaData = match[2]
-		case Map:
-			outEvent.MetaData = match[2]
-		case Tags:
-			outEvent.MetaData = match[2]
-		case Address:
-			outEvent.MetaData = match[2]
-		case Lobby:
-			outEvent.PlayerSID = steamid.New(match[2])
-			if match[3] == "INVADERS" {
-				outEvent.Team = tf.BLU
-			} else {
-				outEvent.Team = tf.RED
+			// TODO different data for server/client modes is avail
+			outEvent.Data = StatusIDEvent{
+				UserID:    int(userID),
+				Player:    match[3],
+				PlayerSID: steamid.New(match[4]),
+				Connected: int(dur.Seconds()),
+				Ping:      int(ping),
+				Loss:      int(loss),
+				State:     match[9],
+				Address:   match[10],
 			}
+		case Kill:
+			outEvent.Data = KillEvent{Player: match[2], Victim: match[3]}
+		case Hostname:
+			outEvent.Data = HostnameEvent{Hostname: match[2]}
+		case Map:
+			outEvent.Data = MapEvent{MapName: match[2]}
+		case Tags:
+			outEvent.Data = TagsEvent{Tags: strings.Split(match[2], ",")}
+		case Address:
+			outEvent.Data = AddressEvent{Address: match[2]}
+		case Lobby:
 		case Any:
+			outEvent.Data = AnyEvent{Raw: msg}
 		}
 
 		return nil
@@ -275,4 +325,85 @@ func parseConnected(d string) (time.Duration, error) {
 	}
 
 	return dur, nil
+}
+
+func parseMsg(match []string) MsgEvent {
+	name := match[2]
+	dead := false
+	team := false
+
+	if after, ok := strings.CutPrefix(name, teamPrefix); ok {
+		name = after
+		team = true
+	}
+
+	if after, ok := strings.CutPrefix(name, deadTeamPrefix); ok {
+		name = after
+		dead = true
+		team = true
+	} else if strings.HasPrefix(name, deadPrefix) {
+		dead = true
+		name = strings.TrimPrefix(name, deadPrefix)
+	}
+
+	return MsgEvent{
+		Player:   name,
+		Dead:     dead,
+		TeamOnly: team,
+		// PlayerSID: steamid.SteamID,
+		Message: match[3],
+	}
+}
+
+func parseStats(match []string) StatsEvent {
+	cpu, errCPU := strconv.ParseFloat(match[1], 32)
+	if errCPU != nil {
+		slog.Error("Failed to parse CPU", slog.String("error", errCPU.Error()))
+	}
+
+	inKBs, errInKBs := strconv.ParseFloat(match[1], 32)
+	if errInKBs != nil {
+		slog.Error("Failed to parse in kbs", slog.String("error", errInKBs.Error()))
+	}
+
+	outKBs, errOutKBs := strconv.ParseFloat(match[1], 32)
+	if errOutKBs != nil {
+		slog.Error("Failed to parse out kbs", slog.String("error", errOutKBs.Error()))
+	}
+
+	uptime, errUptime := strconv.ParseInt(match[1], 10, 64)
+	if errUptime != nil {
+		slog.Error("Failed to parse uptime", slog.String("error", errUptime.Error()))
+	}
+
+	mapChanges, errMapChanges := strconv.ParseInt(match[1], 10, 64)
+	if errMapChanges != nil {
+		slog.Error("Failed to parse map changes", slog.String("error", errMapChanges.Error()))
+	}
+
+	fps, errFPS := strconv.ParseFloat(match[1], 32)
+	if errFPS != nil {
+		slog.Error("Failed to parse fps", slog.String("error", errFPS.Error()))
+	}
+
+	players, errPlayers := strconv.ParseInt(match[1], 10, 64)
+	if errPlayers != nil {
+		slog.Error("Failed to parse players", slog.String("error", errPlayers.Error()))
+	}
+
+	connects, errConnects := strconv.ParseInt(match[1], 10, 64)
+	if errConnects != nil {
+		slog.Error("Failed to parse connects", slog.String("error", errConnects.Error()))
+	}
+
+	return StatsEvent{
+		CPU:        float32(cpu),
+		InKBs:      float32(inKBs),
+		OutKBs:     float32(outKBs),
+		FPS:        float32(fps),
+		Uptime:     int(uptime),
+		MapChanges: int(mapChanges),
+		Players:    int(players),
+		Connects:   int(connects),
+	}
 }
