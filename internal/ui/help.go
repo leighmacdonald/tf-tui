@@ -5,14 +5,13 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
-func newHelpModel(buildVersion, buildDate, buildCommit string) helpModel {
+func newHelpModel(buildVersion, buildDate, buildCommit string, configPath string, cachePath string) helpModel {
 	return helpModel{
-		configPath:   config.PathConfig(config.DefaultConfigName),
-		cachePath:    config.PathCache(config.CacheDirName),
+		configPath:   configPath,
+		cachePath:    cachePath,
 		buildVersion: buildVersion,
 		buildDate:    buildDate,
 		buildCommit:  buildCommit,

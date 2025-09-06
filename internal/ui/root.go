@@ -41,23 +41,25 @@ type rootModel struct {
 	rendered              string
 }
 
-func newRootModel(config config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string) *rootModel {
+func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string, loader ConfigWriter) *rootModel {
+	cachePath := config.Path(config.DefaultConfigName)
+
 	app := &rootModel{
 		currentView:  viewPlayerTables,
 		previousView: viewPlayerTables,
 		activeTab:    tabOverview,
-		helpModel:    newHelpModel(buildVersion, buildDate, buildCommit),
-		redTable:     newPlayerTableModel(tf.RED, config.SteamID, config.ServerModeEnabled),
-		bluTable:     newPlayerTableModel(tf.BLU, config.SteamID, config.ServerModeEnabled),
+		helpModel:    newHelpModel(buildVersion, buildDate, buildCommit, loader.Path(), cachePath),
+		redTable:     newPlayerTableModel(tf.RED, userConfig.SteamID, userConfig.ServerModeEnabled),
+		bluTable:     newPlayerTableModel(tf.BLU, userConfig.SteamID, userConfig.ServerModeEnabled),
 		banTable:     newTableBansModel(),
-		configModel:  newConfigModal(config),
+		configModel:  newConfigModal(userConfig, loader),
 		compTable:    newTableCompModel(),
 		bdTable:      newTableBDModel(),
 		tabsModel:    newTabsModel(),
 		notesModel:   newNotesModel(),
-		detailPanel:  newDetailPanelModel(config.Links),
+		detailPanel:  newDetailPanelModel(userConfig.Links),
 		consoleView:  newConsoleModel(),
-		statusModel:  newStatusBarModel(buildVersion, config.ServerModeEnabled),
+		statusModel:  newStatusBarModel(buildVersion, userConfig.ServerModeEnabled),
 		chatModel:    newChatModel(),
 
 		contentViewPortHeight: 10,
@@ -203,6 +205,7 @@ func (m rootModel) View() string {
 		content = lipgloss.JoinVertical(
 			lipgloss.Top,
 			playerTables,
+			"",
 			lipgloss.NewStyle().
 				Width(m.width-2).
 				Height(playerHeight).

@@ -136,6 +136,11 @@ const (
 	fieldSave
 )
 
+type ConfigWriter interface {
+	Write(config.Config) error
+	Path() string
+}
+
 type configModel struct {
 	fields     []*validatingTextInputModel
 	focusIndex configIdx
@@ -143,15 +148,16 @@ type configModel struct {
 	activeView contentView
 	width      int
 	height     int
+	loader     ConfigWriter
 }
 
-func newConfigModal(config config.Config) tea.Model {
+func newConfigModal(config config.Config, loader ConfigWriter) tea.Model {
 	homedir, err := os.UserHomeDir()
 	if err != nil {
 		homedir = "/"
 	}
-	logPath := path.Join(homedir, ".steam/steam/steamapps/common/Team Fortress 2/tf")
 
+	logPath := path.Join(homedir, ".steam/steam/steamapps/common/Team Fortress 2/tf")
 	if config.ConsoleLogPath == "" {
 		config.ConsoleLogPath = logPath
 	}
@@ -170,6 +176,7 @@ func newConfigModal(config config.Config) tea.Model {
 		},
 		activeView: viewConfig,
 		focusIndex: fieldSteamID,
+		loader:     loader,
 	}
 }
 
@@ -242,7 +249,7 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cfg.ConsoleLogPath = m.fields[fieldConsoleLogPath].input.Value()
 				cfg.APIBaseURL = m.fields[fieldTFAPIBaseURL].input.Value()
 
-				if err := config.Write(cfg.ConfigPath, cfg); err != nil {
+				if err := m.loader.Write(cfg); err != nil {
 					return m, setStatusMessage(err.Error(), true)
 				}
 
