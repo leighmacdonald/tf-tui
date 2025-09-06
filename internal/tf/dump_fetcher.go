@@ -15,6 +15,7 @@ import (
 
 	"github.com/leighmacdonald/steamid/v4/extra"
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/tf/rcon"
 )
 
@@ -44,6 +45,9 @@ func NewDumpFetcher(address string, password string, serverMode bool) DumpFetche
 		Password:   password,
 		serverMode: serverMode,
 		g15re:      regexp.MustCompile(`^(m_szName|m_iPing|m_iScore|m_iDeaths|m_bConnected|m_iTeam|m_bAlive|m_iHealth|m_iAccountID|m_bValid|m_iUserID)\[(\d+)]\s(integer|bool|string)\s\((.+?)?\)$`),
+		// CPU    In_(KB/s)  Out_(KB/s)  Uptime  Map_changes  FPS      Players  Connects
+		// 0.00   82.99      619.13      287     14           66.67    64       900
+		statsRe: regexp.MustCompile(`(\d+)\.(\d{1,2})\s+(\d+)\.(\d{1,2})\s+(\d+)\.(\d{1,2})\s+(\d+)\s+(\d+)\s+(\d+)\.(\d{1,2})\s+(\d+)\s+(\d+)`),
 	}
 }
 
@@ -51,14 +55,16 @@ type DumpFetcher struct {
 	Address    string
 	Password   string
 	lastUpdate DumpPlayer
+	lastStats  events.StatsEvent
 	serverMode bool
 	g15re      *regexp.Regexp
+	statsRe    *regexp.Regexp
 }
 
-func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, error) {
+func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, events.StatsEvent, error) {
 	command := "status"
 	if f.serverMode {
-		command = "status"
+		command = "stats;" + command
 	} else {
 		command = "g15_dumpplayer;" + command
 	}
@@ -66,10 +72,10 @@ func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, error) {
 	response, errExec := rcon.New(f.Address, f.Password).Exec(ctx, command, true)
 	if errExec != nil {
 		if f.lastUpdate.SteamID[0].Valid() {
-			return f.lastUpdate, nil
+			return f.lastUpdate, f.lastStats, nil
 		}
 		if len(os.Getenv("DEBUG")) == 0 {
-			return DumpPlayer{}, errors.Join(errExec, ErrDumpQuery)
+			return DumpPlayer{}, events.StatsEvent{}, errors.Join(errExec, ErrDumpQuery)
 		}
 		// FIXME remove this test data generation eventually
 		var data DumpPlayer
@@ -98,12 +104,20 @@ func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, error) {
 			}
 		}
 
-		return data, nil
+		return data, events.StatsEvent{}, nil
 	}
 
-	var dump DumpPlayer
+	var (
+		dump  DumpPlayer
+		stats events.StatsEvent
+	)
 
 	if f.serverMode {
+		if match := f.statsRe.FindStringSubmatch(response); len(match) > 0 {
+			stats = f.parseStats(match)
+			f.lastStats = stats
+		}
+
 		status, errStatus := extra.ParseStatus(response, true)
 		if errStatus != nil {
 			slog.Error("failed to parse status", slog.String("error", errStatus.Error()))
@@ -142,7 +156,60 @@ func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, error) {
 
 	f.lastUpdate = dump
 
-	return dump, nil
+	return dump, stats, nil
+}
+
+func (f *DumpFetcher) parseStats(match []string) events.StatsEvent {
+	cpu, errCPU := strconv.ParseFloat(match[1], 32)
+	if errCPU != nil {
+		slog.Error("Failed to parse CPU", slog.String("error", errCPU.Error()))
+	}
+
+	inKBs, errInKBs := strconv.ParseFloat(match[1], 32)
+	if errInKBs != nil {
+		slog.Error("Failed to parse in kbs", slog.String("error", errInKBs.Error()))
+	}
+
+	outKBs, errOutKBs := strconv.ParseFloat(match[1], 32)
+	if errOutKBs != nil {
+		slog.Error("Failed to parse out kbs", slog.String("error", errOutKBs.Error()))
+	}
+
+	uptime, errUptime := strconv.ParseInt(match[1], 10, 64)
+	if errUptime != nil {
+		slog.Error("Failed to parse uptime", slog.String("error", errUptime.Error()))
+	}
+
+	mapChanges, errMapChanges := strconv.ParseInt(match[1], 10, 64)
+	if errMapChanges != nil {
+		slog.Error("Failed to parse map changes", slog.String("error", errMapChanges.Error()))
+	}
+
+	fps, errFPS := strconv.ParseFloat(match[1], 32)
+	if errFPS != nil {
+		slog.Error("Failed to parse fps", slog.String("error", errFPS.Error()))
+	}
+
+	players, errPlayers := strconv.ParseInt(match[1], 10, 64)
+	if errPlayers != nil {
+		slog.Error("Failed to parse players", slog.String("error", errPlayers.Error()))
+	}
+
+	connects, errConnects := strconv.ParseInt(match[1], 10, 64)
+	if errConnects != nil {
+		slog.Error("Failed to parse connects", slog.String("error", errConnects.Error()))
+	}
+
+	return events.StatsEvent{
+		CPU:        float32(cpu),
+		InKBs:      float32(inKBs),
+		OutKBs:     float32(outKBs),
+		FPS:        float32(fps),
+		Uptime:     int(uptime),
+		MapChanges: int(mapChanges),
+		Players:    int(players),
+		Connects:   int(connects),
+	}
 }
 
 // parsePlayerState provides the ability to parse the output of the `g15_dumpplayer` command into a PlayerState struct.

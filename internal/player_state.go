@@ -38,11 +38,11 @@ type Player struct {
 
 type Players []Player
 
-func NewPlayerStates(router *events.Router, conf config.Config, metaFetcher *MetaFetcher, bdFetcher *BDFetcher) *PlayerStates {
+func NewPlayerStates(router *events.Router, conf config.Config, metaFetcher *MetaFetcher, bdFetcher *BDFetcher) *StateTracker {
 	incomingEvents := make(chan events.Event)
 	router.ListenFor(events.StatusID, incomingEvents)
 
-	return &PlayerStates{
+	return &StateTracker{
 		mu:             &sync.RWMutex{},
 		players:        Players{},
 		expiration:     time.Second * 30,
@@ -54,7 +54,7 @@ func NewPlayerStates(router *events.Router, conf config.Config, metaFetcher *Met
 	}
 }
 
-type PlayerStates struct {
+type StateTracker struct {
 	mu             *sync.RWMutex
 	players        Players
 	expiration     time.Duration
@@ -66,7 +66,7 @@ type PlayerStates struct {
 	bdFetcher      *BDFetcher
 }
 
-func (s *PlayerStates) Start(ctx context.Context) {
+func (s *StateTracker) Start(ctx context.Context) {
 	// Load the bot detector lists
 	go s.bdFetcher.Update(ctx)
 
@@ -89,7 +89,7 @@ func (s *PlayerStates) Start(ctx context.Context) {
 	}
 }
 
-func (s *PlayerStates) onDumpTick(ctx context.Context) {
+func (s *StateTracker) onDumpTick(ctx context.Context) {
 	if s.metaInFlight.Load() {
 		return
 	}
@@ -114,7 +114,7 @@ func (s *PlayerStates) onDumpTick(ctx context.Context) {
 	waitGroup.Wait()
 }
 
-func (s *PlayerStates) onIncomingEvent(event events.Event) error {
+func (s *StateTracker) onIncomingEvent(event events.Event) error {
 	switch data := event.Data.(type) { //nolint:gocritic
 	case events.StatusIDEvent:
 		player, errPlayer := s.Player(data.PlayerSID)
@@ -134,7 +134,7 @@ func (s *PlayerStates) onIncomingEvent(event events.Event) error {
 	return nil
 }
 
-func (s *PlayerStates) UpdateDumpPlayer(stats tf.DumpPlayer) {
+func (s *StateTracker) UpdateDumpPlayer(stats tf.DumpPlayer) {
 	var players Players //nolint:prealloc
 	for idx := range tf.MaxPlayerCount {
 		sid := stats.SteamID[idx]
@@ -172,7 +172,7 @@ func (s *PlayerStates) UpdateDumpPlayer(stats tf.DumpPlayer) {
 	s.SetPlayer(players...)
 }
 
-func (s *PlayerStates) SetPlayer(updates ...Player) {
+func (s *StateTracker) SetPlayer(updates ...Player) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var existing bool
@@ -191,7 +191,7 @@ func (s *PlayerStates) SetPlayer(updates ...Player) {
 	}
 }
 
-func (s *PlayerStates) UpdateMetaProfile(metaProfiles ...tfapi.MetaProfile) {
+func (s *StateTracker) UpdateMetaProfile(metaProfiles ...tfapi.MetaProfile) {
 	players := make(Players, len(metaProfiles))
 	for index, meta := range metaProfiles {
 		player, err := s.Player(steamid.New(meta.SteamId))
@@ -206,7 +206,7 @@ func (s *PlayerStates) UpdateMetaProfile(metaProfiles ...tfapi.MetaProfile) {
 	s.SetPlayer(players...)
 }
 
-func (s *PlayerStates) Player(steamID steamid.SteamID) (Player, error) {
+func (s *StateTracker) Player(steamID steamid.SteamID) (Player, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, player := range s.players {
@@ -218,14 +218,14 @@ func (s *PlayerStates) Player(steamID steamid.SteamID) (Player, error) {
 	return Player{}, errPlayerNotFound
 }
 
-func (s *PlayerStates) Players() Players {
+func (s *StateTracker) Players() Players {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	return s.players
 }
 
-func (s *PlayerStates) removeExpired() {
+func (s *StateTracker) removeExpired() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -241,7 +241,7 @@ func (s *PlayerStates) removeExpired() {
 	s.players = valid
 }
 
-func (s *PlayerStates) updateBD() {
+func (s *StateTracker) updateBD() {
 	var (
 		players = s.Players()
 		updates = make(Players, len(players))
@@ -255,8 +255,8 @@ func (s *PlayerStates) updateBD() {
 	s.SetPlayer(updates...)
 }
 
-func (s *PlayerStates) updateDump(ctx context.Context) {
-	dump, errDump := s.dumpFetcher.Fetch(ctx)
+func (s *StateTracker) updateDump(ctx context.Context) {
+	dump, _, errDump := s.dumpFetcher.Fetch(ctx)
 	if errDump != nil {
 		// s.uiUpdates <- ui.StatusMsg{
 		// 	Err:     true,
@@ -268,9 +268,10 @@ func (s *PlayerStates) updateDump(ctx context.Context) {
 	}
 
 	s.UpdateDumpPlayer(dump)
+
 }
 
-func (s *PlayerStates) updateMetaProfile(ctx context.Context) {
+func (s *StateTracker) updateMetaProfile(ctx context.Context) {
 	s.metaInFlight.Store(true)
 	defer s.metaInFlight.Store(false)
 
