@@ -9,7 +9,7 @@ const (
 type Team int
 
 const (
-	UNASSIGNED = iota
+	UNASSIGNED Team = iota
 	SPEC
 	BLU
 	RED

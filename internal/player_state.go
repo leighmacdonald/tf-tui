@@ -115,18 +115,18 @@ func (s *PlayerStates) onDumpTick(ctx context.Context) {
 }
 
 func (s *PlayerStates) onIncomingEvent(event events.Event) error {
-	switch event.Type { //nolint:exhaustive,gocritic
-	case events.StatusID:
-		player, errPlayer := s.Player(event.PlayerSID)
+	switch data := event.Data.(type) { //nolint:gocritic
+	case events.StatusIDEvent:
+		player, errPlayer := s.Player(data.PlayerSID)
 		if errPlayer != nil {
 			if !errors.Is(errPlayer, errPlayerNotFound) {
 				return errPlayer
 			}
 
-			player = Player{SteamID: event.PlayerSID, Meta: tfapi.MetaProfile{Bans: []tfapi.Ban{}}}
+			player = Player{SteamID: data.PlayerSID, Meta: tfapi.MetaProfile{Bans: []tfapi.Ban{}}}
 		}
 
-		player.Name = event.Player
+		player.Name = data.Player
 
 		s.SetPlayer(player)
 	}
@@ -163,7 +163,7 @@ func (s *PlayerStates) UpdateDumpPlayer(stats tf.DumpPlayer) {
 		player.Loss = stats.Loss[idx]
 		player.Address = stats.Address[idx]
 		player.Time = stats.Time[idx]
-		player.Team = tf.Team(stats.Team[idx])
+		player.Team = stats.Team[idx]
 		player.UserID = stats.UserID[idx]
 		player.G15UpdatedOn = time.Now()
 		players = append(players, player)

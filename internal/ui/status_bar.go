@@ -40,7 +40,7 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 
 		for _, player := range msg {
-			switch player.Team {
+			switch player.Team { //nolint:exhaustive
 			case tf.RED:
 				red++
 			case tf.BLU:
@@ -61,11 +61,11 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ContentViewPortHeightMsg:
 		m.width = msg.width
 	case events.Event:
-		switch msg.Type { //nolint:exhaustive
-		case events.Hostname:
-			m.hostname = msg.MetaData
-		case events.Map:
-			m.mapName = msg.MetaData
+		switch data := msg.Data.(type) {
+		case events.HostnameEvent:
+			m.hostname = data.Hostname
+		case events.MapEvent:
+			m.mapName = data.MapName
 		}
 	}
 

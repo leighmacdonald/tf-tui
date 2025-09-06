@@ -35,7 +35,7 @@ func NewApp(conf config.Config, states *internal.PlayerStates, database *sql.DB,
 		playerStates:  states,
 		configUpdates: make(chan config.Config),
 		uiUpdates:     make(chan any),
-		blackBox:      internal.NewBlackBox(store.New(database)),
+		blackBox:      internal.NewBlackBox(store.New(database), broadcaster),
 		broadcaster:   broadcaster,
 		logSource:     logSource,
 	}
@@ -53,13 +53,6 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 
 	// Start sending player state updates to the UI.
 	go app.stateSyncer(ctx)
-
-	// Open the console log and start processing events.
-	if err := app.logSource.Open(ctx); err != nil {
-		slog.Warn("Failed to open console file", slog.String("error", err.Error()),
-			slog.String("path", app.config.ConsoleLogPath))
-	}
-
 	go app.logEventUpdater(ctx)
 	go app.uiSender(ctx)
 
@@ -82,7 +75,13 @@ func (app *App) logEventUpdater(ctx context.Context) {
 	for {
 		select {
 		case evt := <-eventChan:
-			app.uiUpdates <- evt
+			select {
+			case app.uiUpdates <- evt:
+			default:
+				slog.Warn("Event discarded", slog.Int("event_type", int(evt.Type)))
+
+				continue
+			}
 		case <-ctx.Done():
 			return
 		}

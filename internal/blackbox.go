@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
@@ -55,8 +54,11 @@ type BlackBox struct {
 	match     Match
 }
 
-func NewBlackBox(conn *store.Queries) *BlackBox {
-	return &BlackBox{db: conn, logEvents: make(chan events.Event)}
+func NewBlackBox(conn *store.Queries, router *events.Router) *BlackBox {
+	incoming := make(chan events.Event)
+	router.ListenFor(events.Any, incoming)
+
+	return &BlackBox{db: conn, logEvents: incoming}
 }
 
 func (b *BlackBox) start(ctx context.Context) {
@@ -64,25 +66,26 @@ func (b *BlackBox) start(ctx context.Context) {
 		select {
 		case event := <-b.logEvents:
 			var err error
-			switch event.Type {
-			case events.Msg:
-				err = b.onMsg(ctx, event)
-			case events.Kill:
-				b.onKill(ctx, event)
-			case events.Connect:
+			switch data := event.Data.(type) {
+			case events.MsgEvent:
+				err = b.onMsg(ctx, event.Timestamp, data)
+			case events.KillEvent:
+				b.onKill(ctx, data)
+			case events.ConnectEvent:
 				b.onConnect(ctx, event)
-			case events.Disconnect:
-			case events.Address:
-				b.match.Address = event.MetaData
-			case events.Hostname:
-				b.match.Hostname = event.MetaData
-			case events.Tags:
-				b.match.Tags = strings.Split(event.MetaData, ",")
-			case events.Lobby:
-			case events.StatusID:
-			case events.Map:
-			case events.Stats:
-			case events.Any:
+			case events.DisconnectEvent:
+			case events.AddressEvent:
+				b.match.Address = data.Address
+			case events.HostnameEvent:
+				b.match.Hostname = data.Hostname
+			case events.TagsEvent:
+				b.match.Tags = data.Tags
+			case events.LobbyEvent:
+			case events.StatusIDEvent:
+			case events.MapEvent:
+			case events.StatsEvent:
+				slog.Info(event.Raw)
+			case events.AnyEvent:
 			}
 
 			if err != nil {
@@ -118,13 +121,13 @@ func (b *BlackBox) player(steamID steamid.SteamID) *PlayerHistory {
 	return player
 }
 
-func (b *BlackBox) onKill(_ context.Context, event events.Event) {
+func (b *BlackBox) onKill(_ context.Context, event events.KillEvent) {
 	player := b.player(event.PlayerSID)
 	player.Kills = append(player.Kills, PlayerKill{
 		Source:    event.PlayerSID,
 		Victim:    event.VictimSID,
-		Weapon:    event.MetaData,
-		Crit:      false,
+		Weapon:    event.Weapon,
+		Crit:      event.Crit,
 		CreatedOn: event.Timestamp,
 	})
 }
@@ -150,7 +153,7 @@ func (b *BlackBox) ensureSID(ctx context.Context, steamID steamid.SteamID) error
 	return nil
 }
 
-func (b *BlackBox) onMsg(ctx context.Context, event events.Event) error {
+func (b *BlackBox) onMsg(ctx context.Context, timeStamp time.Time, event events.MsgEvent) error {
 	if errEnsure := b.ensureSID(ctx, event.PlayerSID); errEnsure != nil {
 		return errEnsure
 	}
@@ -165,7 +168,7 @@ func (b *BlackBox) onMsg(ctx context.Context, event events.Event) error {
 		Name:      event.Player,
 		Message:   event.Message,
 		TeamOnly:  teamOnly,
-		CreatedOn: event.Timestamp.Unix(),
+		CreatedOn: timeStamp.Unix(),
 	}); err != nil {
 		return errors.Join(err, errBlackBox)
 	}

@@ -92,6 +92,7 @@ func (l *Remote) Open(ctx context.Context) error {
 	}
 
 	l.conn = connection
+	l.udpAddr = udpAddr
 
 	conn := rcon.New(l.remoteAddress, l.remotePassword)
 	_, errExec := conn.Exec(ctx, "logaddress_add "+l.externalAddress, false)

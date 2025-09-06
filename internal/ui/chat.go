@@ -28,7 +28,9 @@ func (m ChatRow) View() string {
 		name = styles.ChatNameRed.Render(m.name)
 	case tf.BLU:
 		name = styles.ChatNameBlu.Render(m.name)
-	default:
+	case tf.UNASSIGNED:
+		fallthrough
+	case tf.SPEC:
 		name = styles.ChatNameOther.Render(m.name)
 	}
 
@@ -65,6 +67,7 @@ type chatModel struct {
 	width        int
 	inputOpen    bool
 	chatType     ChatType
+	incoming     chan events.Event
 }
 
 func (m chatModel) Placeholder() string {
@@ -102,9 +105,14 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 			break
 		}
 
-		team := msg.Team
+		evt, ok := msg.Data.(events.MsgEvent)
+		if !ok {
+			break
+		}
+
+		team := tf.UNASSIGNED
 		for _, player := range m.players {
-			if player.SteamID.Equal(msg.PlayerSID) {
+			if player.SteamID.Equal(evt.PlayerSID) {
 				team = player.Team
 
 				break
@@ -112,12 +120,12 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 		}
 
 		row := ChatRow{
-			steamID:   msg.PlayerSID,
-			name:      msg.Player,
+			steamID:   evt.PlayerSID,
+			name:      evt.Player,
 			createdOn: msg.Timestamp,
-			message:   msg.Message,
+			message:   evt.Message,
 			team:      team,
-			dead:      msg.Dead,
+			dead:      evt.Dead,
 		}
 		m.rows = append(m.rows, row)
 		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, row.View())

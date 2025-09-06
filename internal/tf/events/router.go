@@ -45,10 +45,8 @@ func (l *Router) ListenFor(logType EventType, handler chan<- Event) {
 func (l *Router) Send(line string) {
 	var logEvent Event
 	if err := l.parser.parse(line, &logEvent); err != nil || errors.Is(err, ErrNoMatch) {
-		// This is sent as a "raw" line so that the console view can show it even if it doesn't
-		// match any supported events.
-		logEvent.Raw = line
 		logEvent.Type = Any
+		logEvent.Raw = line
 	}
 
 	l.readersMu.RLock()
