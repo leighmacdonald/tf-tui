@@ -157,7 +157,7 @@ func run(cmd *cobra.Command, _ []string) error {
 
 	if len(os.Getenv("DEBUG")) > 0 {
 		consoleDebug := console.NewDebug("testdata/console.log")
-		if errDebug := consoleDebug.Open(cmd.Context()); errDebug != nil {
+		if errDebug := consoleDebug.Open(); errDebug != nil {
 			return errors.Join(errDebug, errApp)
 		}
 		go consoleDebug.Start(cmd.Context(), router)

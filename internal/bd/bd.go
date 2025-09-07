@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
-
 	"github.com/leighmacdonald/tf-tui/internal/cache"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/encoding"
@@ -21,13 +20,13 @@ type HTTPDoer interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
-type BDMatch struct {
+type Match struct {
 	Player   tfapi.BDPlayer
 	ListName string
 }
 
-func New(httpClient HTTPDoer, userLists []config.UserList, cache cache.Cache) *BDFetcher {
-	return &BDFetcher{
+func New(httpClient HTTPDoer, userLists []config.UserList, cache cache.Cache) *Fetcher {
+	return &Fetcher{
 		mu:         &sync.RWMutex{},
 		configured: userLists,
 		httpClient: httpClient,
@@ -36,7 +35,7 @@ func New(httpClient HTTPDoer, userLists []config.UserList, cache cache.Cache) *B
 	}
 }
 
-type BDFetcher struct {
+type Fetcher struct {
 	configured []config.UserList
 	mu         *sync.RWMutex
 	lists      []tfapi.BDSchema
@@ -44,7 +43,7 @@ type BDFetcher struct {
 	cache      cache.Cache
 }
 
-func (m *BDFetcher) Update(ctx context.Context) {
+func (m *Fetcher) Update(ctx context.Context) {
 	var (
 		waitGroup = sync.WaitGroup{}
 		lists     = make([]tfapi.BDSchema, len(m.configured))
@@ -127,8 +126,8 @@ func (m *BDFetcher) Update(ctx context.Context) {
 	m.mu.Unlock()
 }
 
-func (m *BDFetcher) Search(steamID steamid.SteamID) []BDMatch {
-	matched := []BDMatch{}
+func (m *Fetcher) Search(steamID steamid.SteamID) []Match {
+	matched := []Match{}
 	for _, list := range m.lists {
 		for _, player := range list.Players {
 			var sid steamid.SteamID
@@ -146,7 +145,7 @@ func (m *BDFetcher) Search(steamID steamid.SteamID) []BDMatch {
 				continue
 			}
 			if steamID.Equal(sid) {
-				matched = append(matched, BDMatch{
+				matched = append(matched, Match{
 					Player:   player,
 					ListName: list.FileInfo.Title,
 				})

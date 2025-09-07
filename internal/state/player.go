@@ -24,7 +24,7 @@ type Player struct {
 	Health        int
 	Valid         bool
 	UserID        int
-	BDMatches     []bd.BDMatch
+	BDMatches     []bd.Match
 	Meta          tfapi.MetaProfile
 	MetaUpdatedOn time.Time
 	G15UpdatedOn  time.Time

@@ -35,7 +35,7 @@ func (l *Local) Close(_ context.Context) error {
 	return nil
 }
 
-func (l *Local) Open(_ context.Context) error {
+func (l *Local) Open() error {
 	if l.tail != nil && l.tail.Filename == l.filePath {
 		return nil
 	}

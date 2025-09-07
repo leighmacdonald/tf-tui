@@ -18,7 +18,7 @@ type Debug struct {
 	logPath        string
 }
 
-func (c *Debug) Open(_ context.Context) error {
+func (c *Debug) Open() error {
 	reader, errReader := os.Open(c.logPath)
 	if errReader != nil {
 		return errors.Join(errReader, ErrOpen)

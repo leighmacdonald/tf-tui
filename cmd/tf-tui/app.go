@@ -2,29 +2,36 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/state"
+	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui"
 )
 
+type UI interface {
+	Send(msg tea.Msg)
+	Run() error
+}
+
 // App is the main application container. Very little logic is contained within this struct. Its mostly
 // responsible for routing messages between different systems.
 type App struct {
-	ui            *ui.UI
+	ui            UI
 	config        config.Config
 	state         *state.Manager
 	uiUpdates     chan any
 	configUpdates chan config.Config
 	router        *events.Router
+	database      store.DBTX
 }
 
 // NewApp returns a new application instance. To actually start the app you must call
 // Start().
-func NewApp(conf config.Config, states *state.Manager, database *sql.DB, router *events.Router,
+func NewApp(conf config.Config, states *state.Manager, database store.DBTX, router *events.Router,
 	configUpdates chan config.Config,
 ) *App {
 	app := &App{
@@ -33,6 +40,7 @@ func NewApp(conf config.Config, states *state.Manager, database *sql.DB, router 
 		configUpdates: configUpdates,
 		uiUpdates:     make(chan any),
 		router:        router,
+		database:      database,
 	}
 
 	return app
@@ -112,8 +120,9 @@ func (app *App) updateUIState() {
 		return
 	}
 
-	var uiSnaps []ui.Snapshot
-	for _, snap := range app.state.Snapshots() {
+	snapshots := app.state.Snapshots()
+	uiSnaps := make([]ui.Snapshot, len(snapshots))
+	for idx, snap := range snapshots {
 		uiSnapsnot := ui.Snapshot{LogSecret: snap.LogSecret, Stats: snap.Stats}
 		for _, player := range snap.Players {
 			uiSnapsnot.Players = append(uiSnapsnot.Players, ui.Player{
@@ -147,12 +156,13 @@ func (app *App) updateUIState() {
 				TimeCreated:              player.Meta.TimeCreated,
 			})
 		}
-		uiSnaps = append(uiSnaps, uiSnapsnot)
+		uiSnaps[idx] = uiSnapsnot
 	}
+
 	app.ui.Send(uiSnaps)
 }
 
-func (app *App) createUI(ctx context.Context, loader ui.ConfigWriter) *ui.UI {
+func (app *App) createUI(ctx context.Context, loader ui.ConfigWriter) UI {
 	if app.ui == nil {
 		app.ui = ui.New(ctx, app.config, false,
 			BuildVersion, BuildDate, BuildCommit,

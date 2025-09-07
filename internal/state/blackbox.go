@@ -15,37 +15,6 @@ import (
 
 var errBlackBox = errors.New("failed to save blackbox event")
 
-type PlayerKill struct {
-	Source    steamid.SteamID
-	Victim    steamid.SteamID
-	Weapon    string
-	Crit      bool
-	CreatedOn time.Time
-}
-
-type PlayerHistory struct {
-	SteamID   steamid.SteamID
-	Name      string
-	Score     int
-	Deaths    int
-	Ping      int
-	Team      tf.Team
-	Connected int
-	Kills     []PlayerKill
-}
-
-type ChatMessage struct {
-	SteamID steamid.SteamID
-}
-
-type Match struct {
-	Players  []*PlayerHistory
-	Messages []ChatMessage
-	Hostname string
-	Address  string
-	Tags     []string
-}
-
 // blackBox handles recording various game events for long term storage.
 type blackBox struct {
 	db        *store.Queries
@@ -54,7 +23,7 @@ type blackBox struct {
 	match     Match
 }
 
-func newBlackBox(conn *store.Queries, router *events.Router, incomingEvents chan events.Event) *blackBox {
+func newBlackBox(conn *store.Queries, incomingEvents chan events.Event) *blackBox {
 	return &blackBox{db: conn, logEvents: incomingEvents}
 }
 
@@ -80,8 +49,6 @@ func (b *blackBox) Start(ctx context.Context) {
 			case events.LobbyEvent:
 			case events.StatusIDEvent:
 			case events.MapEvent:
-			case events.StatsEvent:
-				slog.Info(event.Raw)
 			case events.AnyEvent:
 			}
 
@@ -171,4 +138,35 @@ func (b *blackBox) onMsg(ctx context.Context, timeStamp time.Time, event events.
 	}
 
 	return nil
+}
+
+type PlayerKill struct {
+	Source    steamid.SteamID
+	Victim    steamid.SteamID
+	Weapon    string
+	Crit      bool
+	CreatedOn time.Time
+}
+
+type PlayerHistory struct {
+	SteamID   steamid.SteamID
+	Name      string
+	Score     int
+	Deaths    int
+	Ping      int
+	Team      tf.Team
+	Connected int
+	Kills     []PlayerKill
+}
+
+type ChatMessage struct {
+	SteamID steamid.SteamID
+}
+
+type Match struct {
+	Players  []*PlayerHistory
+	Messages []ChatMessage
+	Hostname string
+	Address  string
+	Tags     []string
 }

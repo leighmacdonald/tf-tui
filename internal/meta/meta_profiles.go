@@ -18,21 +18,21 @@ import (
 
 var ErrFetchMetaProfile = errors.New("failed to fetch meta profile")
 
-func New(client *tfapi.ClientWithResponses, cache cache.Cache) *MetaFetcher {
-	return &MetaFetcher{
+func New(client *tfapi.ClientWithResponses, cache cache.Cache) *Fetcher {
+	return &Fetcher{
 		client: client,
 		cache:  cache,
 	}
 }
 
-type MetaFetcher struct {
+type Fetcher struct {
 	client *tfapi.ClientWithResponses
 	cache  cache.Cache
 }
 
 // MetaProfiles handles loading player MetaProfiles. It first attempts to load from a local filesystem cache
 // and if any are missing or expired, they will be fetched from the api, and subsequently cached.
-func (m *MetaFetcher) MetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]tfapi.MetaProfile, error) {
+func (m *Fetcher) MetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]tfapi.MetaProfile, error) {
 	if len(steamIDs) == 0 {
 		return nil, nil
 	}
@@ -54,7 +54,7 @@ func (m *MetaFetcher) MetaProfiles(ctx context.Context, steamIDs steamid.Collect
 	return append(profiles, updates...), nil
 }
 
-func (m *MetaFetcher) cachedMetaProfiles(steamIDs steamid.Collection) ([]tfapi.MetaProfile, steamid.Collection, error) {
+func (m *Fetcher) cachedMetaProfiles(steamIDs steamid.Collection) ([]tfapi.MetaProfile, steamid.Collection, error) {
 	var profiles []tfapi.MetaProfile //nolint:prealloc
 	var missing steamid.Collection
 	for _, steamID := range steamIDs {
@@ -82,7 +82,7 @@ func (m *MetaFetcher) cachedMetaProfiles(steamIDs steamid.Collection) ([]tfapi.M
 	return profiles, missing, nil
 }
 
-func (m *MetaFetcher) fetchMetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]tfapi.MetaProfile, error) {
+func (m *Fetcher) fetchMetaProfiles(ctx context.Context, steamIDs steamid.Collection) ([]tfapi.MetaProfile, error) {
 	var profiles []tfapi.MetaProfile //nolint:prealloc
 	resp, errResp := m.client.MetaProfile(ctx, &tfapi.MetaProfileParams{Steamids: strings.Join(steamIDs.ToStringSlice(), ",")})
 	if errResp != nil {

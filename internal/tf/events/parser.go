@@ -103,17 +103,6 @@ type LobbyEvent struct {
 	LobbyID string
 }
 
-type StatsEvent struct {
-	CPU        float32
-	InKBs      float32
-	OutKBs     float32
-	FPS        float32
-	Uptime     int
-	MapChanges int
-	Players    int
-	Connects   int
-}
-
 type MsgEvent struct {
 	Player    string
 	PlayerSID steamid.SteamID
