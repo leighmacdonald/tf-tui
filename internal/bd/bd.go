@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"github.com/leighmacdonald/tf-tui/internal"
+
+	"github.com/leighmacdonald/tf-tui/internal/cache"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/encoding"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
@@ -25,7 +26,7 @@ type BDMatch struct {
 	ListName string
 }
 
-func New(httpClient HTTPDoer, userLists []config.UserList, cache internal.Cache) *BDFetcher {
+func New(httpClient HTTPDoer, userLists []config.UserList, cache cache.Cache) *BDFetcher {
 	return &BDFetcher{
 		mu:         &sync.RWMutex{},
 		configured: userLists,
@@ -40,7 +41,7 @@ type BDFetcher struct {
 	mu         *sync.RWMutex
 	lists      []tfapi.BDSchema
 	httpClient HTTPDoer
-	cache      internal.Cache
+	cache      cache.Cache
 }
 
 func (m *BDFetcher) Update(ctx context.Context) {

@@ -24,7 +24,7 @@ const (
 type Remote struct {
 	udpAddr         *net.UDPAddr
 	conn            *net.UDPConn
-	secret          int64
+	secret          int
 	remoteAddress   string
 	remotePassword  string
 	externalAddress string
@@ -36,7 +36,7 @@ type SRCDSListenerOpts struct {
 	ListenAddress   string
 	RemoteAddress   string
 	RemotePassword  string
-	Secret          int64
+	Secret          int
 }
 
 func NewRemote(opts SRCDSListenerOpts) (*Remote, error) {
@@ -170,7 +170,7 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 					continue
 				}
 
-				if secret > 0 && secret != l.secret {
+				if secret > 0 && secret != int64(l.secret) {
 					slog.Warn("Received unauthenticated log message: Invalid secret")
 
 					continue

@@ -33,13 +33,16 @@ const (
 
 type Config struct {
 	// TODO implement encoding.TextUnmarshaler so we can decode directly with viper/mapstructure
-	SteamID        steamid.SteamID `mapstructure:"-"`
-	SteamIDString  string          `mapstructure:"steam_id"`
-	Address        string          `mapstructure:"address"`
-	Password       string          `mapstructure:"password"`
-	ConsoleLogPath string          `mapstructure:"console_log_path"`
-	UpdateFreqMs   int             `mapstructure:"update_freq_ms,omitempty"`
-	APIBaseURL     string          `mapstructure:"api_base_url,omitempty"`
+	SteamID steamid.SteamID `mapstructure:"-"`
+	// SteamIDString should contain the steamid of the player running the app.
+	SteamIDString string `mapstructure:"steam_id"`
+	// ConsoleLogPath  defines the path to the console log file when running in local mode.
+	ConsoleLogPath string `mapstructure:"console_log_path"`
+	// UpdateFreqMs defines the frequency in milliseconds at which the app should update the player UI state.
+	UpdateFreqMs int `mapstructure:"update_freq_ms,omitempty"`
+	// APIBaseURL is the base URL for the API where external data is fetched from.
+	// Unless you are reimplementing the API, this should be left as is.
+	APIBaseURL string `mapstructure:"api_base_url,omitempty"`
 	// ServerModeEnabled controls if the app is running in server mode where instead
 	// of connecting to your local TF2 client, you can removely monitor a server over RCON.
 	// Similar to other tools like HLSW, you can receive server logs over UDP when setup
@@ -47,18 +50,24 @@ type Config struct {
 	ServerModeEnabled bool `mapstructure:"server_mode_enabled"`
 	// ServerLogAddress should point to an address where the server can reach you to send logs.
 	ServerLogAddress string `mapstructure:"server_log_address"`
-	// ServerLogSecret is the sv_logsecret values used for log message auth.
-	ServerLogSecret     int64      `mapstructure:"server_log_secret"`
-	ServerListenAddress string     `mapstructure:"server_listen_address"`
-	BDLists             []UserList `mapstructure:"bd_lists"`
-	Links               []UserLink `mapstructure:"links"`
-	Servers             []Server   `mapstructure:"servers"`
+	// ServerBindAddress is the address where the server should bind to.
+	ServerBindAddress string `mapstructure:"server_bind_address"`
+	// BDLists contains a list of bot detector lists to use.
+	BDLists []UserList `mapstructure:"bd_lists"`
+	// Links can be used to provide additional links to websites in the overview panel.
+	Links []UserLink `mapstructure:"links"`
+	// Servers contains a list of all known servers.
+	Servers []Server `mapstructure:"servers"`
 }
 
 type Server struct {
-	Address   string `mapstructure:"address"`
-	Password  string `mapstructure:"password"`
-	LogSecret int    `mapstructure:"log_secret"`
+	// Address is the RCON address of the server.
+	Address string `mapstructure:"address"`
+	// Password is the RCON password of the server.
+	Password string `mapstructure:"password"`
+	// LogSecret is how we authenticate the server logs. You MUST set these to unique values for each server
+	// for this functionality to work correctly.
+	LogSecret int `mapstructure:"log_secret"`
 }
 
 type SIDFormats string

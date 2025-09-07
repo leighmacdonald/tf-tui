@@ -129,8 +129,6 @@ type configIdx int
 
 const (
 	fieldSteamID configIdx = iota
-	fieldAddress
-	fieldPassword
 	fieldConsoleLogPath
 	fieldTFAPIBaseURL
 	fieldSave
@@ -162,15 +160,10 @@ func newConfigModal(config config.Config, loader ConfigWriter) tea.Model {
 		config.ConsoleLogPath = logPath
 	}
 
-	passInput := newValidatingTextInputModel("RCON Password", config.Password, "")
-	passInput.input.EchoMode = textinput.EchoPassword
-
 	return &configModel{
 		config: config,
 		fields: []*validatingTextInputModel{
 			newValidatingTextInputModel("Steam ID", config.SteamID.String(), "", steamIDValidator{}),
-			newValidatingTextInputModel("RCON Address", config.Address, "127.0.0.1:27015", addressValidator{}),
-			passInput,
 			newValidatingTextInputModel("Path to console.log", config.ConsoleLogPath, logPath, pathValidator{}),
 			newValidatingTextInputModel("TF-API Base URL", config.APIBaseURL, "", urlValidator{}),
 		},
@@ -187,13 +180,11 @@ func (m *configModel) Init() tea.Cmd {
 }
 
 func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 5)
+	cmds := make([]tea.Cmd, 3)
 
-	m.fields[fieldAddress], cmds[0] = m.fields[fieldAddress].Update(msg)
-	m.fields[fieldPassword], cmds[1] = m.fields[fieldPassword].Update(msg)
-	m.fields[fieldConsoleLogPath], cmds[2] = m.fields[fieldConsoleLogPath].Update(msg)
-	m.fields[fieldSteamID], cmds[3] = m.fields[fieldSteamID].Update(msg)
-	m.fields[fieldTFAPIBaseURL], cmds[4] = m.fields[fieldTFAPIBaseURL].Update(msg)
+	m.fields[fieldConsoleLogPath], cmds[0] = m.fields[fieldConsoleLogPath].Update(msg)
+	m.fields[fieldSteamID], cmds[1] = m.fields[fieldSteamID].Update(msg)
+	m.fields[fieldTFAPIBaseURL], cmds[2] = m.fields[fieldTFAPIBaseURL].Update(msg)
 
 	switch msg := msg.(type) {
 	case contentView:
@@ -227,10 +218,6 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.focusIndex {
 			case fieldSteamID:
 				fallthrough
-			case fieldAddress:
-				fallthrough
-			case fieldPassword:
-				fallthrough
 			case fieldConsoleLogPath:
 				fallthrough
 			case fieldTFAPIBaseURL:
@@ -244,8 +231,6 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				cfg := m.config
 				cfg.SteamID = steamid.New(m.fields[fieldSteamID].input.Value())
-				cfg.Address = m.fields[fieldAddress].input.Value()
-				cfg.Password = m.fields[fieldPassword].input.Value()
 				cfg.ConsoleLogPath = m.fields[fieldConsoleLogPath].input.Value()
 				cfg.APIBaseURL = m.fields[fieldTFAPIBaseURL].input.Value()
 
@@ -291,8 +276,6 @@ func (m *configModel) changeInput(direction direction) tea.Cmd {
 func (m *configModel) View() string {
 	fields := []string{
 		m.fields[fieldSteamID].View(),
-		m.fields[fieldAddress].View(),
-		m.fields[fieldPassword].View(),
 		m.fields[fieldConsoleLogPath].View(),
 		m.fields[fieldTFAPIBaseURL].View(),
 	}
@@ -303,6 +286,6 @@ func (m *configModel) View() string {
 		fields = append(fields, styles.BlurredSubmitButton)
 	}
 
-	return lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).
+	return lipgloss.NewStyle().Width(m.width).Align(lipgloss.Left).
 		Render(lipgloss.JoinVertical(lipgloss.Top, fields...))
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/tf/console"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
-	"github.com/leighmacdonald/tf-tui/internal/ui"
 )
 
 var (
@@ -28,16 +27,23 @@ type Snapshot struct {
 	Stats     events.StatsEvent
 }
 
-func newServerState(conf config.Config, server config.Server, router *events.Router, bdFetcher *bd.BDFetcher, dbConn store.DBTX) (*serverState, error) {
-	logSource, errListener := console.NewRemote(console.SRCDSListenerOpts{
-		ExternalAddress: conf.ServerLogAddress,
-		Secret:          conf.ServerLogSecret,
-		ListenAddress:   conf.ServerListenAddress,
-		RemoteAddress:   conf.Address,
-		RemotePassword:  conf.Password,
-	})
-	if errListener != nil {
-		return nil, errListener
+func newServerState(conf config.Config, server config.Server, router *events.Router, bdFetcher *bd.BDFetcher,
+	dbConn store.DBTX, localServer bool) (*serverState, error) {
+	var source console.Source
+	if localServer {
+		source = console.NewLocal(conf.ConsoleLogPath)
+	} else {
+		logSource, errListener := console.NewRemote(console.SRCDSListenerOpts{
+			ExternalAddress: conf.ServerLogAddress,
+			Secret:          server.LogSecret,
+			ListenAddress:   conf.ServerBindAddress,
+			RemoteAddress:   server.Address,
+			RemotePassword:  server.Password,
+		})
+		if errListener != nil {
+			return nil, errListener
+		}
+		source = logSource
 	}
 
 	allEvent := make(chan events.Event, 10)
@@ -47,7 +53,7 @@ func newServerState(conf config.Config, server config.Server, router *events.Rou
 	serverEvents := make(chan events.Event)
 	router.ListenFor(server.LogSecret, serverEvents, events.StatusID)
 
-	dumpFetcher := tf.NewDumpFetcher(conf.Address, conf.Password, conf.ServerModeEnabled)
+	dumpFetcher := tf.NewDumpFetcher(server.Address, server.Password, conf.ServerModeEnabled)
 
 	return &serverState{
 		mu:             &sync.RWMutex{},
@@ -55,11 +61,12 @@ func newServerState(conf config.Config, server config.Server, router *events.Rou
 		blackbox:       blackbox,
 		incomingEvents: serverEvents,
 		bdFetcher:      bdFetcher,
-		logSource:      logSource,
+		logSource:      source,
 		dumpFetcher:    dumpFetcher,
 	}, nil
 }
 
+// serverState is responsible for keeping track of the server state.
 type serverState struct {
 	mu             *sync.RWMutex
 	players        Players
@@ -72,9 +79,19 @@ type serverState struct {
 	stats          events.StatsEvent
 }
 
-func (s *serverState) Start(ctx context.Context) {
+func (s *serverState) close(ctx context.Context) {
+	if s.logSource != nil {
+		s.logSource.Close(ctx)
+	}
+}
+
+func (s *serverState) start(ctx context.Context) {
 	// Start recording events.
 	go s.blackbox.Start(ctx)
+
+	if errOpen := s.logSource.Open(ctx); errOpen != nil {
+		slog.Error("Failed to open log source", slog.String("error", errOpen.Error()), slog.Int("log_secret", s.server.LogSecret))
+	}
 
 	removeTicker := time.NewTicker(removeInterval)
 	dumpTicker := time.NewTicker(checkInterval)
@@ -164,12 +181,7 @@ func (s *serverState) onIncomingEvent(event events.Event) error {
 
 func (s *serverState) onDumpTick(ctx context.Context) {
 	waitGroup := &sync.WaitGroup{}
-	waitGroup.Add(3)
-
-	// go func() {
-	// 	defer waitGroup.Done()
-	// 	s.updateMetaProfile(ctx)
-	// }()
+	waitGroup.Add(2)
 
 	go func() {
 		defer waitGroup.Done()
@@ -201,15 +213,6 @@ func (s *serverState) Snapshot() Snapshot {
 	defer s.mu.RUnlock()
 
 	return Snapshot{LogSecret: s.server.LogSecret, Players: s.players, Stats: s.stats}
-}
-
-func (s *serverState) PlayersUI() ui.Players {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	var players ui.Players
-
-
-	return players
 }
 
 func (s *serverState) updateDump(ctx context.Context) {
