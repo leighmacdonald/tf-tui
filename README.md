@@ -19,31 +19,25 @@ access that with the `shift+e` shortcut.
 # Your own steamid
 steam_id: "76561197970000000"
 
-# rcon server config
-# If server_mode_enable is true, this is the remote server address.
-address: 127.0.0.1:27015
-
-# If server_mode_enable is true, this is the remote server password.
-password: tf-tui
-
 # Path to your console.log
 console_log_path: /home/<username>/.steam/steam/steamapps/common/Team Fortress 2/tf/console.log
 
-# API URL
+# How often to update the player state tables.
+update_freq_ms: 2000
+
+# API URL, dont change unless you are implementing your own API
 api_base_url: https://tf-api.roto.lol/
 
-# Use server mode instead of local. In this mode you connect to a remote server. This is meant for server
+# Use server mode instead of local. In this mode you connect to many remote servers. This is meant for server
 # operators to be able to monitor servers similar to HLSW type tools.
+# This will transform the display to better fit this mode of operation.
 server_mode_enabled: false
 
 # The address that the remote server should send logs to. This must be a routeable ip/host from the server.
 server_log_address: 100.10.10.3:27115
 
-# The logsecret used to authenticate the logs
-server_log_secret: 123455678
-
 # The address that is bound to on the local machine to accept requests on.
-server_listen_address: 100.10.10.3:27115
+server_bind_address: 100.10.10.3:27115
 
 # Set of custom bot detector lists
 # Doesn't currently really use the data, but it will eventually.
@@ -58,6 +52,28 @@ links:
   - url: https://demos.tf/profiles/%s
     name: demos.tf
     format: "steam64"
+
+# A list of all known servers that may be used. When running in different modes, the list behaves slightly
+# differently.
+#
+# local: It will pick the first server that has a local address, localhost/127.0.0.1 and ignore all other entries.
+# server: It will skip the local server and load *all* of the remaining servers.
+servers:
+  # Used for your standard "local" mode
+  - address: l27.0.0.1:27015
+    password: tf-tui
+    log_secret:
+
+  # All used for the server mode
+  - address: sea-1.us.example.com:27015
+    password: aaaaaaaaaa
+    log_secret: 111111111
+  - address: sea-1.us.example.com:27025
+    password: bbbbbbbbbb
+    log_secret: 222222222
+  - address: sea-1.us.example.com:27035
+    password: cccccccccc
+    log_secret: 333333333
 ```
 
 ### Overriding Configuration Via Environment & dotenv
