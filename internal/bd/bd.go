@@ -1,9 +1,7 @@
-package internal
+package bd
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,24 +10,11 @@ import (
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/internal"
 	"github.com/leighmacdonald/tf-tui/internal/config"
+	"github.com/leighmacdonald/tf-tui/internal/encoding"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 )
-
-var (
-	errPlayerNotFound   = errors.New("player not found")
-	errFetchMetaProfile = errors.New("failed to fetch meta profile")
-	errDecodeJSON       = errors.New("failed to decode JSON")
-)
-
-func unmarshalJSON[T any](reader io.Reader) (T, error) {
-	var value T
-	if err := json.NewDecoder(reader).Decode(&value); err != nil {
-		return value, errors.Join(err, errDecodeJSON)
-	}
-
-	return value, nil
-}
 
 type HTTPDoer interface {
 	Do(*http.Request) (*http.Response, error)
@@ -40,7 +25,7 @@ type BDMatch struct {
 	ListName string
 }
 
-func NewBDFetcher(httpClient HTTPDoer, userLists []config.UserList, cache Cache) *BDFetcher {
+func New(httpClient HTTPDoer, userLists []config.UserList, cache internal.Cache) *BDFetcher {
 	return &BDFetcher{
 		mu:         &sync.RWMutex{},
 		configured: userLists,
@@ -55,7 +40,7 @@ type BDFetcher struct {
 	mu         *sync.RWMutex
 	lists      []tfapi.BDSchema
 	httpClient HTTPDoer
-	cache      Cache
+	cache      internal.Cache
 }
 
 func (m *BDFetcher) Update(ctx context.Context) {
@@ -97,7 +82,7 @@ func (m *BDFetcher) Update(ctx context.Context) {
 				return
 			}
 
-			bdList, errUnmarshal := unmarshalJSON[tfapi.BDSchema](resp.Body)
+			bdList, errUnmarshal := encoding.UnmarshalJSON[tfapi.BDSchema](resp.Body)
 			if errUnmarshal != nil {
 				slog.Error("Failed to unmarshal", slog.String("error", errUnmarshal.Error()))
 

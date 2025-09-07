@@ -11,13 +11,15 @@ import (
 	"path"
 	"runtime"
 	"runtime/pprof"
-	"sync"
 	"time"
 
 	"github.com/adrg/xdg"
 	"github.com/charmbracelet/fang"
 	tftui "github.com/leighmacdonald/tf-tui/internal"
+	"github.com/leighmacdonald/tf-tui/internal/bd"
 	"github.com/leighmacdonald/tf-tui/internal/config"
+	"github.com/leighmacdonald/tf-tui/internal/meta"
+	"github.com/leighmacdonald/tf-tui/internal/state"
 	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tf/console"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
@@ -97,8 +99,8 @@ func run(_ *cobra.Command, _ []string) error {
 	var userConfig config.Config
 	configUpdates := make(chan config.Config)
 
-	loader := config.NewLoader(configUpdates)
-	userConfig, errConfig := loader.Read()
+	configLoader := config.NewLoader(configUpdates)
+	userConfig, errConfig := configLoader.Read()
 	if errConfig != nil {
 		return errors.Join(errConfig, errApp)
 	}
@@ -131,15 +133,6 @@ func run(_ *cobra.Command, _ []string) error {
 		return errors.Join(errClient, errApp)
 	}
 
-	// Setup a log source depending on the operating mode.
-	router := events.NewRouter()
-	metaFetcher := tftui.NewMetaFetcher(client, cache)
-	bdFetcher := tftui.NewBDFetcher(httpClient, userConfig.BDLists, cache)
-	states, errStates := tftui.NewStateTracker(router, userConfig, metaFetcher, bdFetcher)
-	if errStates != nil {
-		return errors.Join(errStates, errApp)
-	}
-
 	// Setup the sqlite database system.
 	database, errDB := store.Open(ctx, config.Path(config.DefaultDBName), true)
 	if errDB != nil {
@@ -152,13 +145,17 @@ func run(_ *cobra.Command, _ []string) error {
 		}
 	}()
 
-	logSources, errLogSource := openLogSources(ctx, userConfig)
-	if errLogSource != nil {
-		return errors.Join(errLogSource, errApp)
-	}
-	defer logSources.Close(ctx)
+	// Setup a log source depending on the operating mode.
+	router := events.NewRouter()
+	metaFetcher := meta.New(client, cache)
+	bdFetcher := bd.New(httpClient, userConfig.BDLists, cache)
+	// Download the lists.
+	go bdFetcher.Update(ctx)
 
-	go logSources.Start(ctx, router)
+	states, errStates := state.NewManager(router, userConfig, metaFetcher, bdFetcher, database)
+	if errStates != nil {
+		return errors.Join(errStates, errApp)
+	}
 
 	if len(os.Getenv("DEBUG")) > 0 {
 		consoleDebug := console.NewDebug("testdata/console.log")
@@ -171,10 +168,10 @@ func run(_ *cobra.Command, _ []string) error {
 
 	done := make(chan any)
 
-	app := NewApp(userConfig, states, database, router, logSources, configUpdates)
+	app := NewApp(userConfig, states, database, router, configUpdates)
 
 	go func() {
-		if err := app.createUI(ctx, loader).Run(); err != nil {
+		if err := app.createUI(ctx, configLoader).Run(); err != nil {
 			slog.Error("Failed to run UI", slog.String("error", err.Error()))
 		}
 
@@ -184,37 +181,4 @@ func run(_ *cobra.Command, _ []string) error {
 	app.Start(ctx, done)
 
 	return nil
-}
-
-func openLogSources(ctx context.Context, userConfig config.Config) ([]console.Source, error) {
-	var logSources []console.Source
-	if userConfig.ServerModeEnabled {
-		listener, errListener := console.NewRemote(console.SRCDSListenerOpts{
-			ExternalAddress: userConfig.ServerLogAddress,
-			Secret:          userConfig.ServerLogSecret,
-			ListenAddress:   userConfig.ServerListenAddress,
-			RemoteAddress:   userConfig.Address,
-			RemotePassword:  userConfig.Password,
-		})
-		if errListener != nil {
-			return nil, errListener
-		}
-		logSources = append(logSources, listener)
-	} else {
-		logSources = append(logSources, console.NewLocal(userConfig.ConsoleLogPath))
-	}
-
-	waitGroup := &sync.WaitGroup{}
-	for _, logSource := range logSources {
-		waitGroup.Add(1)
-		go func(source console.Source) {
-			defer waitGroup.Done()
-			if errOpen := source.Open(ctx); errOpen != nil {
-				slog.Error("Failed to open log source", slog.String("error", errOpen.Error()))
-			}
-		}(logSource)
-	}
-	waitGroup.Wait()
-
-	return logSources, nil
 }

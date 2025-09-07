@@ -5,39 +5,34 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/leighmacdonald/tf-tui/internal"
 	"github.com/leighmacdonald/tf-tui/internal/config"
-	"github.com/leighmacdonald/tf-tui/internal/store"
-	"github.com/leighmacdonald/tf-tui/internal/tf/console"
+	"github.com/leighmacdonald/tf-tui/internal/state"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui"
 )
 
-// App is the main application container.
+// App is the main application container. Very little logic is contained within this struct. Its mostly
+// responsible for routing messages between different systems.
 type App struct {
 	ui            *ui.UI
 	config        config.Config
-	state         *internal.StateTracker
-	blackBox      *internal.BlackBox
+	state         *state.Manager
 	uiUpdates     chan any
 	configUpdates chan config.Config
-	broadcaster   *events.Router
-	logSources    []console.Source
+	router        *events.Router
 }
 
 // NewApp returns a new application instance. To actually start the app you must call
-// Start(). App is mostly just responsible for routing messages between different systems.
-func NewApp(conf config.Config, states *internal.StateTracker, database *sql.DB, broadcaster *events.Router,
-	logSources []console.Source, configUpdates chan config.Config,
+// Start().
+func NewApp(conf config.Config, states *state.Manager, database *sql.DB, router *events.Router,
+	configUpdates chan config.Config,
 ) *App {
 	app := &App{
 		config:        conf,
 		state:         states,
 		configUpdates: configUpdates,
 		uiUpdates:     make(chan any),
-		blackBox:      internal.NewBlackBox(store.New(database), broadcaster),
-		broadcaster:   broadcaster,
-		logSources:    logSources,
+		router:        router,
 	}
 
 	return app
@@ -47,9 +42,6 @@ func NewApp(conf config.Config, states *internal.StateTracker, database *sql.DB,
 func (app *App) Start(ctx context.Context, done <-chan any) {
 	// Start collecting state updates.
 	go app.state.Start(ctx)
-
-	// Start recording events.
-	go app.blackBox.Start(ctx)
 
 	// Start sending game state updates to the UI.
 	go app.stateSyncer(ctx)
@@ -75,7 +67,7 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 // logEventUpdater sends console log events to the UI for display.
 func (app *App) logEventUpdater(ctx context.Context) {
 	eventChan := make(chan events.Event, 10)
-	app.broadcaster.ListenFor(events.Any, eventChan)
+	app.router.ListenFor(-1, eventChan, events.Any)
 	for {
 		select {
 		case evt := <-eventChan:
@@ -120,42 +112,44 @@ func (app *App) updateUIState() {
 		return
 	}
 
-	var players ui.Players
-	for _, player := range app.state.Players() {
-		players = append(players, ui.Player{
-			SteamID:                  player.SteamID,
-			Name:                     player.Name,
-			Ping:                     player.Ping,
-			Score:                    player.Score,
-			Deaths:                   player.Deaths,
-			Connected:                player.Connected,
-			Team:                     player.Team,
-			Alive:                    player.Alive,
-			Valid:                    player.Valid,
-			UserID:                   player.UserID,
-			Health:                   player.Health,
-			Address:                  player.Address,
-			Time:                     player.Time,
-			Loss:                     player.Loss,
-			Bans:                     player.Meta.Bans,
-			Friends:                  player.Meta.Friends,
-			CommunityBanned:          player.Meta.CommunityBanned,
-			CommunityVisibilityState: player.Meta.CommunityVisibilityState,
-			CompetitiveTeams:         player.Meta.CompetitiveTeams,
-			DaysSinceLastBan:         player.Meta.DaysSinceLastBan,
-			EconomyBan:               player.Meta.EconomyBan,
-			LogsCount:                player.Meta.LogsCount,
-			NumberOfGameBans:         player.Meta.NumberOfGameBans,
-			NumberOfVacBans:          player.Meta.NumberOfVacBans,
-			PersonaName:              player.Meta.PersonaName,
-			ProfileState:             player.Meta.ProfileState,
-			RealName:                 player.Meta.RealName,
-			TimeCreated:              player.Meta.TimeCreated,
-		})
+	var uiSnaps []ui.Snapshot
+	for _, snap := range app.state.Snapshots() {
+		uiSnapsnot := ui.Snapshot{LogSecret: snap.LogSecret, Stats: snap.Stats}
+		for _, player := range snap.Players {
+			uiSnapsnot.Players = append(uiSnapsnot.Players, ui.Player{
+				SteamID:                  player.SteamID,
+				Name:                     player.Name,
+				Ping:                     player.Ping,
+				Score:                    player.Score,
+				Deaths:                   player.Deaths,
+				Connected:                player.Connected,
+				Team:                     player.Team,
+				Alive:                    player.Alive,
+				Valid:                    player.Valid,
+				UserID:                   player.UserID,
+				Health:                   player.Health,
+				Address:                  player.Address,
+				Time:                     player.Time,
+				Loss:                     player.Loss,
+				Bans:                     player.Meta.Bans,
+				Friends:                  player.Meta.Friends,
+				CommunityBanned:          player.Meta.CommunityBanned,
+				CommunityVisibilityState: player.Meta.CommunityVisibilityState,
+				CompetitiveTeams:         player.Meta.CompetitiveTeams,
+				DaysSinceLastBan:         player.Meta.DaysSinceLastBan,
+				EconomyBan:               player.Meta.EconomyBan,
+				LogsCount:                player.Meta.LogsCount,
+				NumberOfGameBans:         player.Meta.NumberOfGameBans,
+				NumberOfVacBans:          player.Meta.NumberOfVacBans,
+				PersonaName:              player.Meta.PersonaName,
+				ProfileState:             player.Meta.ProfileState,
+				RealName:                 player.Meta.RealName,
+				TimeCreated:              player.Meta.TimeCreated,
+			})
+		}
+		uiSnaps = append(uiSnaps, uiSnapsnot)
 	}
-
-	app.ui.Send(players)
-	app.ui.Send(app.state.Stats())
+	app.ui.Send(uiSnaps)
 }
 
 func (app *App) createUI(ctx context.Context, loader ui.ConfigWriter) *ui.UI {
