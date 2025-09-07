@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	errCacheMiss = errors.New("cache miss error")
+	ErrCacheMiss = errors.New("cache miss error")
 	errCacheSet  = errors.New("cache set error")
 	errCacheDir  = errors.New("cache dir error")
 )
@@ -72,41 +72,41 @@ func (c FilesystemCache) Set(steamID steamid.SteamID, variant CacheItemVariant, 
 func (c FilesystemCache) Get(steamID steamid.SteamID, variant CacheItemVariant) ([]byte, error) {
 	file, errFile := os.Open(path.Join(c.cacheDir, cacheName(steamID, variant)))
 	if errFile != nil {
-		return nil, errors.Join(errCacheMiss, errFile)
+		return nil, errors.Join(ErrCacheMiss, errFile)
 	}
 
 	stat, errStat := file.Stat()
 	if errStat != nil {
 		if err := file.Close(); err != nil {
-			return nil, errors.Join(errCacheMiss, err, errStat)
+			return nil, errors.Join(ErrCacheMiss, err, errStat)
 		}
 
-		return nil, errors.Join(errCacheMiss, errStat)
+		return nil, errors.Join(ErrCacheMiss, errStat)
 	}
 
 	if time.Since(stat.ModTime()) > maxCacheAge {
 		if err := file.Close(); err != nil {
-			return nil, errors.Join(errCacheMiss, err)
+			return nil, errors.Join(ErrCacheMiss, err)
 		}
 
 		if err := os.Remove(cacheName(steamID, variant)); err != nil {
-			return nil, errors.Join(errCacheMiss, err)
+			return nil, errors.Join(ErrCacheMiss, err)
 		}
 
-		return nil, errCacheMiss
+		return nil, ErrCacheMiss
 	}
 
 	body, errRead := io.ReadAll(file)
 	if errRead != nil {
 		if err := file.Close(); err != nil {
-			return nil, errors.Join(errCacheMiss, err)
+			return nil, errors.Join(ErrCacheMiss, err)
 		}
 
-		return nil, errors.Join(errCacheMiss, errRead)
+		return nil, errors.Join(ErrCacheMiss, errRead)
 	}
 
 	if err := file.Close(); err != nil {
-		return nil, errors.Join(errCacheMiss, err)
+		return nil, errors.Join(ErrCacheMiss, err)
 	}
 
 	return body, nil

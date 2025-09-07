@@ -1,4 +1,4 @@
-package internal
+package state
 
 import (
 	"context"
@@ -46,22 +46,19 @@ type Match struct {
 	Tags     []string
 }
 
-// BlackBox handles recording various game events for long term storage.
-type BlackBox struct {
+// blackBox handles recording various game events for long term storage.
+type blackBox struct {
 	db        *store.Queries
 	logEvents chan events.Event
 	validIDs  []steamid.SteamID
 	match     Match
 }
 
-func NewBlackBox(conn *store.Queries, router *events.Router) *BlackBox {
-	incoming := make(chan events.Event, 10)
-	router.ListenFor(events.Any, incoming)
-
-	return &BlackBox{db: conn, logEvents: incoming}
+func newBlackBox(conn *store.Queries, router *events.Router, incomingEvents chan events.Event) *blackBox {
+	return &blackBox{db: conn, logEvents: incomingEvents}
 }
 
-func (b *BlackBox) Start(ctx context.Context) {
+func (b *blackBox) Start(ctx context.Context) {
 	for {
 		select {
 		case event := <-b.logEvents:
@@ -97,7 +94,7 @@ func (b *BlackBox) Start(ctx context.Context) {
 	}
 }
 
-func (b *BlackBox) onConnect(_ context.Context, _ events.Event) {
+func (b *blackBox) onConnect(_ context.Context, _ events.Event) {
 	// if len(b.match.Players) > 0 {
 	// 	// Save it
 	// }
@@ -108,7 +105,7 @@ func (b *BlackBox) onConnect(_ context.Context, _ events.Event) {
 	}
 }
 
-func (b *BlackBox) player(steamID steamid.SteamID) *PlayerHistory {
+func (b *blackBox) player(steamID steamid.SteamID) *PlayerHistory {
 	for _, player := range b.match.Players {
 		if player.SteamID.Equal(steamID) {
 			return player
@@ -121,7 +118,7 @@ func (b *BlackBox) player(steamID steamid.SteamID) *PlayerHistory {
 	return player
 }
 
-func (b *BlackBox) onKill(_ context.Context, event events.KillEvent) {
+func (b *blackBox) onKill(_ context.Context, event events.KillEvent) {
 	player := b.player(event.PlayerSID)
 	player.Kills = append(player.Kills, PlayerKill{
 		Source:    event.PlayerSID,
@@ -133,7 +130,7 @@ func (b *BlackBox) onKill(_ context.Context, event events.KillEvent) {
 }
 
 // ensureSID handles making sure the players steam_id FK is satisfied.
-func (b *BlackBox) ensureSID(ctx context.Context, steamID steamid.SteamID) error {
+func (b *blackBox) ensureSID(ctx context.Context, steamID steamid.SteamID) error {
 	if slices.Contains(b.validIDs, steamID) {
 		return nil
 	}
@@ -153,7 +150,7 @@ func (b *BlackBox) ensureSID(ctx context.Context, steamID steamid.SteamID) error
 	return nil
 }
 
-func (b *BlackBox) onMsg(ctx context.Context, timeStamp time.Time, event events.MsgEvent) error {
+func (b *blackBox) onMsg(ctx context.Context, timeStamp time.Time, event events.MsgEvent) error {
 	if errEnsure := b.ensureSID(ctx, event.PlayerSID); errEnsure != nil {
 		return errEnsure
 	}

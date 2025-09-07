@@ -1,9 +1,10 @@
-package internal
+package state
 
 import (
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/internal/bd"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 )
@@ -23,7 +24,7 @@ type Player struct {
 	Health        int
 	Valid         bool
 	UserID        int
-	BDMatches     []BDMatch
+	BDMatches     []bd.BDMatch
 	Meta          tfapi.MetaProfile
 	MetaUpdatedOn time.Time
 	G15UpdatedOn  time.Time
