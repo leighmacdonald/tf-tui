@@ -2,6 +2,10 @@
 
 [![Demo](docs/demo.gif)](docs/demo.gif)
 
+> [!NOTE]
+> The gif is a bit buggy and likely also out of date as its being updated frequently right now.
+
+
 ## Ensure Launch Options
 
 Add the following launch options:
@@ -111,7 +115,7 @@ $ make snapshot
 The standard go build options will also work, but some values will not be automatically injected into the build such as version/commit info.
 
 ```sh
-$ go build -o tf-tui && ./tf-tui
+$ go build -o tf-tui cmd/tf-tui/* && ./tf-tui
 ```
 
 ### Releases
