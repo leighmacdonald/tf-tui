@@ -154,7 +154,9 @@ func (app *App) updateUIState() {
 
 func (app *App) createUI(ctx context.Context, loader ui.ConfigWriter) *ui.UI {
 	if app.ui == nil {
-		app.ui = ui.New(ctx, app.config, false, BuildVersion, BuildDate, BuildCommit, loader)
+		app.ui = ui.New(ctx, app.config, false,
+			BuildVersion, BuildDate, BuildCommit,
+			loader, config.PathCache(config.CacheDirName))
 	}
 
 	return app.ui

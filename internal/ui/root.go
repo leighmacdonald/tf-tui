@@ -41,9 +41,7 @@ type rootModel struct {
 	rendered              string
 }
 
-func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string, loader ConfigWriter) *rootModel {
-	cachePath := config.Path(config.DefaultConfigName)
-
+func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string, loader ConfigWriter, cachePath string) *rootModel {
 	app := &rootModel{
 		currentView:  viewPlayerTables,
 		previousView: viewPlayerTables,

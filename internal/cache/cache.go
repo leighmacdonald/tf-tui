@@ -1,4 +1,4 @@
-package internal
+package cache
 
 import (
 	"errors"
@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	maxCacheAge = time.Hour * 24
+	maxCacheAge = time.Hour * 24 * 7 // Please dont hurt me
 )
 
 var (
@@ -24,33 +24,33 @@ var (
 )
 
 type Cache interface {
-	Get(steamID steamid.SteamID, variant CacheItemVariant) ([]byte, error)
-	Set(steamID steamid.SteamID, variant CacheItemVariant, content []byte) error
+	Get(steamID steamid.SteamID, variant ItemVariant) ([]byte, error)
+	Set(steamID steamid.SteamID, variant ItemVariant, content []byte) error
 }
 
-type CacheItemVariant int
+type ItemVariant int
 
 const (
-	CacheMetaProfile CacheItemVariant = iota
+	CacheMetaProfile ItemVariant = iota
 )
 
-type FilesystemCache struct {
+type Filesystem struct {
 	cacheDir string
 }
 
-func NewFilesystemCache() (FilesystemCache, error) {
+func New() (Filesystem, error) {
 	cachePath := config.PathCache(config.CacheDirName)
 	if err := os.MkdirAll(cachePath, 0o700); err != nil {
 		slog.Error("Failed to make config root", slog.String("error", err.Error()),
 			slog.String("path", cachePath))
 
-		return FilesystemCache{}, errors.Join(err, errCacheDir)
+		return Filesystem{}, errors.Join(err, errCacheDir)
 	}
 
-	return FilesystemCache{cacheDir: cachePath}, nil
+	return Filesystem{cacheDir: cachePath}, nil
 }
 
-func (c FilesystemCache) Set(steamID steamid.SteamID, variant CacheItemVariant, content []byte) error {
+func (c Filesystem) Set(steamID steamid.SteamID, variant ItemVariant, content []byte) error {
 	file, errFile := os.Create(path.Join(c.cacheDir, cacheName(steamID, variant)))
 	if errFile != nil {
 		return errors.Join(errCacheSet, errFile)
@@ -69,28 +69,28 @@ func (c FilesystemCache) Set(steamID steamid.SteamID, variant CacheItemVariant, 
 	return nil
 }
 
-func (c FilesystemCache) Get(steamID steamid.SteamID, variant CacheItemVariant) ([]byte, error) {
+func (c Filesystem) Get(steamID steamid.SteamID, variant ItemVariant) ([]byte, error) {
 	file, errFile := os.Open(path.Join(c.cacheDir, cacheName(steamID, variant)))
 	if errFile != nil {
-		return nil, errors.Join(ErrCacheMiss, errFile)
+		return nil, errors.Join(errFile, ErrCacheMiss)
 	}
 
 	stat, errStat := file.Stat()
 	if errStat != nil {
 		if err := file.Close(); err != nil {
-			return nil, errors.Join(ErrCacheMiss, err, errStat)
+			return nil, errors.Join(errStat, err, ErrCacheMiss)
 		}
 
-		return nil, errors.Join(ErrCacheMiss, errStat)
+		return nil, errors.Join(errStat, ErrCacheMiss)
 	}
 
 	if time.Since(stat.ModTime()) > maxCacheAge {
 		if err := file.Close(); err != nil {
-			return nil, errors.Join(ErrCacheMiss, err)
+			return nil, errors.Join(err, ErrCacheMiss)
 		}
 
 		if err := os.Remove(cacheName(steamID, variant)); err != nil {
-			return nil, errors.Join(ErrCacheMiss, err)
+			return nil, errors.Join(err, ErrCacheMiss)
 		}
 
 		return nil, ErrCacheMiss
@@ -99,19 +99,19 @@ func (c FilesystemCache) Get(steamID steamid.SteamID, variant CacheItemVariant) 
 	body, errRead := io.ReadAll(file)
 	if errRead != nil {
 		if err := file.Close(); err != nil {
-			return nil, errors.Join(ErrCacheMiss, err)
+			return nil, errors.Join(err, ErrCacheMiss)
 		}
 
-		return nil, errors.Join(ErrCacheMiss, errRead)
+		return nil, errors.Join(errRead, ErrCacheMiss)
 	}
 
 	if err := file.Close(); err != nil {
-		return nil, errors.Join(ErrCacheMiss, err)
+		return nil, errors.Join(err, ErrCacheMiss)
 	}
 
 	return body, nil
 }
 
-func cacheName(steamID steamid.SteamID, variant CacheItemVariant) string {
+func cacheName(steamID steamid.SteamID, variant ItemVariant) string {
 	return steamID.String() + "_" + strconv.Itoa(int(variant))
 }

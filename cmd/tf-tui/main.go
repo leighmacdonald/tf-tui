@@ -15,8 +15,8 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/charmbracelet/fang"
-	tftui "github.com/leighmacdonald/tf-tui/internal"
 	"github.com/leighmacdonald/tf-tui/internal/bd"
+	"github.com/leighmacdonald/tf-tui/internal/cache"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/meta"
 	"github.com/leighmacdonald/tf-tui/internal/state"
@@ -75,9 +75,7 @@ func version(_ *cobra.Command, _ []string) {
 }
 
 // run is the main entry point of tf-tui.
-func run(_ *cobra.Command, _ []string) error {
-	ctx := context.Background()
-
+func run(cmd *cobra.Command, _ []string) error {
 	// If PROFILE is set, it will be used as the output file path for the profiler.
 	if len(os.Getenv("PROFILE")) > 0 {
 		f, err := os.Create(os.Getenv("PROFILE"))
@@ -121,7 +119,7 @@ func run(_ *cobra.Command, _ []string) error {
 		slog.String("go", runtime.Version()))
 
 	// Setup the filesystem cache, creating any necessary directories.
-	cache, errCache := tftui.NewFilesystemCache()
+	cache, errCache := cache.New()
 	if errCache != nil {
 		return errors.Join(errCache, errApp)
 	}
@@ -134,7 +132,7 @@ func run(_ *cobra.Command, _ []string) error {
 	}
 
 	// Setup the sqlite database system.
-	database, errDB := store.Open(ctx, config.Path(config.DefaultDBName), true)
+	database, errDB := store.Open(cmd.Context(), config.Path(config.DefaultDBName), true)
 	if errDB != nil {
 		return errors.Join(errDB, errApp)
 	}
@@ -150,7 +148,7 @@ func run(_ *cobra.Command, _ []string) error {
 	metaFetcher := meta.New(client, cache)
 	bdFetcher := bd.New(httpClient, userConfig.BDLists, cache)
 	// Download the lists.
-	go bdFetcher.Update(ctx)
+	go bdFetcher.Update(cmd.Context())
 
 	states, errStates := state.NewManager(router, userConfig, metaFetcher, bdFetcher, database)
 	if errStates != nil {
@@ -159,11 +157,11 @@ func run(_ *cobra.Command, _ []string) error {
 
 	if len(os.Getenv("DEBUG")) > 0 {
 		consoleDebug := console.NewDebug("testdata/console.log")
-		if errDebug := consoleDebug.Open(ctx); errDebug != nil {
+		if errDebug := consoleDebug.Open(cmd.Context()); errDebug != nil {
 			return errors.Join(errDebug, errApp)
 		}
-		go consoleDebug.Start(ctx, router)
-		defer consoleDebug.Close(ctx)
+		go consoleDebug.Start(cmd.Context(), router)
+		defer consoleDebug.Close(cmd.Context())
 	}
 
 	done := make(chan any)
@@ -171,14 +169,14 @@ func run(_ *cobra.Command, _ []string) error {
 	app := NewApp(userConfig, states, database, router, configUpdates)
 
 	go func() {
-		if err := app.createUI(ctx, configLoader).Run(); err != nil {
+		if err := app.createUI(cmd.Context(), configLoader).Run(); err != nil {
 			slog.Error("Failed to run UI", slog.String("error", err.Error()))
 		}
 
 		done <- "🫃"
 	}()
 
-	app.Start(ctx, done)
+	app.Start(cmd.Context(), done)
 
 	return nil
 }

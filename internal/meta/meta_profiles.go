@@ -11,14 +11,14 @@ import (
 	"strings"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"github.com/leighmacdonald/tf-tui/internal"
+	"github.com/leighmacdonald/tf-tui/internal/cache"
 	"github.com/leighmacdonald/tf-tui/internal/encoding"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 )
 
 var ErrFetchMetaProfile = errors.New("failed to fetch meta profile")
 
-func New(client *tfapi.ClientWithResponses, cache internal.Cache) *MetaFetcher {
+func New(client *tfapi.ClientWithResponses, cache cache.Cache) *MetaFetcher {
 	return &MetaFetcher{
 		client: client,
 		cache:  cache,
@@ -27,7 +27,7 @@ func New(client *tfapi.ClientWithResponses, cache internal.Cache) *MetaFetcher {
 
 type MetaFetcher struct {
 	client *tfapi.ClientWithResponses
-	cache  internal.Cache
+	cache  cache.Cache
 }
 
 // MetaProfiles handles loading player MetaProfiles. It first attempts to load from a local filesystem cache
@@ -58,9 +58,9 @@ func (m *MetaFetcher) cachedMetaProfiles(steamIDs steamid.Collection) ([]tfapi.M
 	var profiles []tfapi.MetaProfile //nolint:prealloc
 	var missing steamid.Collection
 	for _, steamID := range steamIDs {
-		body, errGet := m.cache.Get(steamID, internal.CacheMetaProfile)
+		body, errGet := m.cache.Get(steamID, cache.CacheMetaProfile)
 		if errGet != nil {
-			if !errors.Is(errGet, internal.ErrCacheMiss) {
+			if !errors.Is(errGet, cache.ErrCacheMiss) {
 				return nil, nil, errors.Join(errGet, ErrFetchMetaProfile)
 			}
 
@@ -109,7 +109,7 @@ func (m *MetaFetcher) fetchMetaProfiles(ctx context.Context, steamIDs steamid.Co
 		if errBody := json.NewEncoder(&buf).Encode(profile); errBody != nil {
 			return nil, errors.Join(errBody, ErrFetchMetaProfile)
 		}
-		if errSet := m.cache.Set(steamid.New(profile.SteamId), internal.CacheMetaProfile, buf.Bytes()); errSet != nil {
+		if errSet := m.cache.Set(steamid.New(profile.SteamId), cache.CacheMetaProfile, buf.Bytes()); errSet != nil {
 			return nil, errors.Join(errSet, ErrFetchMetaProfile)
 		}
 

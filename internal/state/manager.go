@@ -3,7 +3,6 @@ package state
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -14,7 +13,6 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/meta"
 	"github.com/leighmacdonald/tf-tui/internal/store"
-	"github.com/leighmacdonald/tf-tui/internal/tf/console"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 )
@@ -28,34 +26,35 @@ const (
 var errNoServersFound = errors.New("no servers configured")
 
 type serverMetaUpdate struct {
-	serverAddress string
-	steamID       steamid.SteamID
-	profile       tfapi.MetaProfile
-	store         store.DBTX
+	logAddress int
+	steamID    steamid.SteamID
+	profile    tfapi.MetaProfile
 }
 
-func NewManager(router *events.Router, conf config.Config, metaFetcher *meta.MetaFetcher, bdFetcher *bd.BDFetcher, dbConn store.DBTX) (*Manager, error) {
+func NewManager(router *events.Router, conf config.Config, metaFetcher *meta.MetaFetcher,
+	bdFetcher *bd.BDFetcher, dbConn store.DBTX) (*Manager, error) {
 	isLocalServer := func(address string) bool {
+		// Fragile, probably better as a flag.
 		return strings.HasPrefix(address, "127.0.0.1") || strings.HasPrefix(address, "localhost")
 	}
 
 	var servers []*serverState
 	if conf.ServerModeEnabled {
-		var servers []*serverState
 		for _, server := range conf.Servers {
 			if isLocalServer(server.Address) {
 				continue
 			}
-			state, errState := newServerState(conf, server, router, bdFetcher, dbConn)
+			state, errState := newServerState(conf, server, router, bdFetcher, dbConn, false)
 			if errState != nil {
 				return nil, errState
 			}
+
 			servers = append(servers, state)
 		}
 	} else {
 		for _, server := range conf.Servers {
 			if isLocalServer(server.Address) {
-				state, errState := newServerState(conf, conf.Servers[0], router, bdFetcher, dbConn)
+				state, errState := newServerState(conf, conf.Servers[0], router, bdFetcher, dbConn, true)
 				if errState != nil {
 					return nil, errState
 				}
@@ -72,10 +71,8 @@ func NewManager(router *events.Router, conf config.Config, metaFetcher *meta.Met
 	}
 
 	return &Manager{
-		mu:           &sync.RWMutex{},
-		serverStates: []*serverState{},
+		serverStates: servers,
 		metaFetcher:  metaFetcher,
-		bdFetcher:    bdFetcher,
 		config:       conf,
 	}, nil
 }
@@ -86,16 +83,13 @@ func NewManager(router *events.Router, conf config.Config, metaFetcher *meta.Met
 // This is also responsible for fetching metaProfile updates. These are quite expensive calls, so they are
 // queued and processed synchronously.
 type Manager struct {
-	mu *sync.RWMutex
 	// serverStates contains the current state of each server. When in server mode, this will contain the state of all servers.
 	// When in client mode, this will contain the state of the single local server.
 	serverStates   []*serverState
 	incomingEvents chan events.Event
 	metaFetcher    *meta.MetaFetcher
-	bdFetcher      *bd.BDFetcher
 	metaQueue      chan serverMetaUpdate
 	metaInFlight   atomic.Bool
-	logSources     []console.Source
 	config         config.Config
 }
 
@@ -109,62 +103,24 @@ func (s *Manager) Snapshots() []Snapshot {
 }
 
 func (s *Manager) Close(ctx context.Context) {
+	localTimeout, cancel := context.WithTimeout(ctx, time.Second*10)
+	defer cancel()
+
 	waitGroup := &sync.WaitGroup{}
-	waitGroup.Add(len(s.logSources))
-	for _, logSource := range s.logSources {
-		go func(source console.Source) {
+	waitGroup.Add(len(s.serverStates))
+	for _, logSource := range s.serverStates {
+		go func(source *serverState) {
 			defer waitGroup.Done()
-			source.Close(ctx)
+			source.close(localTimeout)
 		}(logSource)
 	}
 	waitGroup.Wait()
 }
 
-func (s *Manager) Start(ctx context.Context) error {
-	logSources, errLogSource := s.openLogSources(ctx, s.config)
-	if errLogSource != nil {
-		return errLogSource
+func (s *Manager) Start(ctx context.Context) {
+	for _, server := range s.serverStates {
+		go server.start(ctx)
 	}
-
-	for _, logSource := range logSources {
-		go logSource.Start(ctx, nil)
-		panic("make this work")
-	}
-
-	return nil
-}
-
-func (s *Manager) openLogSources(ctx context.Context, userConfig config.Config) ([]console.Source, error) {
-	var logSources []console.Source
-	if userConfig.ServerModeEnabled {
-		listener, errListener := console.NewRemote(console.SRCDSListenerOpts{
-			ExternalAddress: userConfig.ServerLogAddress,
-			Secret:          userConfig.ServerLogSecret,
-			ListenAddress:   userConfig.ServerListenAddress,
-			RemoteAddress:   userConfig.Address,
-			RemotePassword:  userConfig.Password,
-		})
-		if errListener != nil {
-			return nil, errListener
-		}
-		logSources = append(logSources, listener)
-	} else {
-		logSources = append(logSources, console.NewLocal(userConfig.ConsoleLogPath))
-	}
-
-	waitGroup := &sync.WaitGroup{}
-	for _, logSource := range logSources {
-		waitGroup.Add(1)
-		go func(source console.Source) {
-			defer waitGroup.Done()
-			if errOpen := source.Open(ctx); errOpen != nil {
-				slog.Error("Failed to open log source", slog.String("error", errOpen.Error()))
-			}
-		}(logSource)
-	}
-	waitGroup.Wait()
-
-	return logSources, nil
 }
 
 func (s *Manager) metaUpdater(ctx context.Context) {
