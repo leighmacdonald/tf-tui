@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,86 +13,103 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
-	"github.com/leighmacdonald/tf-tui/internal/tf/console"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
+	"github.com/leighmacdonald/tf-tui/internal/tf/rcon"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 )
 
 var (
 	ErrPlayerNotFound = errors.New("player not found")
+	ErrRegistration   = errors.New("logaddress registration error")
+	ErrUnregistration = errors.New("logaddress unregistration error")
 )
 
 type Snapshot struct {
 	LogSecret int
 	Players   Players
-	Stats     events.StatsEvent
+	Stats     tf.Stats
 }
 
-func newServerState(conf config.Config, server config.Server, router *events.Router, bdFetcher *bd.BDFetcher,
-	dbConn store.DBTX, localServer bool) (*serverState, error) {
-	var source console.Source
-	if localServer {
-		source = console.NewLocal(conf.ConsoleLogPath)
-	} else {
-		logSource, errListener := console.NewRemote(console.SRCDSListenerOpts{
-			ExternalAddress: conf.ServerLogAddress,
-			Secret:          server.LogSecret,
-			ListenAddress:   conf.ServerBindAddress,
-			RemoteAddress:   server.Address,
-			RemotePassword:  server.Password,
-		})
-		if errListener != nil {
-			return nil, errListener
-		}
-		source = logSource
-	}
-
+func newServerState(conf config.Config, server config.Server, router *events.Router, bdFetcher *bd.Fetcher,
+	dbConn store.DBTX,
+) *serverState {
 	allEvent := make(chan events.Event, 10)
 	router.ListenFor(server.LogSecret, allEvent, events.Any)
-	blackbox := newBlackBox(store.New(dbConn), router, allEvent)
+	blackbox := newBlackBox(store.New(dbConn), allEvent)
 
 	serverEvents := make(chan events.Event)
 	router.ListenFor(server.LogSecret, serverEvents, events.StatusID)
 
-	dumpFetcher := tf.NewDumpFetcher(server.Address, server.Password, conf.ServerModeEnabled)
+	dumpFetcher := rcon.NewFetcher(server.Address, server.Password, conf.ServerModeEnabled)
 
 	return &serverState{
-		mu:             &sync.RWMutex{},
-		server:         server,
-		blackbox:       blackbox,
-		incomingEvents: serverEvents,
-		bdFetcher:      bdFetcher,
-		logSource:      source,
-		dumpFetcher:    dumpFetcher,
-	}, nil
+		mu:              &sync.RWMutex{},
+		server:          server,
+		blackbox:        blackbox,
+		incomingEvents:  serverEvents,
+		bdFetcher:       bdFetcher,
+		dumpFetcher:     dumpFetcher,
+		externalAddress: conf.ServerLogAddress,
+	}
 }
 
 // serverState is responsible for keeping track of the server state.
 type serverState struct {
-	mu             *sync.RWMutex
-	players        Players
-	server         config.Server
-	blackbox       *blackBox
-	incomingEvents chan events.Event
-	bdFetcher      *bd.BDFetcher
-	logSource      console.Source
-	dumpFetcher    tf.DumpFetcher
-	stats          events.StatsEvent
+	mu              *sync.RWMutex
+	players         Players
+	server          config.Server
+	externalAddress string
+	blackbox        *blackBox
+	incomingEvents  chan events.Event
+	bdFetcher       *bd.Fetcher
+	dumpFetcher     rcon.Fetcher
+	stats           tf.Stats
 }
 
-func (s *serverState) close(ctx context.Context) {
-	if s.logSource != nil {
-		s.logSource.Close(ctx)
+func (s *serverState) close(ctx context.Context) error {
+	return s.unregisterAddress(ctx)
+}
+
+func (s *serverState) unregisterAddress(ctx context.Context) error {
+	// Be cool and remove ourselves from the log address list.
+	conn := rcon.New(s.server.Address, s.server.Password)
+	if _, errExec := conn.Exec(ctx, "logaddress_del "+s.externalAddress, false); errExec != nil {
+		return errors.Join(errExec, ErrUnregistration)
 	}
+
+	slog.Debug("Successfully unregistered logaddress", slog.String("address", s.externalAddress))
+
+	return nil
 }
 
-func (s *serverState) start(ctx context.Context) {
+func (s *serverState) registerAddress(ctx context.Context) error {
+	conn := rcon.New(s.server.Address, s.server.Password)
+	_, errExec := conn.Exec(ctx, "logaddress_add "+s.externalAddress, false)
+	if errExec != nil {
+		return errors.Join(errExec, ErrRegistration)
+	}
+
+	resp, err := conn.Exec(ctx, "logaddress_list", false)
+	if err != nil {
+		return errors.Join(err, ErrRegistration)
+	}
+
+	slog.Debug("Successfully registered logaddress", slog.String("address", s.externalAddress))
+
+	if !strings.Contains(resp, s.externalAddress) {
+		return ErrRegistration
+	}
+
+	return nil
+}
+
+func (s *serverState) start(ctx context.Context) error {
+	if err := s.registerAddress(ctx); err != nil {
+		return err
+	}
+
 	// Start recording events.
 	go s.blackbox.Start(ctx)
-
-	if errOpen := s.logSource.Open(ctx); errOpen != nil {
-		slog.Error("Failed to open log source", slog.String("error", errOpen.Error()), slog.Int("log_secret", s.server.LogSecret))
-	}
 
 	removeTicker := time.NewTicker(removeInterval)
 	dumpTicker := time.NewTicker(checkInterval)
@@ -107,7 +125,7 @@ func (s *serverState) start(ctx context.Context) {
 		case <-removeTicker.C:
 			s.removeExpired()
 		case <-ctx.Done():
-			return
+			return nil
 		}
 	}
 }
@@ -126,14 +144,14 @@ func (s *serverState) updateBD() {
 	s.SetPlayer(updates...)
 }
 
-func (s *serverState) Stats() events.StatsEvent {
+func (s *serverState) Stats() tf.Stats {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	return s.stats
 }
 
-func (s *serverState) UpdateStats(stats events.StatsEvent) {
+func (s *serverState) UpdateStats(stats tf.Stats) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

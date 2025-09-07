@@ -14,7 +14,7 @@ type Receiver interface {
 // to a Receiver.
 type Source interface {
 	Start(ctx context.Context, receiver Receiver)
-	Open(ctx context.Context) error
+	Open() error
 	Close(ctx context.Context) error
 }
 

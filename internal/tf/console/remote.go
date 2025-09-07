@@ -7,8 +7,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-
-	"github.com/leighmacdonald/tf-tui/internal/tf/rcon"
 )
 
 type srcdsPacket byte
@@ -31,44 +29,21 @@ type Remote struct {
 	listenAddress   string
 }
 
-type SRCDSListenerOpts struct {
-	ExternalAddress string
-	ListenAddress   string
-	RemoteAddress   string
-	RemotePassword  string
-	Secret          int
+type RemoteOpts struct {
+	ListenAddress string
 }
 
-func NewRemote(opts SRCDSListenerOpts) (*Remote, error) {
-	if opts.ExternalAddress == "" {
-		opts.ExternalAddress = opts.ListenAddress
-	}
-
+func NewRemote(opts RemoteOpts) (*Remote, error) {
 	// TODO better validations
-	if opts.RemoteAddress == "" {
+	if opts.ListenAddress == "" {
 		return nil, ErrConfig
 	}
 
-	return &Remote{
-		remoteAddress:   opts.RemoteAddress,
-		remotePassword:  opts.RemotePassword,
-		secret:          opts.Secret,
-		externalAddress: opts.ExternalAddress,
-		listenAddress:   opts.ListenAddress,
-	}, nil
+	return &Remote{listenAddress: opts.ListenAddress}, nil
 }
 
-func (l *Remote) Close(ctx context.Context) error {
+func (l *Remote) Close(_ context.Context) error {
 	var err error
-	// Be cool and remove ourselves from the log address list.
-	conn := rcon.New(l.remoteAddress, l.remotePassword)
-	_, errExec := conn.Exec(ctx, "logaddress_del "+l.externalAddress, false)
-	if errExec != nil {
-		err = errors.Join(err, errExec)
-	} else {
-		slog.Debug("Successfulyl unregistered logaddress", slog.String("address", l.externalAddress))
-	}
-
 	if l.conn != nil {
 		if errConnClose := l.conn.Close(); errConnClose != nil {
 			err = errors.Join(err, errConnClose)
@@ -82,7 +57,7 @@ func (l *Remote) Close(ctx context.Context) error {
 	return nil
 }
 
-func (l *Remote) Open(ctx context.Context) error {
+func (l *Remote) Open() error {
 	udpAddr, errResolveUDP := net.ResolveUDPAddr("udp4", l.listenAddress)
 	if errResolveUDP != nil {
 		return errors.Join(errResolveUDP, ErrSetup)
@@ -95,23 +70,6 @@ func (l *Remote) Open(ctx context.Context) error {
 
 	l.conn = connection
 	l.udpAddr = udpAddr
-
-	conn := rcon.New(l.remoteAddress, l.remotePassword)
-	_, errExec := conn.Exec(ctx, "logaddress_add "+l.externalAddress, false)
-	if errExec != nil {
-		return errors.Join(errExec, ErrOpen)
-	}
-
-	resp, err := conn.Exec(ctx, "logaddress_list", false)
-	if err != nil {
-		return errors.Join(err, ErrOpen)
-	}
-
-	slog.Debug("Successfulyl registered logaddress", slog.String("address", l.externalAddress))
-
-	if !strings.Contains(resp, l.externalAddress) {
-		return ErrOpen
-	}
 
 	return nil
 }

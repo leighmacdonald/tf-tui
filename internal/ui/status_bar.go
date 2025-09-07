@@ -21,7 +21,7 @@ type statusBarModel struct {
 	bluPlayers  int
 	version     string
 	serverMode  bool
-	stats       events.StatsEvent
+	stats       tf.Stats
 }
 
 func newStatusBarModel(version string, serverMode bool) *statusBarModel {
@@ -34,7 +34,7 @@ func (m statusBarModel) Init() tea.Cmd {
 
 func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case events.StatsEvent:
+	case tf.Stats:
 		m.stats = msg
 	case Players:
 		var (

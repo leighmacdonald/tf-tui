@@ -1,4 +1,4 @@
-package tf
+package rcon
 
 import (
 	"bufio"
@@ -15,32 +15,13 @@ import (
 
 	"github.com/leighmacdonald/steamid/v4/extra"
 	"github.com/leighmacdonald/steamid/v4/steamid"
-	"github.com/leighmacdonald/tf-tui/internal/tf/events"
-	"github.com/leighmacdonald/tf-tui/internal/tf/rcon"
+	"github.com/leighmacdonald/tf-tui/internal/tf"
 )
 
-type DumpPlayer struct {
-	Names     [MaxPlayerCount]string
-	Ping      [MaxPlayerCount]int
-	Score     [MaxPlayerCount]int
-	Deaths    [MaxPlayerCount]int
-	Connected [MaxPlayerCount]bool
-	Team      [MaxPlayerCount]Team
-	Alive     [MaxPlayerCount]bool
-	Health    [MaxPlayerCount]int
-	SteamID   [MaxPlayerCount]steamid.SteamID
-	Valid     [MaxPlayerCount]bool
-	UserID    [MaxPlayerCount]int
-	Loss      [MaxPlayerCount]int
-	State     [MaxPlayerCount]string
-	Address   [MaxPlayerCount]string
-	Time      [MaxPlayerCount]int
-}
+var ErrDumpQuery = errors.New("failed to perform dump query")
 
-var ErrDumpQuery = errors.New("failed to query g15_dumpplayer")
-
-func NewDumpFetcher(address string, password string, serverMode bool) DumpFetcher {
-	return DumpFetcher{
+func NewFetcher(address string, password string, serverMode bool) Fetcher {
+	return Fetcher{
 		Address:    address,
 		Password:   password,
 		serverMode: serverMode,
@@ -51,17 +32,17 @@ func NewDumpFetcher(address string, password string, serverMode bool) DumpFetche
 	}
 }
 
-type DumpFetcher struct {
+type Fetcher struct {
 	Address    string
 	Password   string
-	lastUpdate DumpPlayer
-	lastStats  events.StatsEvent
+	lastUpdate tf.DumpPlayer
+	lastStats  tf.Stats
 	serverMode bool
 	g15re      *regexp.Regexp
 	statsRe    *regexp.Regexp
 }
 
-func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, events.StatsEvent, error) {
+func (f Fetcher) Fetch(ctx context.Context) (tf.DumpPlayer, tf.Stats, error) {
 	command := "status"
 	if f.serverMode {
 		command = "stats;" + command
@@ -69,16 +50,16 @@ func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, events.StatsEvent, 
 		command = "g15_dumpplayer;" + command
 	}
 
-	response, errExec := rcon.New(f.Address, f.Password).Exec(ctx, command, true)
+	response, errExec := New(f.Address, f.Password).Exec(ctx, command, true)
 	if errExec != nil {
 		if f.lastUpdate.SteamID[0].Valid() {
 			return f.lastUpdate, f.lastStats, nil
 		}
 		if len(os.Getenv("DEBUG")) == 0 {
-			return DumpPlayer{}, events.StatsEvent{}, errors.Join(errExec, ErrDumpQuery)
+			return tf.DumpPlayer{}, tf.Stats{}, errors.Join(errExec, ErrDumpQuery)
 		}
 		// FIXME remove this test data generation eventually
-		var data DumpPlayer
+		var data tf.DumpPlayer
 		for playerIdx := range 24 {
 			data.SteamID[playerIdx] = steamid.New(76561197960265730 + playerIdx)
 			data.UserID[playerIdx] = playerIdx + 1
@@ -86,9 +67,9 @@ func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, events.StatsEvent, 
 			data.Ping[playerIdx] = playerIdx
 			data.Deaths[playerIdx] = playerIdx
 			if playerIdx%2 == 0 {
-				data.Team[playerIdx] = BLU
+				data.Team[playerIdx] = tf.BLU
 			} else {
-				data.Team[playerIdx] = RED
+				data.Team[playerIdx] = tf.RED
 			}
 			if playerIdx == 0 {
 				data.SteamID[0] = steamid.New(76561197960265730)
@@ -104,12 +85,12 @@ func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, events.StatsEvent, 
 			}
 		}
 
-		return data, events.StatsEvent{}, nil
+		return data, tf.Stats{}, nil
 	}
 
 	var (
-		dump  DumpPlayer
-		stats events.StatsEvent
+		dump  tf.DumpPlayer
+		stats tf.Stats
 	)
 
 	if f.serverMode {
@@ -145,9 +126,9 @@ func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, events.StatsEvent, 
 			dump.UserID[idx] = player.UserID
 			// We have no way of knowing their real teams in server mode.
 			if idx%2 == 0 {
-				dump.Team[idx] = BLU
+				dump.Team[idx] = tf.BLU
 			} else {
-				dump.Team[idx] = RED
+				dump.Team[idx] = tf.RED
 			}
 		}
 	} else {
@@ -159,8 +140,9 @@ func (f DumpFetcher) Fetch(ctx context.Context) (DumpPlayer, events.StatsEvent, 
 	return dump, stats, nil
 }
 
-// "CPU    In_(KB/s)  Out_(KB/s)  Uptime  Map_changes  FPS      Players  Connects\n49.76  80.38      1003.97     113     6            66.67    64       395     \nhostname: Uncletopia | Montréal | 1 | One Thousand Uncles\nversion : 9978583/24 9978583 secure\nudp/ip  : ?.?.?.?:?  (public IP from Steam: 148.113.198.21)\nsteamid : [G:1:4460663] (85568392924500087)\naccount : not logged in  (No account specified)\nmap     : pl_cashworks at: 0 x, 0 y, 0 z\ntags    : alltalk,bots,danepve,increased_maxplayers,norespawntime,pa...+5521 more".
-func (f *DumpFetcher) parseStats(match []string) events.StatsEvent {
+// CPU    In_(KB/s)  Out_(KB/s)  Uptime  Map_changes  FPS      Players  Connects
+// 49.76  80.38      1003.97     113     6            66.67    64       395.
+func (f *Fetcher) parseStats(match []string) tf.Stats {
 	cpu, errCPU := strconv.ParseFloat(match[1], 32)
 	if errCPU != nil {
 		slog.Error("Failed to parse CPU", slog.String("error", errCPU.Error()))
@@ -201,7 +183,7 @@ func (f *DumpFetcher) parseStats(match []string) events.StatsEvent {
 		slog.Error("Failed to parse connects", slog.String("error", errConnects.Error()))
 	}
 
-	return events.StatsEvent{
+	return tf.Stats{
 		CPU:        float32(cpu),
 		InKBs:      float32(inKBs),
 		OutKBs:     float32(outKBs),
@@ -215,9 +197,9 @@ func (f *DumpFetcher) parseStats(match []string) events.StatsEvent {
 
 // parsePlayerState provides the ability to parse the output of the `g15_dumpplayer` command into a PlayerState struct.
 // This functionality requires the `-g15` launch parameter for TF2 to be set.
-func (f *DumpFetcher) parsePlayerState(reader io.Reader) DumpPlayer {
+func (f *Fetcher) parsePlayerState(reader io.Reader) tf.DumpPlayer {
 	var (
-		data    DumpPlayer
+		data    tf.DumpPlayer
 		scanner = bufio.NewScanner(reader)
 	)
 
@@ -249,7 +231,7 @@ func (f *DumpFetcher) parsePlayerState(reader io.Reader) DumpPlayer {
 		case "m_bConnected":
 			data.Connected[index] = parseBool(value)
 		case "m_iTeam":
-			data.Team[index] = Team(parseInt(value, 0))
+			data.Team[index] = tf.Team(parseInt(value, 0))
 		case "m_bAlive":
 			data.Alive[index] = parseBool(value)
 		case "m_iHealth":

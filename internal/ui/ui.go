@@ -7,7 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/tf-tui/internal/config"
-	"github.com/leighmacdonald/tf-tui/internal/tf/events"
+	"github.com/leighmacdonald/tf-tui/internal/tf"
 	zone "github.com/lrstanley/bubblezone"
 )
 
@@ -28,7 +28,7 @@ const (
 type Snapshot struct {
 	LogSecret int
 	Players   []Player
-	Stats     events.StatsEvent
+	Stats     tf.Stats
 }
 
 type UI struct {
