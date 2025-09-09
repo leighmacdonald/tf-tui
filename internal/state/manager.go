@@ -66,7 +66,7 @@ func NewManager(router *events.Router, conf config.Config, metaFetcher *meta.Fet
 		}
 	} else {
 		for _, server := range conf.Servers {
-			if isLocalServer(server.Address) {
+			if isLocalServer(server.Address) || server.LogSecret == 0 {
 				servers = append(servers, newServerState(conf, conf.Servers[0], router, bdFetcher, dbConn))
 
 				break

@@ -27,6 +27,7 @@ type rootModel struct {
 	banTable              tableBansModel
 	compTable             tableCompModel
 	bdTable               tableBDModel
+	serversTable          *serverTableModel
 	configModel           tea.Model
 	helpModel             tea.Model
 	notesModel            notesModel
@@ -39,27 +40,29 @@ type rootModel struct {
 	footerHeight          int
 	headerHeight          int
 	rendered              string
+	serverMode            bool
 }
 
 func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string, loader ConfigWriter, cachePath string) *rootModel {
 	app := &rootModel{
-		currentView:  viewPlayerTables,
-		previousView: viewPlayerTables,
-		activeTab:    tabOverview,
-		helpModel:    newHelpModel(buildVersion, buildDate, buildCommit, loader.Path(), cachePath),
-		redTable:     newPlayerTableModel(tf.RED, userConfig.SteamID, userConfig.ServerModeEnabled),
-		bluTable:     newPlayerTableModel(tf.BLU, userConfig.SteamID, userConfig.ServerModeEnabled),
-		banTable:     newTableBansModel(),
-		configModel:  newConfigModal(userConfig, loader),
-		compTable:    newTableCompModel(),
-		bdTable:      newTableBDModel(),
-		tabsModel:    newTabsModel(),
-		notesModel:   newNotesModel(),
-		detailPanel:  newDetailPanelModel(userConfig.Links),
-		consoleView:  newConsoleModel(),
-		statusModel:  newStatusBarModel(buildVersion, userConfig.ServerModeEnabled),
-		chatModel:    newChatModel(),
-
+		currentView:           viewMain,
+		previousView:          viewMain,
+		activeTab:             tabOverview,
+		helpModel:             newHelpModel(buildVersion, buildDate, buildCommit, loader.Path(), cachePath),
+		redTable:              newPlayerTableModel(tf.RED, userConfig.SteamID, userConfig.ServerModeEnabled),
+		bluTable:              newPlayerTableModel(tf.BLU, userConfig.SteamID, userConfig.ServerModeEnabled),
+		banTable:              newTableBansModel(),
+		configModel:           newConfigModal(userConfig, loader),
+		compTable:             newTableCompModel(),
+		bdTable:               newTableBDModel(),
+		tabsModel:             newTabsModel(),
+		notesModel:            newNotesModel(),
+		detailPanel:           newDetailPanelModel(userConfig.Links),
+		consoleView:           newConsoleModel(),
+		serversTable:          newServerTableModel(),
+		statusModel:           newStatusBarModel(buildVersion, userConfig.ServerModeEnabled),
+		chatModel:             newChatModel(),
+		serverMode:            userConfig.ServerModeEnabled,
 		contentViewPortHeight: 10,
 		headerHeight:          1,
 		footerHeight:          1,
@@ -85,6 +88,7 @@ func (m rootModel) Init() tea.Cmd {
 		m.bdTable.Init(),
 		m.redTable.Init(),
 		m.bluTable.Init(),
+		m.serversTable.Init(),
 		selectTeam(tf.RED),
 	)
 }
@@ -122,7 +126,7 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, DefaultKeyMap.quit):
-			if m.currentView != viewPlayerTables {
+			if m.currentView != viewMain {
 				break
 			}
 
@@ -180,10 +184,16 @@ func (m rootModel) View() string {
 		content = m.configModel.View()
 	case viewHelp:
 		content = m.helpModel.View()
-	case viewPlayerTables:
-		playerTables := lipgloss.JoinHorizontal(lipgloss.Top, m.redTable.View(), m.bluTable.View())
-		playerHeight := m.height - lipgloss.Height(playerTables) - 5
-		lowerPanelViewportHeight := contentViewPortHeight - lipgloss.Height(playerTables) - 2
+	case viewMain:
+		var topContent string
+		if m.serverMode {
+			topContent = lipgloss.JoinHorizontal(lipgloss.Top, m.serversTable.View())
+		} else {
+			topContent = lipgloss.JoinHorizontal(lipgloss.Top, m.redTable.View(), m.bluTable.View())
+		}
+
+		topContentHeight := m.height - lipgloss.Height(topContent) - 5
+		lowerPanelViewportHeight := contentViewPortHeight - lipgloss.Height(topContent) - 2
 		var ptContent string
 		switch m.activeTab {
 		case tabOverview:
@@ -202,11 +212,11 @@ func (m rootModel) View() string {
 
 		content = lipgloss.JoinVertical(
 			lipgloss.Top,
-			playerTables,
+			topContent,
 			"",
 			lipgloss.NewStyle().
 				Width(m.width-2).
-				Height(playerHeight).
+				Height(topContentHeight).
 				Render(ptContent))
 	}
 
@@ -220,7 +230,8 @@ func (m rootModel) isInitialized() bool {
 }
 
 func (m rootModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 14)
+	cmds := make([]tea.Cmd, 15)
+
 	m.redTable, cmds[1] = m.redTable.Update(msg)
 	m.bluTable, cmds[2] = m.bluTable.Update(msg)
 	m.banTable, cmds[3] = m.banTable.Update(msg)
@@ -234,6 +245,7 @@ func (m rootModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
 	m.chatModel, cmds[11] = m.chatModel.Update(msg)
 	m.configModel, cmds[12] = m.configModel.Update(msg)
 	m.bdTable, cmds[13] = m.bdTable.Update(msg)
+	m.serversTable, cmds[14] = m.serversTable.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }

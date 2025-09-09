@@ -10,11 +10,13 @@ fmt:
 
 check:
 	go tool golangci-lint run --fix --timeout 3m ./...
+	go vet ./...
 
-update:
+update: bump_go_deps generate
+
+bump_go_deps:
 	go get -u ./...
 	go mod tidy
-	make generate
 
 generate:
 	go generate ./...
@@ -27,9 +29,6 @@ test:
 
 tail:
 	tail -f ~/.config/tf-tui/tf-tui.log
-
-config:
-	vim ~/.config/tf-tui/tf-tui.yaml
 
 snapshot:
 	goreleaser release --snapshot --clean

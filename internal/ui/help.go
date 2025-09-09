@@ -39,9 +39,9 @@ func (m helpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, DefaultKeyMap.back):
 			// go back to main view
 			if m.view == viewHelp {
-				m.view = viewPlayerTables
+				m.view = viewMain
 
-				return m, setContentView(viewPlayerTables)
+				return m, setContentView(viewMain)
 			}
 		}
 	case contentView:

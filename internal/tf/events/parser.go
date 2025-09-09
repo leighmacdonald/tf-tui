@@ -43,6 +43,8 @@ const (
 )
 
 type Event struct {
+	// How we identify the owner of this event.
+	LogSecret int
 	Type      EventType
 	Timestamp time.Time
 	Raw       string
@@ -208,9 +210,7 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 
 				continue
 			}
-
-			// TODO different data for server/client modes is avail
-			outEvent.Data = StatusIDEvent{
+			sie := StatusIDEvent{
 				UserID:    int(userID),
 				Player:    match[3],
 				PlayerSID: steamid.New(match[4]),
@@ -218,8 +218,12 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 				Ping:      int(ping),
 				Loss:      int(loss),
 				State:     match[9],
-				Address:   match[10],
 			}
+			if len(match) == 11 {
+				sie.Address = match[10]
+			}
+			// TODO different data for server/client modes is avail
+			outEvent.Data = sie
 		case Kill:
 			outEvent.Data = KillEvent{Player: match[2], Victim: match[3]}
 		case Hostname:

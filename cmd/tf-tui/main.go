@@ -100,7 +100,7 @@ func run(cmd *cobra.Command, _ []string) error {
 	configLoader := config.NewLoader(configUpdates)
 	userConfig, errConfig := configLoader.Read()
 	if errConfig != nil {
-		return errors.Join(errConfig, errApp)
+		return errors.Join(errApp, errConfig)
 	}
 	// Setup file based logger. This is very useful for us as our console is taken over by the ui.
 	logFile, errLogger := config.LoggerInit(config.DefaultLogName, slog.LevelDebug)
@@ -155,7 +155,7 @@ func run(cmd *cobra.Command, _ []string) error {
 		return errors.Join(errStates, errApp)
 	}
 
-	if len(os.Getenv("DEBUG")) > 0 {
+	if userConfig.Debug {
 		consoleDebug := console.NewDebug("testdata/console.log")
 		if errDebug := consoleDebug.Open(); errDebug != nil {
 			return errors.Join(errDebug, errApp)

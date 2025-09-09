@@ -40,6 +40,11 @@ type Config struct {
 	ConsoleLogPath string `mapstructure:"console_log_path"`
 	// UpdateFreqMs defines the frequency in milliseconds at which the app should update the player UI state.
 	UpdateFreqMs int `mapstructure:"update_freq_ms,omitempty"`
+	// CacheDir is where we can cache data.
+	CacheDir string `mapstructure:"cache_dir"`
+	// Debug enables some functionality useful for debugging for development, namely providing a
+	// fake log source and randomly generated player data.
+	Debug bool `mapstructure:"debug,omitempty"`
 	// APIBaseURL is the base URL for the API where external data is fetched from.
 	// Unless you are reimplementing the API, this should be left as is.
 	APIBaseURL string `mapstructure:"api_base_url,omitempty"`
@@ -74,7 +79,7 @@ type SIDFormats string
 
 const (
 	Steam64 SIDFormats = "steam64"
-	Steam2  SIDFormats = "steam"
+	Steam   SIDFormats = "steam"
 	Steam3  SIDFormats = "steam3"
 )
 
@@ -86,7 +91,7 @@ type UserLink struct {
 
 func (u UserLink) Generate(steamID steamid.SteamID) string {
 	switch u.Format {
-	case Steam2:
+	case Steam:
 		return fmt.Sprintf(u.URL, steamID.Steam(false))
 	case Steam3:
 		return fmt.Sprintf(u.URL, steamID.Steam3())

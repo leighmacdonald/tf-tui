@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
@@ -38,7 +39,7 @@ func newServerState(conf config.Config, server config.Server, router *events.Rou
 	blackbox := newBlackBox(store.New(dbConn), allEvent)
 
 	serverEvents := make(chan events.Event)
-	router.ListenFor(server.LogSecret, serverEvents, events.StatusID)
+	router.ListenFor(server.LogSecret, serverEvents, events.Any)
 
 	dumpFetcher := rcon.NewFetcher(server.Address, server.Password, conf.ServerModeEnabled)
 
@@ -64,6 +65,11 @@ type serverState struct {
 	bdFetcher       *bd.Fetcher
 	dumpFetcher     rcon.Fetcher
 	stats           tf.Stats
+	address         string
+	hostName        string
+	mapName         string
+	tags            []string
+	eventCount      atomic.Int64
 }
 
 func (s *serverState) close(ctx context.Context) error {
@@ -117,9 +123,7 @@ func (s *serverState) start(ctx context.Context) error {
 	for {
 		select {
 		case event := <-s.incomingEvents:
-			if err := s.onIncomingEvent(event); err != nil {
-				slog.Error("failed handling incoming log event", slog.String("error", err.Error()))
-			}
+			s.onIncomingEvent(event)
 		case <-dumpTicker.C:
 			s.onDumpTick(ctx)
 		case <-removeTicker.C:
@@ -141,7 +145,7 @@ func (s *serverState) updateBD() {
 		updates[idx] = player
 	}
 
-	s.SetPlayer(updates...)
+	s.setPlayer(updates...)
 }
 
 func (s *serverState) Stats() tf.Stats {
@@ -158,7 +162,7 @@ func (s *serverState) UpdateStats(stats tf.Stats) {
 	s.stats = stats
 }
 
-func (s *serverState) SetPlayer(updates ...Player) {
+func (s *serverState) setPlayer(updates ...Player) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var existing bool
@@ -177,24 +181,68 @@ func (s *serverState) SetPlayer(updates ...Player) {
 	}
 }
 
-func (s *serverState) onIncomingEvent(event events.Event) error {
-	switch data := event.Data.(type) { //nolint:gocritic
+func (s *serverState) onIncomingEvent(event events.Event) {
+	switch data := event.Data.(type) {
+	case events.AddressEvent:
+		s.onAddress(data.Address)
+	case events.ConnectEvent:
+	case events.DisconnectEvent:
+	case events.HostnameEvent:
+		s.onHostName(data.Hostname)
+	case events.KillEvent:
+	case events.MapEvent:
+		s.onMapName(data.MapName)
+	case events.MsgEvent:
+	case events.TagsEvent:
+		s.onTags(data.Tags)
+	case events.RawEvent:
+		s.eventCount.Add(1)
 	case events.StatusIDEvent:
-		player, errPlayer := s.Player(data.PlayerSID)
-		if errPlayer != nil {
-			if !errors.Is(errPlayer, ErrPlayerNotFound) {
-				return errPlayer
-			}
+		s.onStatusID(data)
+	}
+}
 
-			player = Player{SteamID: data.PlayerSID, Meta: tfapi.MetaProfile{Bans: []tfapi.Ban{}}}
+func (s *serverState) onStatusID(data events.StatusIDEvent) {
+	player, errPlayer := s.player(data.PlayerSID)
+	if errPlayer != nil {
+		if !errors.Is(errPlayer, ErrPlayerNotFound) {
+			return
 		}
 
-		player.Name = data.Player
-
-		s.SetPlayer(player)
+		player = Player{SteamID: data.PlayerSID, Meta: tfapi.MetaProfile{Bans: []tfapi.Ban{}}}
 	}
 
-	return nil
+	player.Name = data.Player
+
+	s.setPlayer(player)
+}
+
+func (s *serverState) onAddress(address string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.address = address
+}
+
+func (s *serverState) onHostName(hostname string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.hostName = hostname
+}
+
+func (s *serverState) onMapName(mapName string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.mapName = mapName
+}
+
+func (s *serverState) onTags(tags []string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.tags = tags
 }
 
 func (s *serverState) onDumpTick(ctx context.Context) {
@@ -214,7 +262,7 @@ func (s *serverState) onDumpTick(ctx context.Context) {
 	waitGroup.Wait()
 }
 
-func (s *serverState) Player(steamID steamid.SteamID) (Player, error) {
+func (s *serverState) player(steamID steamid.SteamID) (Player, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, player := range s.players {
@@ -252,7 +300,7 @@ func (s *serverState) updateDump(ctx context.Context) {
 func (s *serverState) UpdateMetaProfile(metaProfiles ...tfapi.MetaProfile) {
 	players := make(Players, len(metaProfiles))
 	for index, meta := range metaProfiles {
-		player, err := s.Player(steamid.New(meta.SteamId))
+		player, err := s.player(steamid.New(meta.SteamId))
 		if err != nil {
 			return
 		}
@@ -261,7 +309,7 @@ func (s *serverState) UpdateMetaProfile(metaProfiles ...tfapi.MetaProfile) {
 		players[index] = player
 	}
 
-	s.SetPlayer(players...)
+	s.setPlayer(players...)
 }
 
 func (s *serverState) removeExpired() {
@@ -289,7 +337,7 @@ func (s *serverState) UpdateDumpPlayer(stats tf.DumpPlayer) {
 			continue
 		}
 
-		player, playerErr := s.Player(sid)
+		player, playerErr := s.player(sid)
 		if playerErr != nil {
 			if !errors.Is(playerErr, ErrPlayerNotFound) {
 				return
@@ -315,5 +363,5 @@ func (s *serverState) UpdateDumpPlayer(stats tf.DumpPlayer) {
 		players = append(players, player)
 	}
 
-	s.SetPlayer(players...)
+	s.setPlayer(players...)
 }
