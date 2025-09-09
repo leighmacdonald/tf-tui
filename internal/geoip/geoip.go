@@ -3,6 +3,7 @@ package geoip
 import (
 	_ "embed"
 	"errors"
+	"net"
 	"net/netip"
 
 	"github.com/oschwald/maxminddb-golang/v2"
@@ -30,12 +31,20 @@ type Record struct {
 	} `maxminddb:"city"`
 }
 
-func Lookup(ipAddr string) (Record, error) {
+func Lookup(address string) (Record, error) {
 	var record Record
 
-	ip, err := netip.ParseAddr(ipAddr)
+	ip, err := netip.ParseAddr(address)
 	if err != nil {
-		return record, errors.Join(err, ErrInvalidIP)
+		ips, errHost := net.LookupHost(address)
+		if errHost != nil {
+			return record, errors.Join(errHost, ErrInvalidIP)
+		}
+
+		ip, err = netip.ParseAddr(ips[0])
+		if err != nil {
+			return record, errors.Join(err, ErrInvalidIP)
+		}
 	}
 
 	if err = db.Lookup(ip).Decode(&record); err != nil {
@@ -50,5 +59,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
 	db = reader
 }

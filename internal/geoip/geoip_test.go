@@ -12,6 +12,9 @@ func TestLookup(t *testing.T) {
 	require.NoError(t, errLookip)
 	require.Equal(t, "US", record.Country.ISOCode)
 
+	_, errLookupDNS := geoip.Lookup("google.com")
+	require.NoError(t, errLookupDNS)
+
 	_, err := geoip.Lookup("bad")
 	require.Error(t, err)
 }

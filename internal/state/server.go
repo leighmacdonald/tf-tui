@@ -12,6 +12,7 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/bd"
 	"github.com/leighmacdonald/tf-tui/internal/config"
+	"github.com/leighmacdonald/tf-tui/internal/geoip"
 	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
@@ -65,6 +66,7 @@ type serverState struct {
 	bdFetcher       *bd.Fetcher
 	dumpFetcher     rcon.Fetcher
 	stats           tf.Stats
+	countryCode     string
 	address         string
 	hostName        string
 	mapName         string
@@ -112,6 +114,13 @@ func (s *serverState) registerAddress(ctx context.Context) error {
 func (s *serverState) start(ctx context.Context) error {
 	if err := s.registerAddress(ctx); err != nil {
 		return err
+	}
+
+	record, errRecord := geoip.Lookup(s.externalAddress)
+	if errRecord != nil {
+		slog.Error("failed to lookup server country code", slog.String("error", errRecord.Error()))
+	} else {
+		s.countryCode = strings.ToLower(record.Country.ISOCode)
 	}
 
 	// Start recording events.
