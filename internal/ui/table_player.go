@@ -181,8 +181,8 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectedTeam = msg
 
 		return m, m.selectClosestPlayer()
-	case Players:
-		return m.updatePlayers(msg)
+	case Snapshot:
+		return m.updatePlayers(msg.Server.Players)
 	}
 
 	return m, nil

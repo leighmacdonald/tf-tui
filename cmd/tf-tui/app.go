@@ -125,7 +125,7 @@ func (app *App) updateUIState() {
 	for idx, snap := range snapshots {
 		uiSnapsnot := ui.Snapshot{LogSecret: snap.LogSecret, Stats: snap.Stats}
 		for _, player := range snap.Players {
-			uiSnapsnot.Players = append(uiSnapsnot.Players, ui.Player{
+			uiSnapsnot.Server.Players = append(uiSnapsnot.Server.Players, ui.Player{
 				SteamID:                  player.SteamID,
 				Name:                     player.Name,
 				Ping:                     player.Ping,
@@ -160,6 +160,9 @@ func (app *App) updateUIState() {
 	}
 
 	app.ui.Send(uiSnaps)
+	if len(uiSnaps) > 0 {
+		app.ui.Send(uiSnaps[0])
+	}
 }
 
 func (app *App) createUI(ctx context.Context, loader ui.ConfigWriter) UI {

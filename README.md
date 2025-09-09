@@ -96,7 +96,7 @@ to a srcds instance for remote monitoring. This works the same way as tools like
 
 ## Debug Log
 
-If you set `DEBUG=1` env var, a log file will be created for extra error logging & debug messages.
+If you set `TFAPI_DEBUG=1` env var, a log file will be created for extra error logging & debug messages.
 
 Linux: `~/.config/tf-tui/tf-tui.log`
 

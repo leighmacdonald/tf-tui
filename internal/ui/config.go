@@ -203,8 +203,8 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, DefaultKeyMap.back):
 			// go back to main view
 			if m.activeView == viewConfig {
-				m.activeView = viewPlayerTables
-				cmds = append(cmds, setContentView(viewPlayerTables)) //nolint:makezero
+				m.activeView = viewMain
+				cmds = append(cmds, setContentView(viewMain)) //nolint:makezero
 			}
 		case key.Matches(msg, DefaultKeyMap.up):
 			if m.focusIndex > 0 && m.focusIndex <= fieldSave {
@@ -243,7 +243,7 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(
 					setConfig(cfg),
 					setStatusMessage("Saved config", false),
-					setContentView(viewPlayerTables))
+					setContentView(viewMain))
 			}
 		}
 	}

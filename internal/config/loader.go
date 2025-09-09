@@ -22,11 +22,6 @@ func NewLoader(changes chan<- Config) *Loader {
 		con    = viper.New()
 	)
 
-	errDotEnv := godotenv.Load()
-	if errDotEnv != nil {
-		slog.Debug("Could not load .env file", slog.String("error", errDotEnv.Error()))
-	}
-
 	con.SetDefault("steam_id", "")
 	con.SetDefault("console_log_path", defaultConsoleLogPath())
 	con.SetDefault("update_freq_ms", 2000)
@@ -49,6 +44,8 @@ func NewLoader(changes chan<- Config) *Loader {
 			"log_secret": 0,
 		},
 	})
+	con.SetDefault("debug", false)
+
 	con.SetConfigName(DefaultConfigName)
 	con.SetConfigType("yaml")
 	con.SetEnvPrefix(EnvPrefix)
@@ -127,4 +124,8 @@ func (cl *Loader) Read() (Config, error) {
 	}
 
 	return config, nil
+}
+
+func init() {
+	godotenv.Load()
 }

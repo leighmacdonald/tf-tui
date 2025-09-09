@@ -20,14 +20,14 @@ var ErrUIExit = errors.New("ui error returned")
 type contentView int
 
 const (
-	viewPlayerTables contentView = iota
+	viewMain contentView = iota
 	viewConfig
 	viewHelp
 )
 
 type Snapshot struct {
 	LogSecret int
-	Players   []Player
+	Server    Server
 	Stats     tf.Stats
 }
 

@@ -16,9 +16,7 @@ type statusBarModel struct {
 	mapName     string
 	statusMsg   string
 	statusError bool
-	players     Players
-	redPlayers  int
-	bluPlayers  int
+	snapshot    Snapshot
 	version     string
 	serverMode  bool
 	stats       tf.Stats
@@ -36,23 +34,8 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tf.Stats:
 		m.stats = msg
-	case Players:
-		var (
-			red int
-			blu int
-		)
-
-		for _, player := range msg {
-			switch player.Team { //nolint:exhaustive
-			case tf.RED:
-				red++
-			case tf.BLU:
-				blu++
-			}
-		}
-		m.players = msg
-		m.redPlayers = red
-		m.bluPlayers = blu
+	case Snapshot:
+		m.snapshot = msg
 	case StatusMsg:
 		m.statusMsg = msg.Message
 		m.statusError = msg.Err
@@ -79,8 +62,8 @@ func (m statusBarModel) View() string {
 	var args []string
 	if !m.serverMode {
 		args = append(args,
-			styles.StatusRedTeam.Render(fmt.Sprintf("%3d", m.redPlayers)),
-			styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.bluPlayers)))
+			styles.StatusRedTeam.Render(fmt.Sprintf("%3d", m.snapshot.Server.Players.TeamCount(tf.RED))),
+			styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.snapshot.Server.Players.TeamCount(tf.BLU))))
 	} else {
 		if m.stats.FPS < 66 {
 			args = append(args, styles.StatusError.Underline(true).Render(fmt.Sprintf("FPS %.2f", m.stats.FPS)))
