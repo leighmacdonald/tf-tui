@@ -148,15 +148,15 @@ func newParser() *parser {
 	return &parser{
 		rx: []*regexp.Regexp{
 			// 08/16/2025 - 01:25:53: Completed demo, recording time 369.4, game frames 23494.?
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s(.+?)\skilled\s(.+?)\swith\s(.+)(\.|\. \(crit\))$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s(?P<name>.+?)\s:\s{2}(?P<message>.+?)$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s(.+?)\sconnected$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s(Connecting to|Differing lobby received.).+?$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s#\s{1,6}(?P<id>\d{1,6})\s"(?P<name>.+?)"\s+(?P<sid>\[U:\d:\d{1,10}])\s{1,8}(?P<time>\d{1,3}:\d{2}(:\d{2})?)\s+(?P<ping>\d{1,4})\s{1,8}(?P<loss>\d{1,3})\s(spawning|active)$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\shostname:\s(.+?)$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\smap\s{5}:\s(.+?)\sat.+?$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\stags\s{4}:\s(.+?)$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\sudp/ip\s{2}:\s(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5})$`),
+			regexp.MustCompile(`^((?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s)(.+?)\skilled\s(.+?)\swith\s(.+)(\.|\. \(crit\))$`),
+			regexp.MustCompile(`^((?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s)(?P<name>.+?)\s:\s{2}(?P<message>.+?)$`),
+			regexp.MustCompile(`^((?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s)(.+?)\sconnected$`),
+			regexp.MustCompile(`^((?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s)(Connecting to|Differing lobby received.).+?$`),
+			regexp.MustCompile(`^((?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2})\s+:\s)?#\s{1,6}(?P<id>\d{1,6})\s"(?P<name>.+?)"\s+(?P<sid>\[U:\d:\d{1,10}])\s{1,8}(?P<time>\d{1,3}:\d{2}(?::\d{2})?)\s+(?P<ping>\d{1,4})\s{1,8}(?P<loss>\d{1,3})\s(spawning|active)(?P<ip>\s+.+?)?$`),
+			regexp.MustCompile(`^((?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s)?hostname:\s(.+?)$`),
+			regexp.MustCompile(`^((?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2})\s+:\s)?map\s{5}:\s(.+?)\sat.+?$`),
+			regexp.MustCompile(`^((?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2})\s+:\s)?tags\s{4}:\s(.+?)$`),
+			regexp.MustCompile(`^((?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s)udp/ip\s{2}:\s(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5})$`),
 		},
 	}
 }
@@ -170,20 +170,24 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 		}
 		outEvent.Raw = msg
 		outEvent.Type = EventType(parserIdx)
-
-		if errTS := outEvent.ApplyTimestamp(match[1]); errTS != nil {
-			slog.Error("Failed to parse timestamp", slog.String("error", errTS.Error()))
+		if match[1] != "" {
+			if errTS := outEvent.ApplyTimestamp(match[1]); errTS != nil {
+				slog.Error("Failed to parse timestamp", slog.String("error", errTS.Error()))
+			} else {
+				outEvent.Timestamp = time.Now()
+			}
+		} else {
+			outEvent.Timestamp = time.Now()
 		}
-
 		switch outEvent.Type { //nolint:exhaustive
 		case Connect:
-			outEvent.Data = ConnectEvent{Player: match[2]}
+			outEvent.Data = ConnectEvent{Player: match[3]}
 		case Disconnect:
-			outEvent.Data = DisconnectEvent{Player: match[2]}
+			outEvent.Data = DisconnectEvent{Player: match[3]}
 		case Msg:
 			outEvent.Data = parseMsg(match)
 		case StatusID:
-			userID, errUserID := strconv.ParseInt(match[2], 10, 32)
+			userID, errUserID := strconv.ParseInt(match[3], 10, 32)
 			if errUserID != nil {
 				slog.Error("Failed to parse status userid", slog.String("error", errUserID.Error()))
 
@@ -204,7 +208,7 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 				continue
 			}
 
-			dur, durErr := parseConnected(match[5])
+			dur, durErr := parseConnected(match[6])
 			if durErr != nil {
 				slog.Error("Failed to parse status duration", slog.String("error", durErr.Error()))
 
@@ -212,28 +216,28 @@ func (parser *parser) parse(msg string, outEvent *Event) error {
 			}
 			sie := StatusIDEvent{
 				UserID:    int(userID),
-				Player:    match[3],
-				PlayerSID: steamid.New(match[4]),
+				Player:    match[4],
+				PlayerSID: steamid.New(match[5]),
 				Connected: int(dur.Seconds()),
 				Ping:      int(ping),
 				Loss:      int(loss),
 				State:     match[9],
 			}
 			if len(match) == 11 {
-				sie.Address = match[10]
+				sie.Address = strings.TrimSpace(match[10])
 			}
 			// TODO different data for server/client modes is avail
 			outEvent.Data = sie
 		case Kill:
-			outEvent.Data = KillEvent{Player: match[2], Victim: match[3]}
+			outEvent.Data = KillEvent{Player: match[3], Victim: match[4]}
 		case Hostname:
-			outEvent.Data = HostnameEvent{Hostname: match[2]}
+			outEvent.Data = HostnameEvent{Hostname: match[3]}
 		case Map:
-			outEvent.Data = MapEvent{MapName: match[2]}
+			outEvent.Data = MapEvent{MapName: match[3]}
 		case Tags:
-			outEvent.Data = TagsEvent{Tags: strings.Split(match[2], ",")}
+			outEvent.Data = TagsEvent{Tags: strings.Split(match[3], ",")}
 		case Address:
-			outEvent.Data = AddressEvent{Address: match[2]}
+			outEvent.Data = AddressEvent{Address: match[3]}
 		case Any:
 			outEvent.Data = AnyEvent{Raw: msg}
 		}
