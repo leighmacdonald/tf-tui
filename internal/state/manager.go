@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -37,15 +36,10 @@ type serverMetaUpdate struct {
 func NewManager(router *events.Router, conf config.Config, metaFetcher *meta.Fetcher,
 	bdFetcher *bd.Fetcher, dbConn store.DBTX,
 ) (*Manager, error) {
-	isLocalServer := func(address string) bool {
-		// Fragile, probably better as a flag.
-		return strings.HasPrefix(address, "127.0.0.1") || strings.HasPrefix(address, "localhost")
-	}
-
+	var servers []*serverState
 	var source console.Source
-	if !conf.ServerModeEnabled {
-		source = console.NewLocal(conf.ConsoleLogPath)
-	} else {
+
+	if conf.ServerModeEnabled {
 		logSource, errListener := console.NewRemote(console.RemoteOpts{
 			ListenAddress: conf.ServerBindAddress,
 		})
@@ -53,25 +47,12 @@ func NewManager(router *events.Router, conf config.Config, metaFetcher *meta.Fet
 			return nil, errListener
 		}
 		source = logSource
-	}
-
-	var servers []*serverState
-	if conf.ServerModeEnabled {
 		for _, server := range conf.Servers {
-			if isLocalServer(server.Address) {
-				continue
-			}
-
 			servers = append(servers, newServerState(conf, server, router, bdFetcher, dbConn))
 		}
 	} else {
-		for _, server := range conf.Servers {
-			if isLocalServer(server.Address) || server.LogSecret == 0 {
-				servers = append(servers, newServerState(conf, conf.Servers[0], router, bdFetcher, dbConn))
-
-				break
-			}
-		}
+		source = console.NewLocal(conf.ConsoleLogPath)
+		servers = []*serverState{newServerState(conf, conf.Client, router, bdFetcher, dbConn)}
 	}
 
 	if len(servers) == 0 {
@@ -127,7 +108,7 @@ func (s *Manager) Close(ctx context.Context) {
 	waitGroup.Wait()
 }
 
-func (s *Manager) Start(ctx context.Context) {
+func (s *Manager) Start(ctx context.Context, router *events.Router) {
 	for _, server := range s.serverStates {
 		go func(srv *serverState) {
 			if err := srv.start(ctx); err != nil {
@@ -139,6 +120,8 @@ func (s *Manager) Start(ctx context.Context) {
 	if errOpen := s.logSource.Open(); errOpen != nil {
 		slog.Error("Failed to open log source", slog.String("error", errOpen.Error()))
 	}
+
+	s.logSource.Start(ctx, router)
 }
 
 func (s *Manager) metaUpdater(ctx context.Context) {

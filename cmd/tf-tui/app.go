@@ -49,7 +49,7 @@ func NewApp(conf config.Config, states *state.Manager, database store.DBTX, rout
 // Start brings up all the background goroutines and starts the main event processing loop.
 func (app *App) Start(ctx context.Context, done <-chan any) {
 	// Start collecting state updates.
-	go app.state.Start(ctx)
+	go app.state.Start(ctx, app.router)
 
 	// Start sending game state updates to the UI.
 	go app.stateSyncer(ctx)

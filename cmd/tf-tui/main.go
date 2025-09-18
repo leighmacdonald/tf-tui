@@ -165,7 +165,6 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 
 	done := make(chan any)
-
 	app := NewApp(userConfig, states, database, router, configUpdates)
 
 	go func() {
