@@ -3,10 +3,12 @@ package console
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type srcdsPacket byte
@@ -78,12 +80,22 @@ func (l *Remote) Open() error {
 // map the server logs to the internal known server id. The DNS is updated
 // every 60 minutes so that it remains up to date.
 func (l *Remote) Start(ctx context.Context, receiver Receiver) {
-	insecureCount := uint64(0)
+	var (
+		insecureCount       = uint64(0)
+		serverMessageCounts = map[int]int{}
+		logTicker           = time.NewTicker(time.Second * 5)
+	)
 
 	slog.Info("Starting log reader", slog.String("listen_addr", l.udpAddr.String()+"/udp"))
 
 	for {
 		select {
+		case <-logTicker.C:
+			var args []any
+			for logSecret, count := range serverMessageCounts {
+				args = append(args, slog.String("server_id:count", fmt.Sprintf("%d:%d", logSecret, count)))
+			}
+			slog.Info("Log message counts", args...)
 		case <-ctx.Done():
 			return
 		default:
@@ -97,6 +109,8 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 
 				continue
 			}
+
+			var reqSecret int
 
 			switch srcdsPacket(buffer[4]) {
 			case s2aLogString: // Legacy/insecure format (no secret)
@@ -128,13 +142,14 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 					continue
 				}
 
-				if secret > 0 && secret != int64(l.secret) {
-					slog.Warn("Received unauthenticated log message: Invalid secret")
-
-					continue
-				}
-
 				receiver.Send(int(secret), strings.TrimSpace(line[idx:readLen]))
+				reqSecret = int(secret)
+			}
+
+			if _, ok := serverMessageCounts[reqSecret]; !ok {
+				serverMessageCounts[reqSecret] = 1
+			} else {
+				serverMessageCounts[reqSecret]++
 			}
 		}
 	}

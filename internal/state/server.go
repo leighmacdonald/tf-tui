@@ -32,7 +32,7 @@ type Snapshot struct {
 	Stats     tf.Stats
 }
 
-func newServerState(conf config.Config, server config.Server, router *events.Router, bdFetcher *bd.Fetcher,
+func newServerState(conf config.Config, server config.ServerConfig, router *events.Router, bdFetcher *bd.Fetcher,
 	dbConn store.DBTX,
 ) *serverState {
 	allEvent := make(chan events.Event, 10)
@@ -59,7 +59,7 @@ func newServerState(conf config.Config, server config.Server, router *events.Rou
 type serverState struct {
 	mu              *sync.RWMutex
 	players         Players
-	server          config.Server
+	server          config.ServerConfig
 	externalAddress string
 	blackbox        *blackBox
 	incomingEvents  chan events.Event

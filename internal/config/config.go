@@ -62,10 +62,12 @@ type Config struct {
 	// Links can be used to provide additional links to websites in the overview panel.
 	Links []UserLink `mapstructure:"links"`
 	// Servers contains a list of all known servers.
-	Servers []Server `mapstructure:"servers"`
+	Servers []ServerConfig `mapstructure:"servers"`
+	// Client is the connect info for running in local client mode.
+	Client ServerConfig `mapstructure:"client"`
 }
 
-type Server struct {
+type ServerConfig struct {
 	// Address is the RCON address of the server.
 	Address string `mapstructure:"address"`
 	// Password is the RCON password of the server.
