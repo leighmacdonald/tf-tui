@@ -193,7 +193,7 @@ func (s *serverState) setPlayer(updates ...Player) {
 func (s *serverState) onIncomingEvent(event events.Event) {
 	switch data := event.Data.(type) {
 	case events.AddressEvent:
-		s.onAddress(data.Address)
+		s.onAddress(data.Address.String())
 	case events.ConnectEvent:
 	case events.DisconnectEvent:
 	case events.HostnameEvent:

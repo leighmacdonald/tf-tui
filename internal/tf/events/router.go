@@ -57,9 +57,9 @@ func (l *Router) ListenFor(logSecret int, handler chan<- Event, logTypes ...Even
 
 // Send is responding for parsing and sending the result to any matching registered channels.
 func (l *Router) Send(logSecret int, line string) {
-	var logEvent Event
 	// TODO move the parser outside of the router, instead sending already parsed events to the router instead.
-	if err := l.parser.parse(line, &logEvent); err != nil || errors.Is(err, ErrNoMatch) {
+	logEvent, err := l.parser.parse(line)
+	if err != nil || errors.Is(err, ErrNoMatch) {
 		logEvent.Type = Any
 		logEvent.Raw = line
 	}
