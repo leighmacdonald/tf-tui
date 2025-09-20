@@ -6,10 +6,10 @@ debug:
 	dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient
 
 fmt:
-	go tool golangci-lint fmt
+	golangci-lint fmt
 
 check:
-	go tool golangci-lint run --fix --timeout 3m ./...
+	golangci-lint run --fix --timeout 3m ./...
 	go vet ./...
 
 update: bump_go_deps generate
@@ -34,7 +34,7 @@ snapshot:
 	goreleaser release --snapshot --clean
 
 demo:
-	go tool vhs docs/demo.vhs
+	vhs docs/demo.vhs
 
 build:
 	go build -o tf-tui cmd/tf-tui/*

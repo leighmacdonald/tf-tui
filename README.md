@@ -106,6 +106,16 @@ Tail shortcut: `make tail`
 
 The only build dependency is `go1.24+`.
 
+CLI tools that are expected to exist in $PATH, You should prefer distro packages if available and the toolchain is recent enough, otherwise
+you can just build and install them as shown:
+
+```
+go install github.com/charmbracelet/vhs
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
+go install github.com/sqlc-dev/sqlc/cmd/sqlc
+```
+
 Full snapshot build using goreleaser. Binaries are output to the platform specific paths: `./dist/tf-tui_{linux,windows}/tf-tui`:
 
 ```sh
