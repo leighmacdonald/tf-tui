@@ -2,6 +2,7 @@ package events
 
 import (
 	"fmt"
+	"net/netip"
 	"testing"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
@@ -29,6 +30,9 @@ edicts  : 1678 used of 2048 max
 		Result Event
 	}
 
+	// 08/16/2025 - 01:13:50: Umevol killed (TPT) Mystic Ghost with scattergun.
+	// 08/16/2025 - 01:13:52: GlorpiusJinglebuck killed jaydendillonk with knife. (crit)
+
 	cases := []tc{
 		{
 			Line: "#     98 \"Toonice [no sound]\" [U:1:442729157]     1:02:19    66    0 active 1.1.1.1:27005",
@@ -41,27 +45,44 @@ edicts  : 1678 used of 2048 max
 				Loss:      0,
 				State:     "active",
 				Address:   "1.1.1.1:27005",
-			}}},
-		{
+			}},
+		}, {
 			Line:   "hostname: Uncletopia | Chicago | 1 | All Maps",
 			Result: Event{Type: Hostname, Data: HostnameEvent{Hostname: "Uncletopia | Chicago | 1 | All Maps"}},
 		}, // {Line: "version : 9978583/24 9978583 secure", Result: Event{Type: Hostname}},
 		{
+			Line:   "version : 9978583/24 9978583 secure",
+			Result: Event{Type: Version, Data: VersionEvent{Version: 9978583, Secure: true}},
+		}, {
 			Line:   "map     : pl_patagonia at: 0 x, 0 y, 0 z",
-			Result: Event{Type: Map, Data: MapEvent{MapName: "pl_patagonia"}}},
-		{
+			Result: Event{Type: Map, Data: MapEvent{MapName: "pl_patagonia"}},
+		}, {
 			Line:   "tags    : nocrits,nodmgspread,payload,uncletopia",
-			Result: Event{Type: Tags, Data: TagsEvent{Tags: []string{"nocrits", "nodmgspread", "payload", "uncletopia"}}}},
-		// 	{Line: "udp/ip  : ?.?.?.?:?  (public IP from Steam: 108.181.62.21)", Result: Event{Type: Address}},
+			Result: Event{Type: Tags, Data: TagsEvent{Tags: []string{"nocrits", "nodmgspread", "payload", "uncletopia"}}},
+		}, {
+			Line:   "udp/ip  : ?.?.?.?:?  (public IP from Steam: 108.181.62.21)",
+			Result: Event{Type: Address, Data: AddressEvent{Address: netip.MustParseAddr("108.181.62.21")}},
+		}, {
+			Line:   "08/16/2025 - 01:13:50: Umevol killed (TPT) Mystic Ghost with scattergun.",
+			Result: Event{Type: Kill, Data: KillEvent{Player: "Umevol", Victim: "(TPT) Mystic Ghost", Weapon: "scattergun"}},
+		}, {
+			Line:   "08/16/2025 - 01:13:52: GlorpiusJinglebuck killed jaydendillonk with knife. (crit)",
+			Result: Event{Type: Kill, Data: KillEvent{Player: "GlorpiusJinglebuck", Victim: "jaydendillonk", Weapon: "knife", Crit: true}},
+		}, {
+			Line:   "Umevol killed (TPT) Mystic Ghost with scattergun.",
+			Result: Event{Type: Kill, Data: KillEvent{Player: "Umevol", Victim: "(TPT) Mystic Ghost", Weapon: "scattergun"}},
+		}, {
+			Line:   "GlorpiusJinglebuck killed jaydendillonk with knife. (crit)",
+			Result: Event{Type: Kill, Data: KillEvent{Player: "GlorpiusJinglebuck", Victim: "jaydendillonk", Weapon: "knife", Crit: true}},
+		},
 	}
 
 	parser := newParser()
 
 	for index, testCase := range cases {
-		var evt Event
-		require.NoError(t, parser.parse(testCase.Line, &evt), fmt.Sprintf("Test %d fail - parse", index))
+		evt, err := parser.parse(testCase.Line)
+		require.NoError(t, err, fmt.Sprintf("Test %d fail - parse", index))
 		require.Equal(t, testCase.Result.Type, evt.Type, fmt.Sprintf("Test %d fail - type", index))
 		require.Equal(t, testCase.Result.Data, evt.Data)
 	}
-
 }

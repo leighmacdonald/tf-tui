@@ -41,7 +41,7 @@ func (b *blackBox) Start(ctx context.Context) {
 				b.onConnect(ctx, event)
 			case events.DisconnectEvent:
 			case events.AddressEvent:
-				b.match.Address = data.Address
+				b.match.Address = data.Address.String()
 			case events.HostnameEvent:
 				b.match.Hostname = data.Hostname
 			case events.TagsEvent:
