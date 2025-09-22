@@ -30,7 +30,7 @@ gomod:
 builds:
   - env:
       - CGO_ENABLED=0
-    main: ./cmd/tf-tui
+    main: ./internal/cmd/tf-tui
     binary: tf-tui
     goos:
       - linux

@@ -37,7 +37,7 @@ demo:
 	vhs docs/demo.vhs
 
 build:
-	go build -o tf-tui cmd/tf-tui/*
+	go build -o tf-tui internal/cmd/tf-tui/*
 
 run: build
 	./tf-tui
