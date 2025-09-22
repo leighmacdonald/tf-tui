@@ -136,7 +136,7 @@ type KillEvent struct {
 	Crit      bool
 }
 
-type parser struct {
+type Parser struct {
 	evtChan     chan Event
 	ReadChannel chan string
 	rx          []regexPair
@@ -158,8 +158,8 @@ type regexPair struct {
 	eventType EventType
 }
 
-func newParser() *parser {
-	return &parser{
+func NewParser() *Parser {
+	return &Parser{
 		rx: []regexPair{
 			// 08/16/2025 - 01:25:53: Completed demo, recording time 369.4, game frames 23494.?
 			{eventType: Kill, regex: regexp.MustCompile(`^(?:[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}:\s+)?(.+?)\skilled\s(.+?)\swith\s(.+)(\.|\. \(crit\))$`)},
@@ -176,7 +176,7 @@ func newParser() *parser {
 	}
 }
 
-func (parser *parser) parse(msg string) (Event, error) {
+func (parser *Parser) Parse(msg string) (Event, error) {
 	// the index must match the index of the EventType const values
 	var outEvent Event
 

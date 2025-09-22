@@ -45,6 +45,8 @@ func (r LogRow) Render(width int) string {
 		body = styles.ConsoleKill.Render(body)
 	case events.Stats:
 		body = styles.ConsoleKill.Render(body)
+	case events.Version:
+		// TODO
 	case events.Any:
 		fallthrough
 	default:

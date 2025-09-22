@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/joho/godotenv"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/spf13/viper"
 )
@@ -124,8 +123,4 @@ func (cl *Loader) Read() (Config, error) {
 	}
 
 	return config, nil
-}
-
-func init() {
-	godotenv.Load()
 }

@@ -10,7 +10,7 @@ import (
 
 func NewRouter() *Router {
 	return &Router{
-		parser:     newParser(),
+		parser:     NewParser(),
 		readers:    make(map[int]map[EventType][]chan<- Event),
 		readersAny: make(map[int][]chan<- Event),
 		readersMu:  &sync.RWMutex{},
@@ -24,7 +24,7 @@ type Router struct {
 	readersAny map[int][]chan<- Event
 	readers    map[int]map[EventType][]chan<- Event
 	readersMu  *sync.RWMutex
-	parser     *parser
+	parser     *Parser
 }
 
 // ListenFor registers a channel to start receiving events for the specified event.
@@ -58,7 +58,7 @@ func (l *Router) ListenFor(logSecret int, handler chan<- Event, logTypes ...Even
 // Send is responding for parsing and sending the result to any matching registered channels.
 func (l *Router) Send(logSecret int, line string) {
 	// TODO move the parser outside of the router, instead sending already parsed events to the router instead.
-	logEvent, err := l.parser.parse(line)
+	logEvent, err := l.parser.Parse(line)
 	if err != nil || errors.Is(err, ErrNoMatch) {
 		logEvent.Type = Any
 		logEvent.Raw = line

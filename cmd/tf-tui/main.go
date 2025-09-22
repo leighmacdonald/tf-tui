@@ -15,7 +15,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/charmbracelet/fang"
-	"github.com/leighmacdonald/steamid/v4/steamid"
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/leighmacdonald/tf-tui/internal/bd"
 	"github.com/leighmacdonald/tf-tui/internal/cache"
 	"github.com/leighmacdonald/tf-tui/internal/config"
@@ -77,9 +77,6 @@ func version(_ *cobra.Command, _ []string) {
 
 // run is the main entry point of tf-tui.
 func run(cmd *cobra.Command, _ []string) error {
-	v := steamid.New(76561197970669109)
-
-	slog.Info(fmt.Sprintf("%d", v.Universe))
 	// If PROFILE is set, it will be used as the output file path for the profiler.
 	if len(os.Getenv("PROFILE")) > 0 {
 		f, err := os.Create(os.Getenv("PROFILE"))

@@ -1,4 +1,4 @@
-package events
+package events_test
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
+	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +28,7 @@ edicts  : 1678 used of 2048 max
 `
 	type tc struct {
 		Line   string
-		Result Event
+		Result events.Event
 	}
 
 	// 08/16/2025 - 01:13:50: Umevol killed (TPT) Mystic Ghost with scattergun.
@@ -36,7 +37,7 @@ edicts  : 1678 used of 2048 max
 	cases := []tc{
 		{
 			Line: "#     98 \"Toonice [no sound]\" [U:1:442729157]     1:02:19    66    0 active 1.1.1.1:27005",
-			Result: Event{Type: StatusID, Data: StatusIDEvent{
+			Result: events.Event{Type: events.StatusID, Data: events.StatusIDEvent{
 				Player:    "Toonice [no sound]",
 				UserID:    98,
 				PlayerSID: steamid.New("[U:1:442729157]"),
@@ -48,39 +49,39 @@ edicts  : 1678 used of 2048 max
 			}},
 		}, {
 			Line:   "hostname: Uncletopia | Chicago | 1 | All Maps",
-			Result: Event{Type: Hostname, Data: HostnameEvent{Hostname: "Uncletopia | Chicago | 1 | All Maps"}},
+			Result: events.Event{Type: events.Hostname, Data: events.HostnameEvent{Hostname: "Uncletopia | Chicago | 1 | All Maps"}},
 		}, // {Line: "version : 9978583/24 9978583 secure", Result: Event{Type: Hostname}},
 		{
 			Line:   "version : 9978583/24 9978583 secure",
-			Result: Event{Type: Version, Data: VersionEvent{Version: 9978583, Secure: true}},
+			Result: events.Event{Type: events.Version, Data: events.VersionEvent{Version: 9978583, Secure: true}},
 		}, {
 			Line:   "map     : pl_patagonia at: 0 x, 0 y, 0 z",
-			Result: Event{Type: Map, Data: MapEvent{MapName: "pl_patagonia"}},
+			Result: events.Event{Type: events.Map, Data: events.MapEvent{MapName: "pl_patagonia"}},
 		}, {
 			Line:   "tags    : nocrits,nodmgspread,payload,uncletopia",
-			Result: Event{Type: Tags, Data: TagsEvent{Tags: []string{"nocrits", "nodmgspread", "payload", "uncletopia"}}},
+			Result: events.Event{Type: events.Tags, Data: events.TagsEvent{Tags: []string{"nocrits", "nodmgspread", "payload", "uncletopia"}}},
 		}, {
 			Line:   "udp/ip  : ?.?.?.?:?  (public IP from Steam: 108.181.62.21)",
-			Result: Event{Type: Address, Data: AddressEvent{Address: netip.MustParseAddr("108.181.62.21")}},
+			Result: events.Event{Type: events.Address, Data: events.AddressEvent{Address: netip.MustParseAddr("108.181.62.21")}},
 		}, {
 			Line:   "08/16/2025 - 01:13:50: Umevol killed (TPT) Mystic Ghost with scattergun.",
-			Result: Event{Type: Kill, Data: KillEvent{Player: "Umevol", Victim: "(TPT) Mystic Ghost", Weapon: "scattergun"}},
+			Result: events.Event{Type: events.Kill, Data: events.KillEvent{Player: "Umevol", Victim: "(TPT) Mystic Ghost", Weapon: "scattergun"}},
 		}, {
 			Line:   "08/16/2025 - 01:13:52: GlorpiusJinglebuck killed jaydendillonk with knife. (crit)",
-			Result: Event{Type: Kill, Data: KillEvent{Player: "GlorpiusJinglebuck", Victim: "jaydendillonk", Weapon: "knife", Crit: true}},
+			Result: events.Event{Type: events.Kill, Data: events.KillEvent{Player: "GlorpiusJinglebuck", Victim: "jaydendillonk", Weapon: "knife", Crit: true}},
 		}, {
 			Line:   "Umevol killed (TPT) Mystic Ghost with scattergun.",
-			Result: Event{Type: Kill, Data: KillEvent{Player: "Umevol", Victim: "(TPT) Mystic Ghost", Weapon: "scattergun"}},
+			Result: events.Event{Type: events.Kill, Data: events.KillEvent{Player: "Umevol", Victim: "(TPT) Mystic Ghost", Weapon: "scattergun"}},
 		}, {
 			Line:   "GlorpiusJinglebuck killed jaydendillonk with knife. (crit)",
-			Result: Event{Type: Kill, Data: KillEvent{Player: "GlorpiusJinglebuck", Victim: "jaydendillonk", Weapon: "knife", Crit: true}},
+			Result: events.Event{Type: events.Kill, Data: events.KillEvent{Player: "GlorpiusJinglebuck", Victim: "jaydendillonk", Weapon: "knife", Crit: true}},
 		},
 	}
 
-	parser := newParser()
+	parser := events.NewParser()
 
 	for index, testCase := range cases {
-		evt, err := parser.parse(testCase.Line)
+		evt, err := parser.Parse(testCase.Line)
 		require.NoError(t, err, fmt.Sprintf("Test %d fail - parse", index))
 		require.Equal(t, testCase.Result.Type, evt.Type, fmt.Sprintf("Test %d fail - type", index))
 		require.Equal(t, testCase.Result.Data, evt.Data)

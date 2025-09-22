@@ -116,7 +116,7 @@ func (s *serverState) start(ctx context.Context) error {
 		return err
 	}
 
-	record, errRecord := geoip.Lookup(s.externalAddress)
+	record, errRecord := geoip.Lookup(ctx, s.externalAddress)
 	if errRecord != nil {
 		slog.Error("failed to lookup server country code", slog.String("error", errRecord.Error()))
 	} else {
