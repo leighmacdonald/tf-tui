@@ -1,4 +1,4 @@
-//go:generate go tool sqlc generate -f .sqlc.yaml
+//go:generate sqlc generate -f .sqlc.yaml
 package store
 
 import (
