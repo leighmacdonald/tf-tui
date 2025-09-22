@@ -90,6 +90,8 @@ func (l *Local) Start(ctx context.Context, receiver Receiver) {
 				continue // Happens on linux only?
 			}
 
+			slog.Debug("Log line", slog.String("src", "local"), slog.String("line", msg.Text))
+
 			receiver.Send(0, msg.Text)
 		case <-l.stopChan:
 			stop()

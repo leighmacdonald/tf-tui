@@ -171,7 +171,7 @@ func NewParser() *Parser {
 			{eventType: Map, regex: regexp.MustCompile(`map\s{5}:\s(.+?)\sat.+?$`)},
 			{eventType: Tags, regex: regexp.MustCompile(`tags\s{4}:\s(.+?)$`)},
 			{eventType: Address, regex: regexp.MustCompile(`udp/ip.+?public IP from Steam: (\d+\.\d+\.\d+\.\d+)`)},
-			{eventType: Version, regex: regexp.MustCompile(`^version\s+:.+?\d+/\d+\s+(\d+)\s+(secure)?`)},
+			{eventType: Version, regex: regexp.MustCompile(`version\s+:.+?\d+\d+\s+(\d+)\s+(secure)?`)},
 		},
 	}
 }
@@ -191,9 +191,11 @@ func (parser *Parser) Parse(msg string) (Event, error) {
 
 		switch outEvent.Type { //nolint:exhaustive
 		case Connect:
-			outEvent.Data = ConnectEvent{Player: match[3]}
+			outEvent.Data = ConnectEvent{Player: match[1]}
 		case Disconnect:
-			outEvent.Data = DisconnectEvent{Player: match[3]}
+			if len(match) > 3 {
+				outEvent.Data = DisconnectEvent{Player: match[3]}
+			}
 		case Msg:
 			outEvent.Data = parseMsg(match)
 		case StatusID:
@@ -322,6 +324,6 @@ func parseMsg(match []string) MsgEvent {
 		Dead:     dead,
 		TeamOnly: team,
 		// PlayerSID: steamid.SteamID,
-		Message: match[3],
+		Message: match[2],
 	}
 }

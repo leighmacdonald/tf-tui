@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"log/slog"
 	"os"
 	"time"
 )
@@ -52,7 +53,9 @@ func (c *Debug) Start(ctx context.Context, receiver Receiver) {
 			return
 		case <-logFreq.C:
 			if scanner.Scan() {
-				receiver.Send(0, scanner.Text())
+				line := scanner.Text()
+				slog.Debug("Log line", slog.String("src", "debug"), slog.String("line", line))
+				receiver.Send(0, line)
 			}
 		}
 	}
