@@ -85,3 +85,7 @@ type ChatMsg struct {
 func setConfig(config config.Config) tea.Cmd {
 	return func() tea.Msg { return config }
 }
+
+func setServer(server Server) tea.Cmd {
+	return func() tea.Msg { return server }
+}

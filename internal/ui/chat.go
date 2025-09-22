@@ -98,8 +98,8 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 		} else {
 			m.viewport.Height = msg.contentViewPortHeight
 		}
-	case Players:
-		m.players = msg
+	case Snapshot:
+		m.players = msg.Server.Players
 	case events.Event:
 		if msg.Type != events.Msg {
 			break

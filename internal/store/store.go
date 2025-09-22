@@ -1,4 +1,4 @@
-//go:generate go tool sqlc generate -f .sqlc.yaml
+//go:generate sqlc generate -f .sqlc.yaml
 package store
 
 import (
@@ -35,7 +35,16 @@ var (
 
 	ErrDBConnect = errors.New("db connect error")
 	ErrMigrate   = errors.New("failed to migrate db schema")
+	ErrNoResults = errors.New("no results")
 )
+
+func Err(err error) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNoResults
+	}
+
+	return err
+}
 
 func configureConnection(ctx context.Context, connection *sql.DB) error {
 	parallelism := min(8, max(2, runtime.GOMAXPROCS(0)))
@@ -49,7 +58,7 @@ func configureConnection(ctx context.Context, connection *sql.DB) error {
 		"PRAGMA busy_timeout = 10000",
 		"PRAGMA journal_mode=WAL",
 		"PRAGMA main.synchronous = NORMAL",
-		"PRAGMA main.cache_size = -32768",
+		"PRAGMA main.cache_size = -32768", // 32mb, negative is correct
 	}
 	for _, pragma := range pragmas {
 		if _, errPragma := connection.ExecContext(ctx, pragma); errPragma != nil {

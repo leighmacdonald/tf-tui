@@ -6,18 +6,26 @@ debug:
 	dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient
 
 fmt:
-	go tool golangci-lint fmt
+	golangci-lint fmt
 
 check:
-	go tool golangci-lint run --fix --timeout 3m ./...
+	golangci-lint run --fix --timeout 3m ./...
+	go vet ./...
 
-update:
+update: bump_go_deps generate
+
+bump_go_deps:
 	go get -u ./...
 	go mod tidy
-	make generate
 
 generate:
 	go generate ./...
+
+openapi:
+	oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.json
+
+proto:
+	buf generate
 
 race:
 	GORACE="race.txt" DEBUG=1 go run -race .
@@ -28,17 +36,17 @@ test:
 tail:
 	tail -f ~/.config/tf-tui/tf-tui.log
 
-config:
-	vim ~/.config/tf-tui/tf-tui.yaml
-
 snapshot:
 	goreleaser release --snapshot --clean
 
 demo:
-	go tool vhs docs/demo.vhs
+	vhs docs/demo.vhs
 
 build:
-	go build -o tf-tui cmd/tf-tui/*
+	go build -o tf-tui internal/cmd/tf-tui/*
 
 run: build
 	./tf-tui
+
+plugin:
+	make -C pkg/plugins

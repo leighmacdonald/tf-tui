@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/joho/godotenv"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/spf13/viper"
 )
@@ -21,11 +20,6 @@ func NewLoader(changes chan<- Config) *Loader {
 		loader = Loader{changes: changes}
 		con    = viper.New()
 	)
-
-	errDotEnv := godotenv.Load()
-	if errDotEnv != nil {
-		slog.Debug("Could not load .env file", slog.String("error", errDotEnv.Error()))
-	}
 
 	con.SetDefault("steam_id", "")
 	con.SetDefault("console_log_path", defaultConsoleLogPath())
@@ -49,6 +43,8 @@ func NewLoader(changes chan<- Config) *Loader {
 			"log_secret": 0,
 		},
 	})
+	con.SetDefault("debug", false)
+
 	con.SetConfigName(DefaultConfigName)
 	con.SetConfigType("yaml")
 	con.SetEnvPrefix(EnvPrefix)

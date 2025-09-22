@@ -45,6 +45,8 @@ func (r LogRow) Render(width int) string {
 		body = styles.ConsoleKill.Render(body)
 	case events.Stats:
 		body = styles.ConsoleKill.Render(body)
+	case events.Version:
+		// TODO
 	case events.Any:
 		fallthrough
 	default:
@@ -55,19 +57,22 @@ func (r LogRow) Render(width int) string {
 }
 
 type consoleModel struct {
-	ready        bool
-	rowsMu       *sync.RWMutex
-	rowsRendered string
-	width        int
-	viewPort     viewport.Model
-	focused      bool
-	filterNoisy  bool
+	ready  bool
+	rowsMu *sync.RWMutex
+	// indexed by log secret
+	rowsRendered   map[int]string
+	width          int
+	viewPort       viewport.Model
+	focused        bool
+	filterNoisy    bool
+	selectedServer int
 }
 
 func newConsoleModel() consoleModel {
 	model := consoleModel{
-		rowsMu:   &sync.RWMutex{},
-		viewPort: viewport.New(10, 20),
+		rowsMu:       &sync.RWMutex{},
+		rowsRendered: map[int]string{},
+		viewPort:     viewport.New(10, 20),
 	}
 
 	return model
@@ -93,11 +98,11 @@ func (m consoleModel) Update(msg tea.Msg) (consoleModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m consoleModel) onLogs(log events.Event) consoleModel {
+func (m consoleModel) onLogs(event events.Event) consoleModel {
 	// if slices.Contains([]tf.EventType{tf.EvtStatusID, tf.EvtHostname, tf.EvtMsg, tf.EvtTags, tf.EvtAddress, tf.EvtLobby}, log.Type) {
 	// 	return m
 	// }
-	parts := strings.SplitN(log.Raw, ": ", 2)
+	parts := strings.SplitN(event.Raw, ": ", 2)
 	if len(parts) != 2 {
 		return m
 	}
@@ -119,11 +124,12 @@ func (m consoleModel) onLogs(log events.Event) consoleModel {
 		}
 	}
 
-	newRow := LogRow{Content: safeString(parts[1]), CreatedOn: time.Now(), EventType: log.Type}
+	newRow := LogRow{Content: safeString(parts[1]), CreatedOn: time.Now(), EventType: event.Type}
 	m.rowsMu.Lock()
 	// This does not use JoinVertical currently as it takes more and more CPU as time goes on
 	// and the console log fills becoming unusable.
-	m.rowsRendered = m.rowsRendered + "\n" + newRow.Render(m.width-10)
+	prev := m.rowsRendered[event.LogSecret]
+	m.rowsRendered[event.LogSecret] = prev + "\n" + newRow.Render(m.width-10)
 	m.rowsMu.Unlock()
 
 	return m
@@ -141,7 +147,11 @@ func (m consoleModel) Render(height int) string {
 	title := renderTitleBar(m.width, "Console Log")
 	m.viewPort.Height = height - lipgloss.Height(title)
 	wasBottom := m.viewPort.AtBottom()
-	m.viewPort.SetContent(m.rowsRendered)
+	content, found := m.rowsRendered[m.selectedServer]
+	if !found {
+		content = "<<< Start of logs >>>\n"
+	}
+	m.viewPort.SetContent(content)
 	if wasBottom {
 		m.viewPort.GotoBottom()
 	}

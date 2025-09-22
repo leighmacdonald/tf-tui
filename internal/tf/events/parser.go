@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/netip"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,9 +41,12 @@ const (
 	Tags
 	Address
 	Stats
+	Version
 )
 
 type Event struct {
+	// How we identify the owner of this event.
+	LogSecret int
 	Type      EventType
 	Timestamp time.Time
 	Raw       string
@@ -90,13 +94,16 @@ type HostnameEvent struct {
 type MapEvent struct {
 	MapName string
 }
-
+type VersionEvent struct {
+	Version int
+	Secure  bool
+}
 type TagsEvent struct {
 	Tags []string
 }
 
 type AddressEvent struct {
-	Address string
+	Address netip.Addr
 }
 
 type LobbyEvent struct {
@@ -115,6 +122,10 @@ type RawEvent struct {
 	Raw string
 }
 
+type UDPIPEvent struct {
+	Address string
+}
+
 type KillEvent struct {
 	Event
 	Player    string
@@ -125,10 +136,10 @@ type KillEvent struct {
 	Crit      bool
 }
 
-type parser struct {
+type Parser struct {
 	evtChan     chan Event
 	ReadChannel chan string
-	rx          []*regexp.Regexp
+	rx          []regexPair
 	logger      *slog.Logger
 }
 
@@ -142,102 +153,126 @@ func parseTimestamp(timestamp string) (time.Time, error) {
 	return parsedTime, nil
 }
 
-func newParser() *parser {
-	return &parser{
-		rx: []*regexp.Regexp{
+type regexPair struct {
+	regex     *regexp.Regexp
+	eventType EventType
+}
+
+func NewParser() *Parser {
+	return &Parser{
+		rx: []regexPair{
 			// 08/16/2025 - 01:25:53: Completed demo, recording time 369.4, game frames 23494.?
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s(.+?)\skilled\s(.+?)\swith\s(.+)(\.|\. \(crit\))$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s(?P<name>.+?)\s:\s{2}(?P<message>.+?)$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s(.+?)\sconnected$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s(Connecting to|Differing lobby received.).+?$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\s#\s{1,6}(?P<id>\d{1,6})\s"(?P<name>.+?)"\s+(?P<sid>\[U:\d:\d{1,10}])\s{1,8}(?P<time>\d{1,3}:\d{2}(:\d{2})?)\s+(?P<ping>\d{1,4})\s{1,8}(?P<loss>\d{1,3})\s(spawning|active)$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\shostname:\s(.+?)$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\smap\s{5}:\s(.+?)\sat.+?$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\stags\s{4}:\s(.+?)$`),
-			regexp.MustCompile(`^(?P<dt>[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}):\sudp/ip\s{2}:\s(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5})$`),
+			{eventType: Kill, regex: regexp.MustCompile(`^(?:[01]\d/[0123]\d/20\d{2}\s-\s\d{2}:\d{2}:\d{2}:\s+)?(.+?)\skilled\s(.+?)\swith\s(.+)(\.|\. \(crit\))$`)},
+			{eventType: Msg, regex: regexp.MustCompile(`(?P<name>.+?)\s:\s{2}(?P<message>.+?)$`)},
+			{eventType: Connect, regex: regexp.MustCompile(`(.+?)\sconnected$`)},
+			{eventType: Disconnect, regex: regexp.MustCompile(`(Connecting to|Differing lobby received.).+?$`)},
+			{eventType: StatusID, regex: regexp.MustCompile(`#\s+(?P<id>\d{1,6})\s"(?P<name>.+?)"\s+(?P<sid>\[U:\d:\d{1,10}])\s{1,8}(?P<time>\d{1,3}:\d{2}(?::\d{2})?)\s+(?P<ping>\d{1,4})\s{1,8}(?P<loss>\d{1,3})\s(spawning|active)(?P<ip>\s+.+?)?$`)},
+			{eventType: Hostname, regex: regexp.MustCompile(`hostname:\s(.+?)$`)},
+			{eventType: Map, regex: regexp.MustCompile(`map\s{5}:\s(.+?)\sat.+?$`)},
+			{eventType: Tags, regex: regexp.MustCompile(`tags\s{4}:\s(.+?)$`)},
+			{eventType: Address, regex: regexp.MustCompile(`udp/ip.+?public IP from Steam: (\d+\.\d+\.\d+\.\d+)`)},
+			{eventType: Version, regex: regexp.MustCompile(`version\s+:.+?\d+\d+\s+(\d+)\s+(secure)?`)},
 		},
 	}
 }
 
-func (parser *parser) parse(msg string, outEvent *Event) error {
+func (parser *Parser) Parse(msg string) (Event, error) {
 	// the index must match the index of the EventType const values
-	for parserIdx, rxMatcher := range parser.rx {
-		match := rxMatcher.FindStringSubmatch(msg)
+	var outEvent Event
+
+	for _, rxMatcher := range parser.rx {
+		match := rxMatcher.regex.FindStringSubmatch(msg)
 		if match == nil {
 			continue
 		}
 		outEvent.Raw = msg
-		outEvent.Type = EventType(parserIdx)
-
-		if errTS := outEvent.ApplyTimestamp(match[1]); errTS != nil {
-			slog.Error("Failed to parse timestamp", slog.String("error", errTS.Error()))
-		}
+		outEvent.Type = rxMatcher.eventType
+		outEvent.Timestamp = time.Now()
 
 		switch outEvent.Type { //nolint:exhaustive
 		case Connect:
-			outEvent.Data = ConnectEvent{Player: match[2]}
+			outEvent.Data = ConnectEvent{Player: match[1]}
 		case Disconnect:
-			outEvent.Data = DisconnectEvent{Player: match[2]}
+			if len(match) > 3 {
+				outEvent.Data = DisconnectEvent{Player: match[3]}
+			}
 		case Msg:
 			outEvent.Data = parseMsg(match)
 		case StatusID:
-			userID, errUserID := strconv.ParseInt(match[2], 10, 32)
+			userID, errUserID := strconv.ParseInt(match[1], 10, 32)
 			if errUserID != nil {
 				slog.Error("Failed to parse status userid", slog.String("error", errUserID.Error()))
 
 				continue
 			}
 
-			ping, errPing := strconv.ParseInt(match[7], 10, 32)
+			ping, errPing := strconv.ParseInt(match[5], 10, 32)
 			if errPing != nil {
 				slog.Error("Failed to parse status ping", slog.String("error", errPing.Error()))
 
 				continue
 			}
 
-			loss, errLoss := strconv.ParseInt(match[8], 10, 32)
+			loss, errLoss := strconv.ParseInt(match[6], 10, 32)
 			if errLoss != nil {
 				slog.Error("Failed to parse status loss", slog.String("error", errLoss.Error()))
 
 				continue
 			}
 
-			dur, durErr := parseConnected(match[5])
+			dur, durErr := parseConnected(match[4])
 			if durErr != nil {
 				slog.Error("Failed to parse status duration", slog.String("error", durErr.Error()))
 
 				continue
 			}
-
-			// TODO different data for server/client modes is avail
-			outEvent.Data = StatusIDEvent{
+			sie := StatusIDEvent{
 				UserID:    int(userID),
-				Player:    match[3],
-				PlayerSID: steamid.New(match[4]),
+				Player:    match[2],
+				PlayerSID: steamid.New(match[3]),
 				Connected: int(dur.Seconds()),
 				Ping:      int(ping),
 				Loss:      int(loss),
-				State:     match[9],
-				Address:   match[10],
+				State:     match[7],
 			}
+			if len(match) == 9 {
+				sie.Address = strings.TrimSpace(match[8])
+			}
+			// TODO different data for server/client modes is avail
+			outEvent.Data = sie
+		case Version:
+			version, errVersion := strconv.ParseInt(match[1], 10, 64)
+			if errVersion != nil {
+				slog.Warn("Failed to parse version", slog.String("error", errVersion.Error()))
+
+				continue
+			}
+
+			outEvent.Data = VersionEvent{Version: int(version), Secure: len(match) > 2 && match[2] == "secure"}
 		case Kill:
-			outEvent.Data = KillEvent{Player: match[2], Victim: match[3]}
+			outEvent.Data = KillEvent{Player: match[1], Victim: match[2], Weapon: match[3], Crit: strings.Contains(match[4], "crit")}
 		case Hostname:
-			outEvent.Data = HostnameEvent{Hostname: match[2]}
+			outEvent.Data = HostnameEvent{Hostname: match[1]}
 		case Map:
-			outEvent.Data = MapEvent{MapName: match[2]}
+			outEvent.Data = MapEvent{MapName: match[1]}
 		case Tags:
-			outEvent.Data = TagsEvent{Tags: strings.Split(match[2], ",")}
+			outEvent.Data = TagsEvent{Tags: strings.Split(match[1], ",")}
 		case Address:
-			outEvent.Data = AddressEvent{Address: match[2]}
+			addr, errAddr := netip.ParseAddr(match[1])
+			if errAddr != nil {
+				slog.Warn("Failed to parse address", slog.String("error", errAddr.Error()), slog.String("address", match[1]))
+
+				continue
+			}
+			outEvent.Data = AddressEvent{Address: addr}
 		case Any:
 			outEvent.Data = AnyEvent{Raw: msg}
 		}
 
-		return nil
+		return outEvent, nil
 	}
 
-	return ErrNoMatch
+	return outEvent, ErrNoMatch
 }
 
 func parseConnected(d string) (time.Duration, error) {
@@ -289,6 +324,6 @@ func parseMsg(match []string) MsgEvent {
 		Dead:     dead,
 		TeamOnly: team,
 		// PlayerSID: steamid.SteamID,
-		Message: match[3],
+		Message: match[2],
 	}
 }

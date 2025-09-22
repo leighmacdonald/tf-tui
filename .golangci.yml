@@ -97,6 +97,7 @@ linters:
         - .WithStack(
         - sourcebans.
         - client.
+        - store.Err(
       ignore-package-globs:
         - github.com/leighmacdonald/tf-tui/internal/*
   exclusions:

@@ -41,6 +41,18 @@ type Player struct {
 
 type Players []Player
 
+func (p Players) TeamCount(team tf.Team) int {
+	var count int
+
+	for _, player := range p {
+		if player.Team == team {
+			count++
+		}
+	}
+
+	return count
+}
+
 // FindFriends searches through all players in the server for friend relationships. This means
 // as long as at least one of the friends has their friends list public it should link them.
 func (p Players) FindFriends(steamID steamid.SteamID) steamid.Collection {

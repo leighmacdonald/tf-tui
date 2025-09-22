@@ -25,12 +25,12 @@ go.work
 go.work.sum
 
 # env file
-.env
+.env*
 
 # Editor/IDE
 # .idea/
 # .vscode/
-
+plugin-example
 __debug*
 .zed
 .idea
@@ -39,6 +39,6 @@ dist/
 *.prof
 *.svg
 tf-tui
-!cmd/tf-tui
+!internal/cmd/tf-tui
 .cache
 tf-tui.yaml
