@@ -35,7 +35,7 @@ type Snapshot struct {
 func newServerState(conf config.Config, server config.ServerConfig, router *events.Router, bdFetcher *bd.Fetcher,
 	dbConn store.DBTX,
 ) *serverState {
-	allEvent := make(chan events.Event, 10)
+	allEvent := make(chan events.Event)
 	router.ListenFor(server.LogSecret, allEvent, events.Any)
 	blackbox := newBlackBox(store.New(dbConn), allEvent)
 
@@ -60,6 +60,7 @@ type serverState struct {
 	mu              *sync.RWMutex
 	players         Players
 	server          config.ServerConfig
+	remote          bool
 	externalAddress string
 	blackbox        *blackBox
 	incomingEvents  chan events.Event
@@ -112,15 +113,17 @@ func (s *serverState) registerAddress(ctx context.Context) error {
 }
 
 func (s *serverState) start(ctx context.Context) error {
-	if err := s.registerAddress(ctx); err != nil {
-		return err
-	}
+	if s.remote {
+		if err := s.registerAddress(ctx); err != nil {
+			return err
+		}
 
-	record, errRecord := geoip.Lookup(ctx, s.externalAddress)
-	if errRecord != nil {
-		slog.Error("failed to lookup server country code", slog.String("error", errRecord.Error()))
-	} else {
-		s.countryCode = strings.ToLower(record.Country.ISOCode)
+		record, errRecord := geoip.Lookup(ctx, s.externalAddress)
+		if errRecord != nil {
+			slog.Error("failed to lookup server country code", slog.String("error", errRecord.Error()))
+		} else {
+			s.countryCode = strings.ToLower(record.Country.ISOCode)
+		}
 	}
 
 	// Start recording events.

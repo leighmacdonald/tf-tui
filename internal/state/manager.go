@@ -98,12 +98,11 @@ func (s *Manager) Close(ctx context.Context) {
 	defer cancel()
 
 	waitGroup := &sync.WaitGroup{}
-	waitGroup.Add(len(s.serverStates))
 	for _, logSource := range s.serverStates {
-		go func(source *serverState) {
-			defer waitGroup.Done()
-			source.close(localTimeout)
-		}(logSource)
+		local := logSource
+		waitGroup.Go(func() {
+			local.close(localTimeout)
+		})
 	}
 	waitGroup.Wait()
 }
@@ -156,11 +155,9 @@ func (s *Manager) metaUpdater(ctx context.Context) {
 func (s *Manager) onDumpTick(ctx context.Context) {
 	waitGroup := &sync.WaitGroup{}
 	for _, server := range s.serverStates {
-		waitGroup.Add(1)
-		go func() {
-			defer waitGroup.Done()
+		waitGroup.Go(func() {
 			server.onDumpTick(ctx)
-		}()
+		})
 	}
 
 	waitGroup.Wait()

@@ -123,10 +123,11 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 					insecureCount++
 				}
 
-				receiver.Send(0, strings.TrimSpace(string(buffer)))
+				line := strings.TrimSpace(string(buffer))
+				slog.Debug("Log line", slog.String("src", "debug"), slog.String("line", line))
+				receiver.Send(0, line)
 			case s2aLogString2: // Secure format (with secret)
 				line := string(buffer)
-
 				idx := strings.Index(line, "L ")
 				if idx == -1 {
 					slog.Warn("Received malformed log message: Failed to find marker")
@@ -141,8 +142,9 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 
 					continue
 				}
-
-				receiver.Send(int(secret), strings.TrimSpace(line[idx:readLen]))
+				linePart := strings.TrimSpace(line[idx:readLen])
+				slog.Debug("Log line", slog.String("src", "debug"), slog.String("line", linePart))
+				receiver.Send(int(secret), linePart)
 				reqSecret = int(secret)
 			}
 

@@ -39,6 +39,6 @@ dist/
 *.prof
 *.svg
 tf-tui
-!cmd/tf-tui
+!internal/cmd/tf-tui
 .cache
 tf-tui.yaml
