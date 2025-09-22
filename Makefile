@@ -22,10 +22,10 @@ generate:
 	go generate ./...
 
 openapi:
-	go tool oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.json
+	oapi-codegen -config .openapi.yaml https://tf-api.roto.lol/api/openapi/schema-3.0.json
 
 proto:
-	go tool buf generate
+	buf generate
 
 race:
 	GORACE="race.txt" DEBUG=1 go run -race .

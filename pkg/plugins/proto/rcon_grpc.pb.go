@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             (unknown)
-// source: pkg/plugins/proto/rcon.proto
+// source: rcon.proto
 
 package proto
 
@@ -115,5 +115,5 @@ var RCON_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/plugins/proto/rcon.proto",
+	Metadata: "rcon.proto",
 }

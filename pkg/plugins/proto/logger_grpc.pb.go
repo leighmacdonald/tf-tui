@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             (unknown)
-// source: pkg/plugins/proto/logger.proto
+// source: logger.proto
 
 package proto
 
@@ -229,5 +229,5 @@ var Logger_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/plugins/proto/logger.proto",
+	Metadata: "logger.proto",
 }
