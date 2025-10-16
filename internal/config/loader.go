@@ -11,55 +11,49 @@ import (
 
 // Loader handles setting up viper, loading configuration from files, and broadcasting configuration changes.
 type Loader struct {
-	viper   *viper.Viper
+	*viper.Viper
 	changes chan<- Config
 }
 
 func NewLoader(changes chan<- Config) *Loader {
-	var (
-		loader = Loader{changes: changes}
-		con    = viper.New()
-	)
-
-	con.SetDefault("steam_id", "")
-	con.SetDefault("console_log_path", defaultConsoleLogPath())
-	con.SetDefault("update_freq_ms", 2000)
-	con.SetDefault("server_mode_enabled", false)
-	con.SetDefault("server_log_address", "1.2.3.4:27115")
-	con.SetDefault("server_bind_address", "1.2.3.4:27115")
-	con.SetDefault("api_base_url", "https://tf-api.roto.lol/")
-	con.SetDefault("bd_lists", []map[string]string{})
-	con.SetDefault("links", []map[string]string{
+	loader := Loader{changes: changes, Viper: viper.New()}
+	loader.SetDefault("steam_id", "")
+	loader.SetDefault("console_log_path", defaultConsoleLogPath())
+	loader.SetDefault("update_freq_ms", 2000)
+	loader.SetDefault("server_mode_enabled", false)
+	loader.SetDefault("server_log_address", "1.2.3.4:27115")
+	loader.SetDefault("server_bind_address", "1.2.3.4:27115")
+	loader.SetDefault("api_base_url", "https://tf-api.roto.lol/")
+	loader.SetDefault("bd_lists", []map[string]string{})
+	loader.SetDefault("links", []map[string]string{
 		{
 			"url":    "https://demos.tf/profiles/%s",
 			"name":   "demos.tf",
 			"format": "",
 		},
 	})
-	con.SetDefault("servers", []map[string]any{
+	loader.SetDefault("servers", []map[string]any{
 		{
 			"address":    "127.0.0.1:27015",
 			"password":   "tf-tui",
 			"log_secret": 0,
 		},
 	})
-	con.SetDefault("debug", false)
-
-	con.SetConfigName(DefaultConfigName)
-	con.SetConfigType("yaml")
-	con.SetEnvPrefix(EnvPrefix)
-	con.AddConfigPath(Path(ConfigDirName))
-	con.AddConfigPath(".")
-	con.AutomaticEnv()
-	con.WatchConfig()
-	con.OnConfigChange(loader.onConfigChange)
-	loader.viper = con
+	loader.SetDefault("debug", false)
+	loader.SetConfigName(DefaultConfigName)
+	loader.SetConfigType("yaml")
+	loader.SetEnvPrefix(EnvPrefix)
+	loader.AddConfigPath(Path(""))
+	loader.AddConfigPath(".")
+	loader.AutomaticEnv()
+	loader.WatchConfig()
+	loader.OnConfigChange(loader.onConfigChange)
 
 	return &loader
 }
 
 func (cl *Loader) Path() string {
-	return cl.viper.ConfigFileUsed()
+	return cl.ConfigFileUsed()
 }
 
 func (cl *Loader) onConfigChange(in fsnotify.Event) {
@@ -80,21 +74,21 @@ func (cl *Loader) onConfigChange(in fsnotify.Event) {
 
 func (cl *Loader) Write(config Config) error {
 	if config.SteamID.Valid() {
-		cl.viper.Set("steam_id", config.SteamID.String())
+		cl.Set("steam_id", config.SteamID.String())
 	} else {
-		cl.viper.Set("steam_id", "")
+		cl.Set("steam_id", "")
 	}
-	cl.viper.Set("console_log_path", config.ConsoleLogPath)
-	cl.viper.Set("update_freq_ms", config.UpdateFreqMs)
-	cl.viper.Set("server_mode_enabled", config.ServerModeEnabled)
-	cl.viper.Set("server_log_address", config.ServerLogAddress)
-	cl.viper.Set("server_bind_address", config.ServerBindAddress)
-	cl.viper.Set("api_base_url", config.APIBaseURL)
-	cl.viper.Set("bd_lists", config.BDLists)
-	cl.viper.Set("links", config.Links)
-	cl.viper.Set("servers", config.Servers)
+	cl.Set("console_log_path", config.ConsoleLogPath)
+	cl.Set("update_freq_ms", config.UpdateFreqMs)
+	cl.Set("server_mode_enabled", config.ServerModeEnabled)
+	cl.Set("server_log_address", config.ServerLogAddress)
+	cl.Set("server_bind_address", config.ServerBindAddress)
+	cl.Set("api_base_url", config.APIBaseURL)
+	cl.Set("bd_lists", config.BDLists)
+	cl.Set("links", config.Links)
+	cl.Set("servers", config.Servers)
 
-	if err := cl.viper.WriteConfig(); err != nil {
+	if err := cl.WriteConfig(); err != nil {
 		return errors.Join(err, errConfigWrite)
 	}
 
@@ -102,7 +96,7 @@ func (cl *Loader) Write(config Config) error {
 }
 
 func (cl *Loader) Read() (Config, error) {
-	if err := cl.viper.ReadInConfig(); err != nil {
+	if err := cl.ReadInConfig(); err != nil {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
 			return Config{}, errors.Join(err, errConfigRead)
@@ -110,7 +104,7 @@ func (cl *Loader) Read() (Config, error) {
 	}
 
 	var config Config
-	if err := cl.viper.Unmarshal(&config); err != nil {
+	if err := cl.Unmarshal(&config); err != nil {
 		return Config{}, errors.Join(err, errConfigRead)
 	}
 
