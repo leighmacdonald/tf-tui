@@ -31,7 +31,11 @@ func (r Connection) Exec(ctx context.Context, cmd string, large bool) (string, e
 	if errConn != nil {
 		return "", errors.Join(errConn, fmt.Errorf("%w: %s", errRCON, r.addr))
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			slog.Error("failed to close rcon connection", slog.String("error", err.Error()))
+		}
+	}()
 
 	if large {
 		return r.rconLarge(conn, cmd)

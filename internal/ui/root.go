@@ -18,7 +18,6 @@ import (
 type rootModel struct {
 	currentView           contentView
 	previousView          contentView
-	quitting              bool
 	height                int
 	width                 int
 	activeTab             tabView
@@ -39,7 +38,6 @@ type rootModel struct {
 	contentViewPortHeight int
 	footerHeight          int
 	headerHeight          int
-	rendered              string
 	serverMode            bool
 }
 

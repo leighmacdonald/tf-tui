@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"embed"
 	"errors"
+	"log/slog"
 	"net/http"
 	"runtime"
 	"time"
@@ -78,7 +79,9 @@ func Open(ctx context.Context, path string, autoMigrate bool) (*sql.DB, error) {
 	pingCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := connection.PingContext(pingCtx); err != nil {
-		connection.Close()
+		if err := connection.Close(); err != nil {
+			slog.Error("failed to close store connection", slog.String("error", err.Error()))
+		}
 
 		return nil, errors.Join(err, ErrDBConnect)
 	}

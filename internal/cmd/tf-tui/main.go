@@ -162,7 +162,11 @@ func run(cmd *cobra.Command, _ []string) error {
 			return errors.Join(errDebug, errApp)
 		}
 		go consoleDebug.Start(cmd.Context(), router)
-		defer consoleDebug.Close(cmd.Context())
+		defer func() {
+			if err := consoleDebug.Close(cmd.Context()); err != nil {
+				slog.Error("Error closing console debug", slog.String("error", err.Error()))
+			}
+		}()
 	}
 
 	done := make(chan any)
