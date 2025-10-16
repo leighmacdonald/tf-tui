@@ -101,7 +101,9 @@ func (s *Manager) Close(ctx context.Context) {
 	for _, logSource := range s.serverStates {
 		local := logSource
 		waitGroup.Go(func() {
-			local.close(localTimeout)
+			if err := local.close(localTimeout); err != nil {
+				slog.Error("failed to close log source", slog.String("error", err.Error()))
+			}
 		})
 	}
 	waitGroup.Wait()

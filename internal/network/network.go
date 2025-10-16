@@ -3,6 +3,7 @@ package network
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -75,7 +76,11 @@ func FetchJSON[T any](ctx context.Context, url string) (*T, error) {
 	if errResp != nil {
 		return nil, errors.Join(errResp, ErrQueryIP)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Error("failed to close response body", slog.String("error", err.Error()))
+		}
+	}()
 
 	info, errInfo := encoding.UnmarshalJSON[T](resp.Body)
 	if errInfo != nil {
