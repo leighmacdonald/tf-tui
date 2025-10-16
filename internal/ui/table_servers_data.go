@@ -120,7 +120,11 @@ func (m *serverTableData) At(row int, col int) string {
 	case colServerName:
 		return zone.Mark(m.zoneID+server.Status.ServerName, server.Status.ServerName)
 	case colServerRegion:
-		return zone.Mark(m.zoneID+server.Server.Region, server.Server.Region)
+		cc := server.Server.Region
+		if cc == "none" {
+			cc = ""
+		}
+		return zone.Mark(m.zoneID+server.Server.Region, cc)
 	case colServerMap:
 		return server.Status.Map
 	case colServerPlayers:
