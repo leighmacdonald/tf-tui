@@ -29,7 +29,8 @@ var (
 type Snapshot struct {
 	LogSecret int
 	Players   Players
-	Stats     tf.Stats
+	Status    tf.Status
+	Region    string
 }
 
 func newServerState(conf config.Config, server config.ServerConfig, router *events.Router, bdFetcher *bd.Fetcher,
@@ -52,6 +53,7 @@ func newServerState(conf config.Config, server config.ServerConfig, router *even
 		bdFetcher:       bdFetcher,
 		dumpFetcher:     dumpFetcher,
 		externalAddress: conf.ServerLogAddress,
+		remote:          conf.ServerModeEnabled,
 	}
 }
 
@@ -66,12 +68,9 @@ type serverState struct {
 	incomingEvents  chan events.Event
 	bdFetcher       *bd.Fetcher
 	dumpFetcher     rcon.Fetcher
-	stats           tf.Stats
+	status          tf.Status
 	countryCode     string
 	address         string
-	hostName        string
-	mapName         string
-	tags            []string
 	eventCount      atomic.Int64
 }
 
@@ -117,8 +116,9 @@ func (s *serverState) start(ctx context.Context) error {
 		if err := s.registerAddress(ctx); err != nil {
 			return err
 		}
-
-		record, errRecord := geoip.Lookup(ctx, s.externalAddress)
+		parts := strings.Split(s.server.Address, ":")
+		record, errRecord := geoip.Lookup(ctx, parts[0])
+		slog.Info(record.Country.ISOCode)
 		if errRecord != nil {
 			slog.Error("failed to lookup server country code", slog.String("error", errRecord.Error()))
 		} else {
@@ -164,14 +164,14 @@ func (s *serverState) Stats() tf.Stats {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return s.stats
+	return s.status.Stats
 }
 
-func (s *serverState) UpdateStats(stats tf.Stats) {
+func (s *serverState) UpdateStatus(status tf.Status) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.stats = stats
+	s.status = status
 }
 
 func (s *serverState) setPlayer(updates ...Player) {
@@ -200,13 +200,13 @@ func (s *serverState) onIncomingEvent(event events.Event) {
 	case events.ConnectEvent:
 	case events.DisconnectEvent:
 	case events.HostnameEvent:
-		s.onHostName(data.Hostname)
+		// s.onHostName(data.Hostname)
 	case events.KillEvent:
 	case events.MapEvent:
-		s.onMapName(data.MapName)
+		// s.onMapName(data.MapName)
 	case events.MsgEvent:
 	case events.TagsEvent:
-		s.onTags(data.Tags)
+		// s.onTags(data.Tags)
 	case events.RawEvent:
 		s.eventCount.Add(1)
 	case events.StatusIDEvent:
@@ -234,27 +234,6 @@ func (s *serverState) onAddress(address string) {
 	defer s.mu.Unlock()
 
 	s.address = address
-}
-
-func (s *serverState) onHostName(hostname string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.hostName = hostname
-}
-
-func (s *serverState) onMapName(mapName string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.mapName = mapName
-}
-
-func (s *serverState) onTags(tags []string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.tags = tags
 }
 
 func (s *serverState) onDumpTick(ctx context.Context) {
@@ -290,11 +269,11 @@ func (s *serverState) Snapshot() Snapshot {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return Snapshot{LogSecret: s.server.LogSecret, Players: s.players, Stats: s.stats}
+	return Snapshot{LogSecret: s.server.LogSecret, Players: s.players, Status: s.status, Region: s.countryCode}
 }
 
 func (s *serverState) updateDump(ctx context.Context) {
-	dump, stats, errDump := s.dumpFetcher.Fetch(ctx)
+	dump, status, errDump := s.dumpFetcher.Fetch(ctx)
 	if errDump != nil {
 		// s.uiUpdates <- ui.StatusMsg{
 		// 	Err:     true,
@@ -305,7 +284,7 @@ func (s *serverState) updateDump(ctx context.Context) {
 		slog.Error("Failed to fetch player dump", slog.String("error", errDump.Error()))
 	}
 
-	s.UpdateStats(stats)
+	s.UpdateStatus(status)
 	s.UpdateDumpPlayer(dump)
 }
 

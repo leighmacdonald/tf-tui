@@ -12,28 +12,46 @@ type serverTableCol int
 
 const (
 	colServerName serverTableCol = iota
-	colServerRegion
 	colServerMap
+	colServerRegion
 	colServerPlayers
 	colServerPing
+	colServerUptime
+	colServerCPU
+	colServerFPS
+	colServerInRate
+	colServerOutRate
+	colServerConnects
 )
 
 type serverTableColSize int
 
 const (
-	colServerNameSize    serverTableColSize = 0
-	colServerRegionSize  serverTableColSize = 4
-	colServerMapSize     serverTableColSize = 20
-	colServerPlayersSize serverTableColSize = 5
-	colServerPingSize    serverTableColSize = 5
+	colServerNameSize     serverTableColSize = 0
+	colServerRegionSize   serverTableColSize = 4
+	colServerMapSize      serverTableColSize = 25
+	colServerPlayersSize  serverTableColSize = 8
+	colServerPingSize     serverTableColSize = 10
+	colServerUptimeSize   serverTableColSize = 10
+	colServerCPUSize      serverTableColSize = 6
+	colServerFPSSize      serverTableColSize = 6
+	colServerInRateSize   serverTableColSize = 12
+	colServerOutRateSize  serverTableColSize = 12
+	colServerConnectsSize serverTableColSize = 6
 )
 
 var defaultServerTableColumns = []serverTableCol{
 	colServerName,
-	colServerRegion,
 	colServerMap,
+	colServerRegion,
 	colServerPlayers,
 	colServerPing,
+	colServerUptime,
+	colServerCPU,
+	colServerFPS,
+	colServerInRate,
+	colServerOutRate,
+	colServerConnects,
 }
 
 func newServerTableModel() *serverTableModel {
@@ -84,11 +102,23 @@ func (m *serverTableModel) View() string {
 			case colServerRegion:
 				width = colServerRegionSize
 			case colServerMap:
-				width = colServerRegionSize
+				width = colServerMapSize
 			case colServerPlayers:
-				width = colServerRegionSize
+				width = colServerPlayersSize
 			case colServerPing:
-				width = colServerRegionSize
+				width = colServerPingSize
+			case colServerUptime:
+				width = colServerUptimeSize
+			case colServerFPS:
+				width = colServerFPSSize
+			case colServerCPU:
+				width = colServerCPUSize
+			case colServerInRate:
+				width = colServerInRateSize
+			case colServerOutRate:
+				width = colServerOutRateSize
+			case colServerConnects:
+				width = colServerConnectsSize
 			}
 
 			switch {

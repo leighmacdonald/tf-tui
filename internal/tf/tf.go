@@ -2,6 +2,7 @@
 package tf
 
 import (
+	"github.com/leighmacdonald/steamid/v4/extra"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 )
 
@@ -67,4 +68,10 @@ type Stats struct {
 	MapChanges int
 	Players    int
 	Connects   int
+}
+
+type Status struct {
+	extra.Status
+	Stats  Stats
+	Region string
 }

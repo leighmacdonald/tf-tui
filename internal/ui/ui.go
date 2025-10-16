@@ -28,7 +28,7 @@ const (
 type Snapshot struct {
 	LogSecret int
 	Server    Server
-	Stats     tf.Stats
+	Status    tf.Status
 }
 
 type UI struct {

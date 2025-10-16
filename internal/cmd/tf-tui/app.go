@@ -128,7 +128,8 @@ func (app *App) updateUIState() {
 	snapshots := app.state.Snapshots()
 	uiSnaps := make([]ui.Snapshot, len(snapshots))
 	for idx, snap := range snapshots {
-		uiSnapsnot := ui.Snapshot{LogSecret: snap.LogSecret, Stats: snap.Stats}
+		server := ui.Server{Hostname: snap.Status.ServerName, Map: snap.Status.Map, Region: snap.Region, Tags: snap.Status.Tags}
+		uiSnapsnot := ui.Snapshot{LogSecret: snap.LogSecret, Status: snap.Status, Server: server}
 		for _, player := range snap.Players {
 			uiSnapsnot.Server.Players = append(uiSnapsnot.Server.Players, ui.Player{
 				SteamID:                  player.SteamID,
