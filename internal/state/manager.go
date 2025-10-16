@@ -132,6 +132,7 @@ func (s *Manager) metaUpdater(ctx context.Context) {
 	var queue []serverMetaUpdate
 
 	go func() {
+
 		updateTicker := time.NewTicker(time.Second)
 		for {
 			select {

@@ -99,12 +99,19 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 		case <-ctx.Done():
 			return
 		default:
+			l.conn.SetReadDeadline(time.Now().Add(time.Second * 2))
 			buffer := make([]byte, 1024)
+
 			readLen, _, errReadUDP := l.conn.ReadFromUDP(buffer)
 			if errReadUDP != nil {
+				if netErr, ok := errReadUDP.(net.Error); ok && netErr.Timeout() {
+					continue
+				}
+
 				if errors.Is(errReadUDP, net.ErrClosed) {
 					return
 				}
+
 				slog.Warn("UDP log read error", slog.String("error", errReadUDP.Error()))
 
 				continue

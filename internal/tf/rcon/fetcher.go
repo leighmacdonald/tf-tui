@@ -36,27 +36,27 @@ type Fetcher struct {
 	Address    string
 	Password   string
 	lastUpdate tf.DumpPlayer
-	lastStats  tf.Stats
+	lastStatus tf.Status
 	serverMode bool
 	g15re      *regexp.Regexp
 	statsRe    *regexp.Regexp
 }
 
-func (f Fetcher) Fetch(ctx context.Context) (tf.DumpPlayer, tf.Stats, error) {
+func (f Fetcher) Fetch(ctx context.Context) (tf.DumpPlayer, tf.Status, error) {
 	command := "status"
 	if f.serverMode {
-		command = "stats;" + command
+		command = command + ";stats"
 	} else {
-		command = "g15_dumpplayer;" + command
+		command = command + ";g15_dumpplayer"
 	}
 
 	response, errExec := New(f.Address, f.Password).Exec(ctx, command, true)
 	if errExec != nil {
 		if f.lastUpdate.SteamID[0].Valid() {
-			return f.lastUpdate, f.lastStats, nil
+			return f.lastUpdate, f.lastStatus, nil
 		}
 		if len(os.Getenv("DEBUG")) == 0 {
-			return tf.DumpPlayer{}, tf.Stats{}, errors.Join(errExec, ErrDumpQuery)
+			return tf.DumpPlayer{}, tf.Status{}, errors.Join(errExec, ErrDumpQuery)
 		}
 		// FIXME remove this test data generation eventually
 		var data tf.DumpPlayer
@@ -85,24 +85,22 @@ func (f Fetcher) Fetch(ctx context.Context) (tf.DumpPlayer, tf.Stats, error) {
 			}
 		}
 
-		return data, tf.Stats{}, nil
+		return data, tf.Status{}, nil
 	}
 
-	var (
-		dump  tf.DumpPlayer
-		stats tf.Stats
-	)
+	var dump tf.DumpPlayer
 
 	if f.serverMode {
-		if match := f.statsRe.FindStringSubmatch(response); len(match) > 0 {
-			stats = f.parseStats(match)
-			f.lastStats = stats
-		}
-
 		status, errStatus := extra.ParseStatus(response, true)
 		if errStatus != nil {
 			slog.Error("failed to parse status", slog.String("error", errStatus.Error()))
 		}
+		var stats tf.Stats
+		if match := f.statsRe.FindStringSubmatch(response); len(match) > 0 {
+			stats = f.parseStats(match)
+		}
+
+		f.lastStatus = tf.Status{Status: status, Stats: stats}
 
 		slices.SortStableFunc(status.Players, func(a extra.Player, b extra.Player) int {
 			if a.UserID > b.UserID {
@@ -137,7 +135,7 @@ func (f Fetcher) Fetch(ctx context.Context) (tf.DumpPlayer, tf.Stats, error) {
 
 	f.lastUpdate = dump
 
-	return dump, stats, nil
+	return dump, f.lastStatus, nil
 }
 
 // CPU    In_(KB/s)  Out_(KB/s)  Uptime  Map_changes  FPS      Players  Connects
