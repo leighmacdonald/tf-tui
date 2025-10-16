@@ -57,8 +57,7 @@ var errApp = errors.New("application error")
 func main() {
 	configPath := config.Path(config.DefaultConfigName)
 	// cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", configPath,
-		"Config file path")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", configPath, "Config file path")
 	rootCmd.AddCommand(versionCmd)
 
 	if err := fang.Execute(context.Background(), rootCmd); err != nil {

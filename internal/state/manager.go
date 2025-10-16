@@ -109,7 +109,7 @@ func (s *Manager) Close(ctx context.Context) {
 	waitGroup.Wait()
 }
 
-func (s *Manager) Start(ctx context.Context, router *events.Router) {
+func (s *Manager) Start(ctx context.Context, router *events.Router) error {
 	for _, server := range s.serverStates {
 		go func(srv *serverState) {
 			if err := srv.start(ctx); err != nil {
@@ -120,9 +120,12 @@ func (s *Manager) Start(ctx context.Context, router *events.Router) {
 
 	if errOpen := s.logSource.Open(); errOpen != nil {
 		slog.Error("Failed to open log source", slog.String("error", errOpen.Error()))
+		return errOpen
 	}
 
 	s.logSource.Start(ctx, router)
+
+	return nil
 }
 
 func (s *Manager) metaUpdater(ctx context.Context) {
