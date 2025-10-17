@@ -87,10 +87,10 @@ func setConfig(config config.Config) tea.Cmd {
 }
 
 // Used to differentiate from a plain Snapshot which are braodcast for all servers.
-type selectServerMsg struct {
+type selectServerSnapshotMsg struct {
 	server Snapshot
 }
 
 func setServer(server Snapshot) tea.Cmd {
-	return func() tea.Msg { return selectServerMsg{server: server} }
+	return func() tea.Msg { return selectServerSnapshotMsg{server: server} }
 }

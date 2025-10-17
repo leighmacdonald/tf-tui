@@ -27,7 +27,7 @@ func (m serverDetailPanelModel) Init() tea.Cmd {
 
 func (m serverDetailPanelModel) Update(msg tea.Msg) (serverDetailPanelModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case selectServerMsg:
+	case selectServerSnapshotMsg:
 		m.snapshot = msg.server
 	case contentViewPortHeightMsg:
 		m.width = msg.width

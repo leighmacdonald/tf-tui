@@ -70,7 +70,7 @@ type serverTableModel struct {
 	viewport        viewport.Model
 	table           *table.Table
 	data            *serverTableData
-	selectedsServer Snapshot
+	selectedsServer string
 	width           int
 	height          int
 	contentHeight   int
@@ -92,8 +92,20 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 		m.data = newTableServerData(m.zoneID, msg)
 		m.data.Sort(m.data.sortColumn, m.data.asc)
 		m.table.Data(m.data)
-	case selectServerMsg:
-		m.selectedsServer = msg.server
+		// Send a snapshot for the currently selected server.
+		if len(m.data.servers) > 0 {
+			if m.selectedsServer == "" {
+				m.selectedsServer = m.data.servers[0].HostPort
+			}
+			for _, snaps := range m.data.servers {
+				if m.selectedsServer == snaps.HostPort {
+					return m, setServer(snaps)
+				}
+			}
+
+		}
+	case selectServerSnapshotMsg:
+		m.selectedsServer = msg.server.HostPort
 	case tea.MouseMsg:
 		if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
 			return m, nil
@@ -102,6 +114,40 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 		for _, item := range m.data.servers {
 			if zone.Get(m.zoneID + item.HostPort).InBounds(msg) {
 				return m, setServer(item)
+			}
+		}
+
+		for _, markID := range []string{"n", "m", "r", "pl", "pi", "u", "cp", "f", "i", "o", "co"} {
+			if zone.Get(m.zoneID + markID).InBounds(msg) {
+				var col serverTableCol
+				switch markID {
+				case "n":
+					col = colServerName
+				case "m":
+					col = colServerMap
+				case "r":
+					col = colServerRegion
+				case "pl":
+					col = colServerPlayers
+				case "pi":
+					col = colServerPing
+				case "u":
+					col = colServerUptime
+				case "cp":
+					col = colServerCPU
+				case "f":
+					col = colServerFPS
+				case "i":
+					col = colServerInRate
+				case "o":
+					col = colServerOutRate
+				case "co":
+					col = colServerConnects
+				}
+
+				m.data.Sort(col, !m.data.asc)
+
+				return m, nil
 			}
 		}
 	}
