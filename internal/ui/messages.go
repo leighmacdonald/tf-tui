@@ -8,7 +8,7 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 )
 
-type ContentViewPortHeightMsg struct {
+type contentViewPortHeightMsg struct {
 	contentViewPortHeight int
 	height                int
 	width                 int
@@ -16,7 +16,7 @@ type ContentViewPortHeightMsg struct {
 
 func setContentViewPortHeight(viewport int, height int, width int) func() tea.Msg {
 	return func() tea.Msg {
-		return ContentViewPortHeightMsg{
+		return contentViewPortHeightMsg{
 			contentViewPortHeight: viewport,
 			height:                height,
 			width:                 width,
@@ -24,18 +24,18 @@ func setContentViewPortHeight(viewport int, height int, width int) func() tea.Ms
 	}
 }
 
-type SortPlayersMsg struct {
+type sortPlayersMsg struct {
 	sortColumn playerTableCol
 	asc        bool
 }
 
 func selectPlayer(player Player) func() tea.Msg {
 	return func() tea.Msg {
-		return SelectedPlayerMsg{player: player}
+		return selectedPlayerMsg{player: player}
 	}
 }
 
-type SelectedPlayerMsg struct {
+type selectedPlayerMsg struct {
 	player Player
 	notes  string
 }
@@ -54,14 +54,14 @@ func clearErrorAfter(t time.Duration) tea.Cmd {
 	})
 }
 
-type StatusMsg struct {
+type statusMsg struct {
 	Message string
 	Err     bool
 }
 
 func setStatusMessage(msg string, err bool) tea.Cmd {
 	return func() tea.Msg {
-		return StatusMsg{Message: msg, Err: err}
+		return statusMsg{Message: msg, Err: err}
 	}
 }
 
@@ -77,7 +77,7 @@ func setTab(tab tabView) tea.Cmd {
 	return func() tea.Msg { return tab }
 }
 
-type ChatMsg struct {
+type chatMsg struct {
 	Message  string
 	ChatType ChatType
 }
@@ -86,6 +86,11 @@ func setConfig(config config.Config) tea.Cmd {
 	return func() tea.Msg { return config }
 }
 
-func setServer(server Server) tea.Cmd {
-	return func() tea.Msg { return server }
+// Used to differentiate from a plain Snapshot which are braodcast for all servers.
+type selectServerMsg struct {
+	server Snapshot
+}
+
+func setServer(server Snapshot) tea.Cmd {
+	return func() tea.Msg { return selectServerMsg{server: server} }
 }

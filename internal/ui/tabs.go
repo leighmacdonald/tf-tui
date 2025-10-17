@@ -91,34 +91,34 @@ func (m tabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, nil
-	case ContentViewPortHeightMsg:
+	case contentViewPortHeightMsg:
 		m.width = msg.width
 
 		return m, nil
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, DefaultKeyMap.nextTab):
+		case key.Matches(msg, defaultKeyMap.nextTab):
 			m.selectedTab++
 			if m.selectedTab > tabConsole {
 				m.selectedTab = tabOverview
 			}
 			changed = true
-		case key.Matches(msg, DefaultKeyMap.prevTab):
+		case key.Matches(msg, defaultKeyMap.prevTab):
 			m.selectedTab--
 			if m.selectedTab < tabOverview {
 				m.selectedTab = tabConsole
 			}
 			changed = true
-		case key.Matches(msg, DefaultKeyMap.overview):
+		case key.Matches(msg, defaultKeyMap.overview):
 			m.selectedTab = tabOverview
 			changed = true
-		case key.Matches(msg, DefaultKeyMap.bans):
+		case key.Matches(msg, defaultKeyMap.bans):
 			m.selectedTab = tabBans
 			changed = true
-		case key.Matches(msg, DefaultKeyMap.comp):
+		case key.Matches(msg, defaultKeyMap.comp):
 			m.selectedTab = tabComp
 			changed = true
-		case key.Matches(msg, DefaultKeyMap.chat):
+		case key.Matches(msg, defaultKeyMap.chat):
 			m.selectedTab = tabChat
 			changed = true
 		}

@@ -68,7 +68,7 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	// Address is the RCON address of the server.
+	// Address is the RCON address of the server. Must be unique.
 	Address string `mapstructure:"address"`
 	// Password is the RCON password of the server.
 	Password string `mapstructure:"password"`

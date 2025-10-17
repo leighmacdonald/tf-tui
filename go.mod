@@ -34,7 +34,7 @@ require (
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1 // indirect
 	github.com/charmbracelet/x/ansi v0.10.2 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
-	github.com/charmbracelet/x/exp/charmtone v0.0.0-20251015113943-25f979b54ad4 // indirect
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20251016201629-54e687c87a08 // indirect
 	github.com/charmbracelet/x/exp/color v0.0.0-20251006100439-2151805163c8 // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect

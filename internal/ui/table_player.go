@@ -89,7 +89,7 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selfSteamID = msg.SteamID
 
 		return m, nil
-	case ContentViewPortHeightMsg:
+	case contentViewPortHeightMsg:
 		m.width = msg.width
 		m.height = msg.height
 		// When the screen with is a odd number, increase the size of the right player table
@@ -102,7 +102,7 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, nil
-	case SortPlayersMsg:
+	case sortPlayersMsg:
 		m.data.Sort(msg.sortColumn, msg.asc)
 
 		return m, nil
@@ -163,17 +163,17 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		var cmd tea.Cmd
 		switch {
-		case key.Matches(msg, DefaultKeyMap.up):
+		case key.Matches(msg, defaultKeyMap.up):
 			cmd = m.moveSelection(up)
 
 			return m, cmd
-		case key.Matches(msg, DefaultKeyMap.down):
+		case key.Matches(msg, defaultKeyMap.down):
 			cmd = m.moveSelection(down)
 
 			return m, cmd
 		}
 
-	case SelectedPlayerMsg:
+	case selectedPlayerMsg:
 		m.selectedSteamID = msg.player.SteamID
 
 		return m, nil

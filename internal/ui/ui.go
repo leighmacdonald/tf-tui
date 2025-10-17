@@ -26,9 +26,23 @@ const (
 )
 
 type Snapshot struct {
-	LogSecret int
-	Server    Server
-	Status    tf.Status
+	HostPort string
+	Server   Server
+	Status   tf.Status
+}
+
+func (s Snapshot) AvgPing() float64 {
+	if len(s.Status.Players) == 0 {
+		return 0
+	}
+
+	var pings float64
+	for _, player := range s.Status.Players {
+		pings += float64(player.Ping)
+	}
+
+	return pings / float64(len(s.Status.Players))
+
 }
 
 type UI struct {
@@ -50,6 +64,7 @@ func New(ctx context.Context, config config.Config, doSetup bool, buildVersion s
 				cachePath),
 			tea.WithMouseCellMotion(),
 			tea.WithAltScreen(),
+			// tea.WithMouseAllMotion(),
 			tea.WithContext(ctx)),
 	}
 }

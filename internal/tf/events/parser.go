@@ -46,7 +46,7 @@ const (
 
 type Event struct {
 	// How we identify the owner of this event.
-	LogSecret int
+	HostPort  string
 	Type      EventType
 	Timestamp time.Time
 	Raw       string

@@ -16,54 +16,56 @@ import (
 
 // rootModel is the top level model for the ui side of the app.
 type rootModel struct {
-	currentView           contentView
-	previousView          contentView
-	height                int
-	width                 int
-	activeTab             tabView
-	consoleView           consoleModel
-	detailPanel           detailPanelModel
-	banTable              tableBansModel
-	compTable             tableCompModel
-	bdTable               tableBDModel
-	serversTable          *serverTableModel
-	configModel           tea.Model
-	helpModel             tea.Model
-	notesModel            notesModel
-	tabsModel             tea.Model
-	statusModel           tea.Model
-	chatModel             chatModel
-	redTable              tea.Model
-	bluTable              tea.Model
-	contentViewPortHeight int
-	footerHeight          int
-	headerHeight          int
-	serverMode            bool
+	currentView            contentView
+	previousView           contentView
+	height                 int
+	width                  int
+	activeTab              tabView
+	consoleModel           consoleModel
+	detailPanelModel       detailPanelModel
+	serverDetailPanelModel serverDetailPanelModel
+	banTableModel          tableBansModel
+	compTableModel         tableCompModel
+	bdTableModel           tableBDModel
+	serversTableModel      *serverTableModel
+	configModelModel       tea.Model
+	helpModel              tea.Model
+	notesModel             notesModel
+	tabsModel              tea.Model
+	statusModel            tea.Model
+	chatModel              chatModel
+	redTableModel          tea.Model
+	bluTableModel          tea.Model
+	contentViewPortHeight  int
+	footerHeight           int
+	headerHeight           int
+	serverMode             bool
 }
 
 func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string, loader ConfigWriter, cachePath string) *rootModel {
 	app := &rootModel{
-		currentView:           viewMain,
-		previousView:          viewMain,
-		activeTab:             tabOverview,
-		helpModel:             newHelpModel(buildVersion, buildDate, buildCommit, loader.Path(), cachePath),
-		redTable:              newPlayerTableModel(tf.RED, userConfig.SteamID, userConfig.ServerModeEnabled),
-		bluTable:              newPlayerTableModel(tf.BLU, userConfig.SteamID, userConfig.ServerModeEnabled),
-		banTable:              newTableBansModel(),
-		configModel:           newConfigModal(userConfig, loader),
-		compTable:             newTableCompModel(),
-		bdTable:               newTableBDModel(),
-		tabsModel:             newTabsModel(),
-		notesModel:            newNotesModel(),
-		detailPanel:           newDetailPanelModel(userConfig.Links),
-		consoleView:           newConsoleModel(),
-		serversTable:          newServerTableModel(),
-		statusModel:           newStatusBarModel(buildVersion, userConfig.ServerModeEnabled),
-		chatModel:             newChatModel(),
-		serverMode:            userConfig.ServerModeEnabled,
-		contentViewPortHeight: 10,
-		headerHeight:          1,
-		footerHeight:          1,
+		currentView:            viewMain,
+		previousView:           viewMain,
+		activeTab:              tabOverview,
+		helpModel:              newHelpModel(buildVersion, buildDate, buildCommit, loader.Path(), cachePath),
+		redTableModel:          newPlayerTableModel(tf.RED, userConfig.SteamID, userConfig.ServerModeEnabled),
+		bluTableModel:          newPlayerTableModel(tf.BLU, userConfig.SteamID, userConfig.ServerModeEnabled),
+		banTableModel:          newTableBansModel(),
+		configModelModel:       newConfigModal(userConfig, loader),
+		compTableModel:         newTableCompModel(),
+		bdTableModel:           newTableBDModel(),
+		tabsModel:              newTabsModel(),
+		notesModel:             newNotesModel(),
+		detailPanelModel:       newDetailPanelModel(userConfig.Links),
+		consoleModel:           newConsoleModel(),
+		serversTableModel:      newServerTableModel(),
+		statusModel:            newStatusBarModel(buildVersion, userConfig.ServerModeEnabled),
+		chatModel:              newChatModel(),
+		serverDetailPanelModel: newServerDetailPanel(),
+		serverMode:             userConfig.ServerModeEnabled,
+		contentViewPortHeight:  10,
+		headerHeight:           1,
+		footerHeight:           1,
 	}
 
 	if doSetup {
@@ -76,17 +78,18 @@ func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, b
 func (m rootModel) Init() tea.Cmd {
 	return tea.Batch(
 		tea.SetWindowTitle("tf-tui"),
-		m.configModel.Init(),
+		m.configModelModel.Init(),
 		textinput.Blink,
 		m.tabsModel.Init(),
 		m.notesModel.Init(),
-		m.consoleView.Init(),
+		m.consoleModel.Init(),
 		m.statusModel.Init(),
 		m.chatModel.Init(),
-		m.bdTable.Init(),
-		m.redTable.Init(),
-		m.bluTable.Init(),
-		m.serversTable.Init(),
+		m.bdTableModel.Init(),
+		m.redTableModel.Init(),
+		m.bluTableModel.Init(),
+		m.serversTableModel.Init(),
+		m.serverDetailPanelModel.Init(),
 		selectTeam(tf.RED),
 	)
 }
@@ -123,30 +126,30 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		m.activeTab = msg
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, DefaultKeyMap.quit):
+		case key.Matches(msg, defaultKeyMap.quit):
 			if m.currentView != viewMain {
 				break
 			}
 
 			return m, tea.Quit
-		case key.Matches(msg, DefaultKeyMap.help):
+		case key.Matches(msg, defaultKeyMap.help):
 			if m.currentView == viewHelp {
 				m.currentView = m.previousView
 			} else {
 				m.previousView = m.currentView
 				m.currentView = viewHelp
 			}
-		case key.Matches(msg, DefaultKeyMap.config):
+		case key.Matches(msg, defaultKeyMap.config):
 			if m.currentView == viewConfig {
 				m.currentView = m.previousView
 			} else {
 				m.previousView = m.currentView
 				m.currentView = viewConfig
 			}
-		case key.Matches(msg, DefaultKeyMap.left):
+		case key.Matches(msg, defaultKeyMap.left):
 			return m, selectTeam(tf.RED)
 
-		case key.Matches(msg, DefaultKeyMap.right):
+		case key.Matches(msg, defaultKeyMap.right):
 			return m, selectTeam(tf.BLU)
 		}
 	case contentView:
@@ -179,33 +182,37 @@ func (m rootModel) View() string {
 	contentViewPortHeight := m.height - hdrHeight - ftrHeight
 	switch m.currentView {
 	case viewConfig:
-		content = m.configModel.View()
+		content = m.configModelModel.View()
 	case viewHelp:
 		content = m.helpModel.View()
 	case viewMain:
 		var topContent string
 		if m.serverMode {
-			topContent = lipgloss.JoinHorizontal(lipgloss.Top, m.serversTable.View())
+			topContent = lipgloss.JoinHorizontal(lipgloss.Top, m.serversTableModel.View())
 		} else {
-			topContent = lipgloss.JoinHorizontal(lipgloss.Top, m.redTable.View(), m.bluTable.View())
+			topContent = lipgloss.JoinHorizontal(lipgloss.Top, m.redTableModel.View(), m.bluTableModel.View())
 		}
 
-		topContentHeight := m.height - lipgloss.Height(topContent) - 5
+		topContentHeight := min(m.height-lipgloss.Height(topContent)-5, 20)
 		lowerPanelViewportHeight := contentViewPortHeight - lipgloss.Height(topContent) - 2
 		var ptContent string
 		switch m.activeTab {
 		case tabOverview:
-			ptContent = m.detailPanel.Render(lowerPanelViewportHeight)
+			if m.serverMode {
+				ptContent = m.serverDetailPanelModel.Render(lowerPanelViewportHeight)
+			} else {
+				ptContent = m.detailPanelModel.Render(lowerPanelViewportHeight)
+			}
 		case tabBans:
-			ptContent = m.banTable.Render(lowerPanelViewportHeight)
+			ptContent = m.banTableModel.Render(lowerPanelViewportHeight)
 		case tabBD:
-			ptContent = m.bdTable.Render(lowerPanelViewportHeight)
+			ptContent = m.bdTableModel.Render(lowerPanelViewportHeight)
 		case tabComp:
-			ptContent = m.compTable.Render(lowerPanelViewportHeight)
+			ptContent = m.compTableModel.Render(lowerPanelViewportHeight)
 		case tabChat:
 			ptContent = m.chatModel.View(lowerPanelViewportHeight)
 		case tabConsole:
-			ptContent = m.consoleView.Render(lowerPanelViewportHeight)
+			ptContent = m.consoleModel.Render(lowerPanelViewportHeight)
 		}
 
 		content = lipgloss.JoinVertical(
@@ -228,22 +235,23 @@ func (m rootModel) isInitialized() bool {
 }
 
 func (m rootModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
-	cmds := make([]tea.Cmd, 15)
+	cmds := make([]tea.Cmd, 16)
 
-	m.redTable, cmds[1] = m.redTable.Update(msg)
-	m.bluTable, cmds[2] = m.bluTable.Update(msg)
-	m.banTable, cmds[3] = m.banTable.Update(msg)
+	m.redTableModel, cmds[1] = m.redTableModel.Update(msg)
+	m.bluTableModel, cmds[2] = m.bluTableModel.Update(msg)
+	m.banTableModel, cmds[3] = m.banTableModel.Update(msg)
 	m.helpModel, cmds[4] = m.helpModel.Update(msg)
-	m.detailPanel, cmds[5] = m.detailPanel.Update(msg)
+	m.detailPanelModel, cmds[5] = m.detailPanelModel.Update(msg)
 	m.tabsModel, cmds[6] = m.tabsModel.Update(msg)
 	m.notesModel, cmds[7] = m.notesModel.Update(msg)
-	m.compTable, cmds[8] = m.compTable.Update(msg)
-	m.consoleView, cmds[9] = m.consoleView.Update(msg)
+	m.compTableModel, cmds[8] = m.compTableModel.Update(msg)
+	m.consoleModel, cmds[9] = m.consoleModel.Update(msg)
 	m.statusModel, cmds[10] = m.statusModel.Update(msg)
 	m.chatModel, cmds[11] = m.chatModel.Update(msg)
-	m.configModel, cmds[12] = m.configModel.Update(msg)
-	m.bdTable, cmds[13] = m.bdTable.Update(msg)
-	m.serversTable, cmds[14] = m.serversTable.Update(msg)
+	m.configModelModel, cmds[12] = m.configModelModel.Update(msg)
+	m.bdTableModel, cmds[13] = m.bdTableModel.Update(msg)
+	m.serversTableModel, cmds[14] = m.serversTableModel.Update(msg)
+	m.serverDetailPanelModel, cmds[15] = m.serverDetailPanelModel.Update(msg)
 
 	return m, tea.Batch(cmds...)
 }

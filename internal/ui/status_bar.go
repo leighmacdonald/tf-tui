@@ -36,7 +36,7 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.stats = msg
 	case Snapshot:
 		m.snapshot = msg
-	case StatusMsg:
+	case statusMsg:
 		m.statusMsg = msg.Message
 		m.statusError = msg.Err
 
@@ -44,7 +44,7 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clearStatusMessageMsg:
 		m.statusError = false
 		m.statusMsg = ""
-	case ContentViewPortHeightMsg:
+	case contentViewPortHeightMsg:
 		m.width = msg.width
 	case events.Event:
 		switch data := msg.Data.(type) {
@@ -81,7 +81,7 @@ func (m statusBarModel) View() string {
 	}
 	args = append(args,
 		styles.StatusVersion.Render(m.version),
-		styles.StatusHelp.Render(fmt.Sprintf("%s %s", DefaultKeyMap.help.Help().Key, DefaultKeyMap.help.Help().Desc)),
+		styles.StatusHelp.Render(fmt.Sprintf("%s %s", defaultKeyMap.help.Help().Key, defaultKeyMap.help.Help().Desc)),
 		m.status(),
 		styles.StatusMap.Render(m.mapName))
 

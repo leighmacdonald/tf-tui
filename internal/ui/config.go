@@ -40,7 +40,7 @@ type keymap struct {
 }
 
 // TODO make configurable.
-var DefaultKeyMap = keymap{
+var defaultKeyMap = keymap{
 	consoleInput: key.NewBinding(
 		key.WithKeys("return"),
 		key.WithHelp("<return>", "Send command")),
@@ -200,21 +200,21 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			break
 		}
 		switch {
-		case key.Matches(msg, DefaultKeyMap.back):
+		case key.Matches(msg, defaultKeyMap.back):
 			// go back to main view
 			if m.activeView == viewConfig {
 				m.activeView = viewMain
 				cmds = append(cmds, setContentView(viewMain)) //nolint:makezero
 			}
-		case key.Matches(msg, DefaultKeyMap.up):
+		case key.Matches(msg, defaultKeyMap.up):
 			if m.focusIndex > 0 && m.focusIndex <= fieldSave {
 				cmds = append(cmds, m.changeInput(up)) //nolint:makezero
 			}
-		case key.Matches(msg, DefaultKeyMap.down):
+		case key.Matches(msg, defaultKeyMap.down):
 			if m.focusIndex >= 0 && m.focusIndex < fieldSave {
 				cmds = append(cmds, m.changeInput(down)) //nolint:makezero
 			}
-		case key.Matches(msg, DefaultKeyMap.accept):
+		case key.Matches(msg, defaultKeyMap.accept):
 			switch m.focusIndex {
 			case fieldSteamID:
 				fallthrough

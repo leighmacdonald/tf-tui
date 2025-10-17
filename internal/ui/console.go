@@ -60,18 +60,18 @@ type consoleModel struct {
 	ready  bool
 	rowsMu *sync.RWMutex
 	// indexed by log secret
-	rowsRendered   map[int]string
+	rowsRendered   map[string]string
 	width          int
 	viewPort       viewport.Model
 	focused        bool
 	filterNoisy    bool
-	selectedServer int
+	selectedServer string
 }
 
 func newConsoleModel() consoleModel {
 	model := consoleModel{
 		rowsMu:       &sync.RWMutex{},
-		rowsRendered: map[int]string{},
+		rowsRendered: map[string]string{},
 		viewPort:     viewport.New(10, 20),
 	}
 
@@ -88,7 +88,7 @@ func (m consoleModel) Update(msg tea.Msg) (consoleModel, tea.Cmd) {
 	m.viewPort, cmds[0] = m.viewPort.Update(msg)
 
 	switch msg := msg.(type) {
-	case ContentViewPortHeightMsg:
+	case contentViewPortHeightMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
 	case events.Event:
@@ -128,8 +128,8 @@ func (m consoleModel) onLogs(event events.Event) consoleModel {
 	m.rowsMu.Lock()
 	// This does not use JoinVertical currently as it takes more and more CPU as time goes on
 	// and the console log fills becoming unusable.
-	prev := m.rowsRendered[event.LogSecret]
-	m.rowsRendered[event.LogSecret] = prev + "\n" + newRow.Render(m.width-10)
+	prev := m.rowsRendered[event.HostPort]
+	m.rowsRendered[event.HostPort] = prev + "\n" + newRow.Render(m.width-10)
 	m.rowsMu.Unlock()
 
 	return m

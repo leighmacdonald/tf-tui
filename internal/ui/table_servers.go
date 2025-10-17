@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
@@ -41,9 +42,9 @@ const (
 )
 
 var defaultServerTableColumns = []serverTableCol{
+	colServerRegion,
 	colServerName,
 	colServerMap,
-	colServerRegion,
 	colServerPlayers,
 	colServerPing,
 	colServerUptime,
@@ -55,20 +56,24 @@ var defaultServerTableColumns = []serverTableCol{
 }
 
 func newServerTableModel() *serverTableModel {
+	zoneID := zone.NewPrefix()
 	return &serverTableModel{
-		zoneID: zone.NewPrefix(),
-		table:  newUnstyledTable(),
-		data:   newTableServerData("", nil, defaultServerTableColumns...),
+		zoneID:   zoneID,
+		table:    newUnstyledTable(),
+		data:     newTableServerData(zoneID, nil, defaultServerTableColumns...),
+		viewport: viewport.New(1, 1),
 	}
 }
 
 type serverTableModel struct {
-	zoneID         string
-	table          *table.Table
-	data           *serverTableData
-	selectedServer string
-	width          int
-	height         int
+	zoneID          string
+	viewport        viewport.Model
+	table           *table.Table
+	data            *serverTableData
+	selectedsServer Snapshot
+	width           int
+	height          int
+	contentHeight   int
 }
 
 func (m *serverTableModel) Init() tea.Cmd {
@@ -77,20 +82,38 @@ func (m *serverTableModel) Init() tea.Cmd {
 
 func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case ContentViewPortHeightMsg:
+	case contentViewPortHeightMsg:
 		m.width = msg.width
 		m.height = msg.height
+		m.contentHeight = min(msg.contentViewPortHeight, msg.height/2)
+		m.viewport.Width = msg.width
+		m.viewport.Height = min(msg.contentViewPortHeight, msg.height/2) - 2
 	case []Snapshot:
 		m.data = newTableServerData(m.zoneID, msg)
 		m.data.Sort(m.data.sortColumn, m.data.asc)
 		m.table.Data(m.data)
+	case selectServerMsg:
+		m.selectedsServer = msg.server
+	case tea.MouseMsg:
+		if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
+			return m, nil
+		}
+
+		for _, item := range m.data.servers {
+			if zone.Get(m.zoneID + item.HostPort).InBounds(msg) {
+				return m, setServer(item)
+			}
+		}
 	}
 
-	return m, nil
+	var cmd tea.Cmd
+	m.viewport, cmd = m.viewport.Update(msg)
+
+	return m, cmd
 }
 
 func (m *serverTableModel) View() string {
-	return m.table.
+	content := m.table.
 		Width(m.width).
 		Headers(m.data.Headers()...).
 		StyleFunc(func(row, col int) lipgloss.Style {
@@ -133,4 +156,7 @@ func (m *serverTableModel) View() string {
 			}
 		}).
 		String()
+
+	m.viewport.SetContent(content)
+	return m.viewport.View()
 }

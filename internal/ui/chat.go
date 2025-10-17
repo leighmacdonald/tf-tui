@@ -90,7 +90,7 @@ func (m chatModel) Init() tea.Cmd {
 
 func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case ContentViewPortHeightMsg:
+	case contentViewPortHeightMsg:
 		m.width = msg.width
 		if !m.ready {
 			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)

@@ -42,7 +42,7 @@ func (m detailPanelModel) Update(msg tea.Msg) (detailPanelModel, tea.Cmd) {
 		m.links = msg.Links
 	case Snapshot:
 		m.players = msg.Server.Players
-	case ContentViewPortHeightMsg:
+	case contentViewPortHeightMsg:
 		m.width = msg.width
 		m.height = msg.height
 		if !m.ready {
@@ -52,7 +52,7 @@ func (m detailPanelModel) Update(msg tea.Msg) (detailPanelModel, tea.Cmd) {
 			m.contentViewPortHeight = msg.contentViewPortHeight
 			m.viewport.Height = msg.contentViewPortHeight
 		}
-	case SelectedPlayerMsg:
+	case selectedPlayerMsg:
 		m.player = msg.player
 	}
 

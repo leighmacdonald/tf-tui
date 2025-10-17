@@ -51,9 +51,9 @@ func (m tableBDModel) Init() tea.Cmd {
 
 func (m tableBDModel) Update(msg tea.Msg) (tableBDModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case ContentViewPortHeightMsg:
+	case contentViewPortHeightMsg:
 		m.width = msg.width
-	case SelectedPlayerMsg:
+	case selectedPlayerMsg:
 		var rows [][]string
 		// FIXME
 		// for _, match := range msg.player.BDMatches {
