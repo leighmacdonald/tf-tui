@@ -159,6 +159,8 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 }
 
 func (m *serverTableModel) View() string {
+	currentIdx := m.currentRowIndex()
+
 	content := m.table.
 		Width(m.width).
 		Headers(m.data.Headers()...).
@@ -193,8 +195,8 @@ func (m *serverTableModel) View() string {
 			switch {
 			case row == table.HeaderRow:
 				return styles.HeaderStyleBlu
-			case playerTableCol(col) == colName:
-				return styles.PlayerTableRow.Width(int(width))
+			case currentIdx == row && col != 0:
+				return styles.SelectedCellStyleNameBlu.Width(int(width))
 			case row%2 == 0:
 				return styles.PlayerTableRow.Width(int(width))
 			default:
@@ -205,4 +207,14 @@ func (m *serverTableModel) View() string {
 
 	m.viewport.SetContent(content)
 	return m.viewport.View()
+}
+
+func (m *serverTableModel) currentRowIndex() int {
+	for rowIdx, server := range m.data.servers {
+		if server.HostPort == m.selectedsServer {
+			return rowIdx
+		}
+	}
+
+	return 0
 }

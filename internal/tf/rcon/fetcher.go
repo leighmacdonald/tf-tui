@@ -45,9 +45,9 @@ type Fetcher struct {
 func (f Fetcher) Fetch(ctx context.Context) (tf.DumpPlayer, tf.Status, error) {
 	command := "status"
 	if f.serverMode {
-		command = command + ";stats"
+		command += ";stats"
 	} else {
-		command = command + ";g15_dumpplayer"
+		command += ";g15_dumpplayer"
 	}
 
 	response, errExec := New(f.Address, f.Password).Exec(ctx, command, true)
@@ -94,15 +94,19 @@ func (f Fetcher) Fetch(ctx context.Context) (tf.DumpPlayer, tf.Status, error) {
 		status, errStatus := extra.ParseStatus(response, true)
 		if errStatus != nil {
 			slog.Error("failed to parse status", slog.String("error", errStatus.Error()))
+		} else {
+			f.lastStatus.Status = status
 		}
-		var stats tf.Stats
 		if match := f.statsRe.FindStringSubmatch(response); len(match) > 0 {
-			stats = f.parseStats(match)
+			stats, err := f.parseStats(match)
+			if err != nil {
+				slog.Error("Failed to parse stats", slog.String("error", err.Error()))
+			} else {
+				f.lastStatus.Stats = stats
+			}
 		}
 
-		f.lastStatus = tf.Status{Status: status, Stats: stats}
-
-		slices.SortStableFunc(status.Players, func(a extra.Player, b extra.Player) int {
+		slices.SortStableFunc(f.lastStatus.Players, func(a extra.Player, b extra.Player) int {
 			if a.UserID > b.UserID {
 				return 1
 			} else if a.UserID < b.UserID {
@@ -112,7 +116,7 @@ func (f Fetcher) Fetch(ctx context.Context) (tf.DumpPlayer, tf.Status, error) {
 			return 0
 		})
 
-		for idx, player := range status.Players {
+		for idx, player := range f.lastStatus.Players {
 			dump.Connected[idx] = player.State == "active"
 			dump.Names[idx] = player.Name
 			dump.Ping[idx] = player.Ping
@@ -140,45 +144,45 @@ func (f Fetcher) Fetch(ctx context.Context) (tf.DumpPlayer, tf.Status, error) {
 
 // CPU    In_(KB/s)  Out_(KB/s)  Uptime  Map_changes  FPS      Players  Connects
 // 49.76  80.38      1003.97     113     6            66.67    64       395.
-func (f *Fetcher) parseStats(match []string) tf.Stats {
+func (f *Fetcher) parseStats(match []string) (tf.Stats, error) {
 	cpu, errCPU := strconv.ParseFloat(match[1], 32)
 	if errCPU != nil {
-		slog.Error("Failed to parse CPU", slog.String("error", errCPU.Error()))
+		return tf.Stats{}, errCPU
 	}
 
 	inKBs, errInKBs := strconv.ParseFloat(match[2], 32)
 	if errInKBs != nil {
-		slog.Error("Failed to parse in kbs", slog.String("error", errInKBs.Error()))
+		return tf.Stats{}, errInKBs
 	}
 
 	outKBs, errOutKBs := strconv.ParseFloat(match[3], 32)
 	if errOutKBs != nil {
-		slog.Error("Failed to parse out kbs", slog.String("error", errOutKBs.Error()))
+		return tf.Stats{}, errOutKBs
 	}
 
 	uptime, errUptime := strconv.ParseInt(match[4], 10, 64)
 	if errUptime != nil {
-		slog.Error("Failed to parse uptime", slog.String("error", errUptime.Error()))
+		return tf.Stats{}, errUptime
 	}
 
 	mapChanges, errMapChanges := strconv.ParseInt(match[5], 10, 64)
 	if errMapChanges != nil {
-		slog.Error("Failed to parse map changes", slog.String("error", errMapChanges.Error()))
+		return tf.Stats{}, errMapChanges
 	}
 
 	fps, errFPS := strconv.ParseFloat(match[6], 32)
 	if errFPS != nil {
-		slog.Error("Failed to parse fps", slog.String("error", errFPS.Error()))
+		return tf.Stats{}, errFPS
 	}
 
 	players, errPlayers := strconv.ParseInt(match[7], 10, 64)
 	if errPlayers != nil {
-		slog.Error("Failed to parse players", slog.String("error", errPlayers.Error()))
+		return tf.Stats{}, errPlayers
 	}
 
 	connects, errConnects := strconv.ParseInt(match[8], 10, 64)
 	if errConnects != nil {
-		slog.Error("Failed to parse connects", slog.String("error", errConnects.Error()))
+		return tf.Stats{}, errConnects
 	}
 
 	return tf.Stats{
@@ -190,7 +194,7 @@ func (f *Fetcher) parseStats(match []string) tf.Stats {
 		MapChanges: int(mapChanges),
 		Players:    int(players),
 		Connects:   int(connects),
-	}
+	}, nil
 }
 
 // parsePlayerState provides the ability to parse the output of the `g15_dumpplayer` command into a PlayerState struct.

@@ -141,9 +141,15 @@ func (m *serverTableData) At(row int, col int) string {
 	case colServerPlayers:
 		return fmt.Sprintf("%d/%d", snapshot.Status.PlayersCount, snapshot.Status.PlayersMax)
 	case colServerFPS:
-		return fmt.Sprintf("%.2f", snapshot.Status.Stats.FPS)
+		if snapshot.Status.Stats.FPS > 0 {
+			return fmt.Sprintf("%2.2f", snapshot.Status.Stats.FPS)
+		}
+		return ""
 	case colServerCPU:
-		return fmt.Sprintf("%.2f", snapshot.Status.Stats.CPU)
+		if snapshot.Status.Stats.CPU > 0 {
+			return fmt.Sprintf("%2.2f", snapshot.Status.Stats.CPU)
+		}
+		return ""
 	case colServerInRate:
 		return fmt.Sprintf("%.2f KBs", snapshot.Status.Stats.InKBs)
 	case colServerOutRate:
@@ -152,7 +158,7 @@ func (m *serverTableData) At(row int, col int) string {
 		return fmt.Sprintf("%d", snapshot.Status.Stats.Connects)
 	case colServerPing:
 		avg := snapshot.AvgPing()
-		if math.IsNaN(avg) {
+		if math.IsNaN(avg) || avg == 0 {
 			return ""
 		}
 
