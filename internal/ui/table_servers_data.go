@@ -107,6 +107,16 @@ func (m *serverTableData) Sort(column serverTableCol, asc bool) {
 	}
 }
 
+func normalizeMapName(input string) string {
+	if !strings.HasPrefix(input, "workshop/") {
+		return input
+	}
+
+	input, _ = strings.CutPrefix(input, "workshop/")
+	parts := strings.Split(input, ".")
+	return parts[0]
+}
+
 func (m *serverTableData) At(row int, col int) string {
 	if col > len(m.enabledColumns)-1 {
 		return "oobcol"
@@ -126,7 +136,7 @@ func (m *serverTableData) At(row int, col int) string {
 		}
 		return zone.Mark(m.zoneID+server.Server.Region, cc)
 	case colServerMap:
-		return server.Status.Map
+		return normalizeMapName(server.Status.Map)
 	case colServerPlayers:
 		return fmt.Sprintf("%d/%d", server.Status.PlayersCount, server.Status.PlayersMax)
 	case colServerFPS:
