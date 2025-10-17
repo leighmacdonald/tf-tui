@@ -19,7 +19,6 @@ type statusBarModel struct {
 	snapshot    Snapshot
 	version     string
 	serverMode  bool
-	stats       tf.Stats
 }
 
 func newStatusBarModel(version string, serverMode bool) *statusBarModel {
@@ -32,10 +31,8 @@ func (m statusBarModel) Init() tea.Cmd {
 
 func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tf.Stats:
-		m.stats = msg
-	case Snapshot:
-		m.snapshot = msg
+	case selectServerSnapshotMsg:
+		m.snapshot = msg.server
 	case statusMsg:
 		m.statusMsg = msg.Message
 		m.statusError = msg.Err
@@ -65,18 +62,18 @@ func (m statusBarModel) View() string {
 			styles.StatusRedTeam.Render(fmt.Sprintf("%3d", m.snapshot.Server.Players.TeamCount(tf.RED))),
 			styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.snapshot.Server.Players.TeamCount(tf.BLU))))
 	} else {
-		if m.stats.FPS < 66 {
-			args = append(args, styles.StatusError.Underline(true).Render(fmt.Sprintf("FPS %.2f", m.stats.FPS)))
+		if m.snapshot.Status.Stats.FPS < 66 {
+			args = append(args, styles.StatusError.Underline(true).Render(fmt.Sprintf("FPS %.2f", m.snapshot.Status.Stats.FPS)))
 		} else {
-			args = append(args, styles.StatusBluTeam.Render(fmt.Sprintf("FPS %.2f  ", m.stats.FPS)))
+			args = append(args, styles.StatusBluTeam.Render(fmt.Sprintf("FPS %.2f  ", m.snapshot.Status.Stats.FPS)))
 		}
 		args = append(args,
-			styles.StatusRedTeam.Render(fmt.Sprintf("CPU %.2f  ", m.stats.CPU)),
-			styles.StatusMessage.Render(fmt.Sprintf("In/Out kb/s %.2f/%.2f", m.stats.InKBs, m.stats.OutKBs)),
-			styles.StatusRedTeam.Render(fmt.Sprintf("Up %d", m.stats.Uptime)),
-			styles.StatusMap.Render(fmt.Sprintf("Maps %d", m.stats.MapChanges)),
-			styles.StatusMap.Render(fmt.Sprintf("Plr %d", m.stats.Players)),
-			styles.StatusMap.Render(fmt.Sprintf("Con %d", m.stats.Connects)),
+			styles.StatusRedTeam.Render(fmt.Sprintf("CPU %.2f  ", m.snapshot.Status.Stats.CPU)),
+			styles.StatusMessage.Render(fmt.Sprintf("In/Out kb/s %.2f/%.2f", m.snapshot.Status.Stats.InKBs, m.snapshot.Status.Stats.OutKBs)),
+			styles.StatusRedTeam.Render(fmt.Sprintf("Up %d", m.snapshot.Status.Stats.Uptime)),
+			styles.StatusMap.Render(fmt.Sprintf("Maps %d", m.snapshot.Status.Stats.MapChanges)),
+			styles.StatusMap.Render(fmt.Sprintf("Plr %d", m.snapshot.Status.Stats.Players)),
+			styles.StatusMap.Render(fmt.Sprintf("Con %d", m.snapshot.Status.Stats.Connects)),
 		)
 	}
 	args = append(args,
