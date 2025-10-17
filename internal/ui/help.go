@@ -36,7 +36,7 @@ func (m helpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch { //nolint:gocritic
-		case key.Matches(msg, DefaultKeyMap.back):
+		case key.Matches(msg, defaultKeyMap.back):
 			// go back to main view
 			if m.view == viewHelp {
 				m.view = viewMain
@@ -54,34 +54,34 @@ func (m helpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m helpModel) View() string {
 	left := m.helpView.FullHelpView([][]key.Binding{
 		{
-			DefaultKeyMap.config,
-			DefaultKeyMap.start,
-			DefaultKeyMap.stop,
-			DefaultKeyMap.reset,
-			DefaultKeyMap.quit,
-			DefaultKeyMap.help,
-			DefaultKeyMap.accept,
+			defaultKeyMap.config,
+			defaultKeyMap.start,
+			defaultKeyMap.stop,
+			defaultKeyMap.reset,
+			defaultKeyMap.quit,
+			defaultKeyMap.help,
+			defaultKeyMap.accept,
 		},
 	})
 
 	middle := m.helpView.FullHelpView([][]key.Binding{
 		{
-			DefaultKeyMap.overview,
-			DefaultKeyMap.bans,
-			DefaultKeyMap.bd,
-			DefaultKeyMap.comp,
-			DefaultKeyMap.chat,
-			DefaultKeyMap.console,
+			defaultKeyMap.overview,
+			defaultKeyMap.bans,
+			defaultKeyMap.bd,
+			defaultKeyMap.comp,
+			defaultKeyMap.chat,
+			defaultKeyMap.console,
 		},
 	})
 
 	right := m.helpView.FullHelpView([][]key.Binding{
 		{
-			DefaultKeyMap.nextTab,
-			DefaultKeyMap.up,
-			DefaultKeyMap.down,
-			DefaultKeyMap.left,
-			DefaultKeyMap.right,
+			defaultKeyMap.nextTab,
+			defaultKeyMap.up,
+			defaultKeyMap.down,
+			defaultKeyMap.left,
+			defaultKeyMap.right,
 		},
 	})
 

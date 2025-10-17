@@ -48,7 +48,7 @@ func (m tableBansModel) Init() tea.Cmd {
 
 func (m tableBansModel) Update(msg tea.Msg) (tableBansModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case ContentViewPortHeightMsg:
+	case contentViewPortHeightMsg:
 		m.width = msg.width
 		m.height = msg.height
 		if !m.ready {
@@ -58,7 +58,7 @@ func (m tableBansModel) Update(msg tea.Msg) (tableBansModel, tea.Cmd) {
 			m.contentViewPortHeight = msg.contentViewPortHeight
 			m.viewport.Height = msg.contentViewPortHeight
 		}
-	case SelectedPlayerMsg:
+	case selectedPlayerMsg:
 		m.player = msg.player
 		m.table.ClearRows()
 

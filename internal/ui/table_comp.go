@@ -57,7 +57,7 @@ func (m tableCompModel) Init() tea.Cmd {
 
 func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case ContentViewPortHeightMsg:
+	case contentViewPortHeightMsg:
 		m.width = msg.width
 		m.height = msg.height
 		m.table.Height(msg.contentViewPortHeight - 2)
@@ -67,7 +67,7 @@ func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 		} else {
 			m.viewport.Height = msg.contentViewPortHeight - 1
 		}
-	case SelectedPlayerMsg:
+	case selectedPlayerMsg:
 		m.player = msg.player
 		m.table.ClearRows()
 

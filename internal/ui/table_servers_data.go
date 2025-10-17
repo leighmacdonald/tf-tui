@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 	"golang.org/x/exp/slices"
 )
@@ -125,44 +126,39 @@ func (m *serverTableData) At(row int, col int) string {
 		return "oobrow"
 	}
 	curCol := m.enabledColumns[col]
-	server := m.servers[row]
+	snapshot := m.servers[row]
 	switch curCol {
 	case colServerName:
-		return zone.Mark(m.zoneID+server.Status.ServerName, server.Status.ServerName)
+		return zone.Mark(m.zoneID+snapshot.HostPort, snapshot.Status.ServerName)
 	case colServerRegion:
-		cc := server.Server.Region
+		cc := snapshot.Server.Region
 		if cc == "none" {
 			cc = ""
 		}
-		return zone.Mark(m.zoneID+server.Server.Region, cc)
+		return zone.Mark(m.zoneID+snapshot.Server.Region, styles.Flag(cc))
 	case colServerMap:
-		return normalizeMapName(server.Status.Map)
+		return normalizeMapName(snapshot.Status.Map)
 	case colServerPlayers:
-		return fmt.Sprintf("%d/%d", server.Status.PlayersCount, server.Status.PlayersMax)
+		return fmt.Sprintf("%d/%d", snapshot.Status.PlayersCount, snapshot.Status.PlayersMax)
 	case colServerFPS:
-		return fmt.Sprintf("%.2f", server.Status.Stats.FPS)
+		return fmt.Sprintf("%.2f", snapshot.Status.Stats.FPS)
 	case colServerCPU:
-		return fmt.Sprintf("%.2f", server.Status.Stats.CPU)
+		return fmt.Sprintf("%.2f", snapshot.Status.Stats.CPU)
 	case colServerInRate:
-		return fmt.Sprintf("%.2f KBs", server.Status.Stats.InKBs)
+		return fmt.Sprintf("%.2f KBs", snapshot.Status.Stats.InKBs)
 	case colServerOutRate:
-		return fmt.Sprintf("%.2f", server.Status.Stats.OutKBs)
+		return fmt.Sprintf("%.2f", snapshot.Status.Stats.OutKBs)
 	case colServerConnects:
-		return fmt.Sprintf("%d", server.Status.Stats.Connects)
+		return fmt.Sprintf("%d", snapshot.Status.Stats.Connects)
 	case colServerPing:
-		var pings float64
-		for _, player := range server.Status.Players {
-			pings += float64(player.Ping)
-		}
-
-		avg := pings / float64(len(server.Status.Players))
+		avg := snapshot.AvgPing()
 		if math.IsNaN(avg) {
 			return ""
 		}
 
 		return fmt.Sprintf("%.0fms", avg)
 	case colServerUptime:
-		uptime := time.Duration(server.Status.Stats.Uptime) * time.Second
+		uptime := time.Duration(snapshot.Status.Stats.Uptime) * time.Second
 
 		return uptime.String()
 	}

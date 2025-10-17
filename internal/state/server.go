@@ -27,10 +27,11 @@ var (
 )
 
 type Snapshot struct {
-	LogSecret int
+	HostPort  string
 	Players   Players
 	Status    tf.Status
 	Region    string
+	createdOn time.Time
 }
 
 func newServerState(conf config.Config, server config.ServerConfig, router *events.Router, bdFetcher *bd.Fetcher,
@@ -269,7 +270,7 @@ func (s *serverState) Snapshot() Snapshot {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return Snapshot{LogSecret: s.server.LogSecret, Players: s.players, Status: s.status, Region: s.countryCode}
+	return Snapshot{Players: s.players, Status: s.status, Region: s.countryCode, createdOn: time.Now(), HostPort: s.server.Address}
 }
 
 func (s *serverState) updateDump(ctx context.Context) {

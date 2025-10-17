@@ -29,11 +29,11 @@ func (m notesModel) Init() tea.Cmd {
 
 func (m notesModel) Update(msg tea.Msg) (notesModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case ContentViewPortHeightMsg:
+	case contentViewPortHeightMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
 		m.viewPort.Height = msg.contentViewPortHeight
-	case SelectedPlayerMsg:
+	case selectedPlayerMsg:
 		m.player = msg.player
 		m.textarea.SetValue(msg.notes)
 	}
