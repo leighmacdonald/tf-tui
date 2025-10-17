@@ -63,12 +63,12 @@ func (m statusBarModel) View() string {
 			styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.snapshot.Server.Players.TeamCount(tf.BLU))))
 	} else {
 		if m.snapshot.Status.Stats.FPS < 66 {
-			args = append(args, styles.StatusError.Underline(true).Render(fmt.Sprintf("FPS %.2f", m.snapshot.Status.Stats.FPS)))
+			args = append(args, styles.StatusError.Underline(true).Render(fmt.Sprintf("FPS %2.2f", m.snapshot.Status.Stats.FPS)))
 		} else {
-			args = append(args, styles.StatusBluTeam.Render(fmt.Sprintf("FPS %.2f  ", m.snapshot.Status.Stats.FPS)))
+			args = append(args, styles.StatusBluTeam.Render(fmt.Sprintf("FPS %2.2f  ", m.snapshot.Status.Stats.FPS)))
 		}
 		args = append(args,
-			styles.StatusRedTeam.Render(fmt.Sprintf("CPU %.2f  ", m.snapshot.Status.Stats.CPU)),
+			styles.StatusRedTeam.Render(fmt.Sprintf("CPU %2.2f  ", m.snapshot.Status.Stats.CPU)),
 			styles.StatusMessage.Render(fmt.Sprintf("In/Out kb/s %.2f/%.2f", m.snapshot.Status.Stats.InKBs, m.snapshot.Status.Stats.OutKBs)),
 			styles.StatusRedTeam.Render(fmt.Sprintf("Up %d", m.snapshot.Status.Stats.Uptime)),
 			styles.StatusMap.Render(fmt.Sprintf("Maps %d", m.snapshot.Status.Stats.MapChanges)),

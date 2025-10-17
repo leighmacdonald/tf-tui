@@ -99,7 +99,9 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 		case <-ctx.Done():
 			return
 		default:
-			l.conn.SetReadDeadline(time.Now().Add(time.Second * 2))
+			if errSet := l.conn.SetReadDeadline(time.Now().Add(time.Second * 2)); errSet != nil {
+				slog.Error("failed to set read deadline", slog.String("error", errSet.Error()))
+			}
 			buffer := make([]byte, 1024)
 
 			readLen, _, errReadUDP := l.conn.ReadFromUDP(buffer)
