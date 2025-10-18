@@ -65,29 +65,31 @@ type consoleModel struct {
 	viewPort       viewport.Model
 	focused        bool
 	filterNoisy    bool
-	selectedServer string
+	selectedServer Snapshot
 }
 
-func newConsoleModel() consoleModel {
+func newConsoleModel() *consoleModel {
 	model := consoleModel{
 		rowsMu:       &sync.RWMutex{},
 		rowsRendered: map[string]string{},
 		viewPort:     viewport.New(10, 20),
 	}
 
-	return model
+	return &model
 }
 
-func (m consoleModel) Init() tea.Cmd {
+func (m *consoleModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m consoleModel) Update(msg tea.Msg) (consoleModel, tea.Cmd) {
+func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
 	cmds := make([]tea.Cmd, 2)
 
 	m.viewPort, cmds[0] = m.viewPort.Update(msg)
 
 	switch msg := msg.(type) {
+	case selectServerSnapshotMsg:
+		m.selectedServer = msg.server
 	case contentViewPortHeightMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
@@ -98,7 +100,7 @@ func (m consoleModel) Update(msg tea.Msg) (consoleModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m consoleModel) onLogs(event events.Event) consoleModel {
+func (m *consoleModel) onLogs(event events.Event) *consoleModel {
 	// if slices.Contains([]tf.EventType{tf.EvtStatusID, tf.EvtHostname, tf.EvtMsg, tf.EvtTags, tf.EvtAddress, tf.EvtLobby}, log.Type) {
 	// 	return m
 	// }
@@ -143,11 +145,11 @@ func safeString(s string) string {
 	return s
 }
 
-func (m consoleModel) Render(height int) string {
+func (m *consoleModel) Render(height int) string {
 	title := renderTitleBar(m.width, "Console Log")
 	m.viewPort.Height = height - lipgloss.Height(title)
 	wasBottom := m.viewPort.AtBottom()
-	content, found := m.rowsRendered[m.selectedServer]
+	content, found := m.rowsRendered[m.selectedServer.HostPort]
 	if !found {
 		content = "<<< Start of logs >>>\n"
 	}

@@ -92,7 +92,7 @@ func (l *Local) Start(ctx context.Context, receiver Receiver) {
 
 			slog.Debug("Log line", slog.String("src", "local"), slog.String("line", msg.Text))
 
-			receiver.Send(0, msg.Text)
+			receiver.Send("", msg.Text)
 		case <-l.stopChan:
 			stop()
 

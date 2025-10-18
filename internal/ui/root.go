@@ -21,7 +21,7 @@ type rootModel struct {
 	height                 int
 	width                  int
 	activeTab              tabView
-	consoleModel           consoleModel
+	consoleModel           *consoleModel
 	detailPanelModel       detailPanelModel
 	serverDetailPanelModel serverDetailPanelModel
 	banTableModel          tableBansModel

@@ -40,16 +40,18 @@ func NewManager(router *events.Router, conf config.Config, metaFetcher *meta.Fet
 	var source console.Source
 
 	if conf.ServerModeEnabled {
-		logSource, errListener := console.NewRemote(console.RemoteOpts{
-			ListenAddress: conf.ServerBindAddress,
-		})
+		remoteOpts := console.RemoteOpts{ListenAddress: conf.ServerBindAddress, ServerHostMap: map[int]string{}}
+		for _, server := range conf.Servers {
+			servers = append(servers, newServerState(conf, server, router, bdFetcher, dbConn))
+			remoteOpts.ServerHostMap[server.LogSecret] = server.Address
+		}
+
+		logSource, errListener := console.NewRemote(remoteOpts)
 		if errListener != nil {
 			return nil, errListener
 		}
 		source = logSource
-		for _, server := range conf.Servers {
-			servers = append(servers, newServerState(conf, server, router, bdFetcher, dbConn))
-		}
+
 	} else {
 		source = console.NewLocal(conf.ConsoleLogPath)
 		servers = []*serverState{newServerState(conf, conf.Client, router, bdFetcher, dbConn)}
