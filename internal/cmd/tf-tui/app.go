@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"syscall"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -52,6 +54,9 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 	// Start collecting state updates.
 	go func() {
 		if err := app.state.Start(ctx, app.router); err != nil {
+			if errors.Is(err, syscall.EADDRINUSE) {
+				panic(err)
+			}
 			slog.Error("Failed to start state collector", slog.String("error", err.Error()))
 		}
 	}()
@@ -80,7 +85,7 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 // logEventUpdater sends console log events to the UI for display.
 func (app *App) logEventUpdater(ctx context.Context) {
 	eventChan := make(chan events.Event, 10)
-	app.router.ListenFor(-1, eventChan, events.Any)
+	app.router.ListenFor("", eventChan, events.Any)
 	for {
 		select {
 		case evt := <-eventChan:

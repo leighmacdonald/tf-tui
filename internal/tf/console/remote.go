@@ -22,17 +22,18 @@ const (
 
 // Remote handles reading inbound srcds log packets.
 type Remote struct {
-	udpAddr         *net.UDPAddr
-	conn            *net.UDPConn
-	secret          int
-	remoteAddress   string
-	remotePassword  string
-	externalAddress string
-	listenAddress   string
+	udpAddr *net.UDPAddr
+	conn    *net.UDPConn
+	// TODO probably useless
+	secret        int
+	listenAddress string
+	// Maps log_secret to host:port identifier.
+	ServerHostMap map[int]string
 }
 
 type RemoteOpts struct {
 	ListenAddress string
+	ServerHostMap map[int]string
 }
 
 func NewRemote(opts RemoteOpts) (*Remote, error) {
@@ -41,7 +42,7 @@ func NewRemote(opts RemoteOpts) (*Remote, error) {
 		return nil, ErrConfig
 	}
 
-	return &Remote{listenAddress: opts.ListenAddress}, nil
+	return &Remote{listenAddress: opts.ListenAddress, ServerHostMap: opts.ServerHostMap}, nil
 }
 
 func (l *Remote) Close(_ context.Context) error {
@@ -134,7 +135,7 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 
 				line := strings.TrimSpace(string(buffer))
 				slog.Debug("Log line", slog.String("src", "debug"), slog.String("line", line))
-				receiver.Send(0, line)
+				receiver.Send("", line)
 			case s2aLogString2: // Secure format (with secret)
 				line := string(buffer)
 				idx := strings.Index(line, "L ")
@@ -153,7 +154,12 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 				}
 				linePart := strings.TrimSpace(line[idx:readLen])
 				slog.Debug("Log line", slog.String("src", "debug"), slog.String("line", linePart))
-				receiver.Send(int(secret), linePart)
+				hostPort, found := l.ServerHostMap[int(secret)]
+				if !found {
+					slog.Error("Got unknown log secret", slog.Int64("log_secret", secret))
+					continue
+				}
+				receiver.Send(hostPort, linePart)
 				reqSecret = int(secret)
 			}
 

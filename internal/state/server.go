@@ -38,11 +38,11 @@ func newServerState(conf config.Config, server config.ServerConfig, router *even
 	dbConn store.DBTX,
 ) *serverState {
 	allEvent := make(chan events.Event)
-	router.ListenFor(server.LogSecret, allEvent, events.Any)
+	router.ListenFor(server.Address, allEvent, events.Any)
 	blackbox := newBlackBox(store.New(dbConn), allEvent)
 
 	serverEvents := make(chan events.Event)
-	router.ListenFor(server.LogSecret, serverEvents, events.Any)
+	router.ListenFor(server.Address, serverEvents, events.Any)
 
 	dumpFetcher := rcon.NewFetcher(server.Address, server.Password, conf.ServerModeEnabled)
 

@@ -7,7 +7,7 @@ import (
 
 // Receiver handles incoming raw log message lines.
 type Receiver interface {
-	Send(logSecret int, message string)
+	Send(hostPort string, message string)
 }
 
 // Source is responsible for setting up and sending console log messages

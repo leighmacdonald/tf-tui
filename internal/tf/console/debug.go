@@ -55,7 +55,7 @@ func (c *Debug) Start(ctx context.Context, receiver Receiver) {
 			if scanner.Scan() {
 				line := scanner.Text()
 				slog.Debug("Log line", slog.String("src", "debug"), slog.String("line", line))
-				receiver.Send(0, line)
+				receiver.Send("", line)
 			}
 		}
 	}
