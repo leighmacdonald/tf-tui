@@ -10,9 +10,7 @@ import (
 	"github.com/oschwald/maxminddb-golang/v2"
 )
 
-// https://github.com/geoacumen/geoacumen-country
-//
-//go:generate sh -c "curl -L --output countries.mmdb https://github.com/geoacumen/geoacumen-country/raw/refs/heads/master/Geoacumen-Country.mmdb"
+//go:generate sh -c "curl -L --output countries.mmdb https://github.com/P3TERX/GeoLite.mmdb/raw/refs/heads/download/GeoLite2-Country.mmdb"
 //go:embed countries.mmdb
 var countries []byte
 var geoDB *maxminddb.Reader
