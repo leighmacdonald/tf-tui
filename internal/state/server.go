@@ -73,6 +73,7 @@ type serverState struct {
 	countryCode     string
 	address         string
 	eventCount      atomic.Int64
+	cvars           []tf.CVar
 }
 
 func (s *serverState) close(ctx context.Context) error {
@@ -108,6 +109,15 @@ func (s *serverState) registerAddress(ctx context.Context) error {
 	if !strings.Contains(resp, s.externalAddress) {
 		return ErrRegistration
 	}
+
+	cvarData, errData := conn.Exec(ctx, "cvarlist", true)
+	if errData != nil {
+		return errData
+	}
+
+	cvars := tf.ParseCVars(cvarData)
+
+	s.cvars = cvars
 
 	return nil
 }

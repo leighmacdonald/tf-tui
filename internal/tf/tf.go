@@ -2,6 +2,8 @@
 package tf
 
 import (
+	"strings"
+
 	"github.com/leighmacdonald/steamid/v4/extra"
 	"github.com/leighmacdonald/steamid/v4/steamid"
 )
@@ -74,4 +76,51 @@ type Status struct {
 	extra.Status
 	Stats  Stats
 	Region string
+}
+
+type CVar struct {
+	Name        string
+	Cmd         bool
+	Value       string
+	Flags       []string
+	Description string
+}
+
+func ParseCVars(lines string) []CVar {
+	var cvars []CVar
+	for line := range strings.Lines(lines) {
+		var cvar CVar
+		columns := strings.Split(line, ":")
+		if len(columns) != 4 {
+			continue
+		}
+
+		for idx, piece := range columns {
+			piece = strings.TrimSpace(piece)
+			switch idx {
+			case 0:
+				cvar.Name = piece
+			case 1:
+				if piece == "cmd" {
+					cvar.Cmd = true
+				} else {
+					cvar.Value = piece
+				}
+			case 2:
+				for key := range strings.SplitSeq(strings.ReplaceAll(piece, "\"", ""), ",") {
+					tag := strings.TrimSpace(key)
+					if tag == "" {
+						continue
+					}
+					cvar.Flags = append(cvar.Flags, tag)
+				}
+			case 3:
+				cvar.Description = piece
+			}
+		}
+
+		cvars = append(cvars, cvar)
+	}
+
+	return cvars
 }
