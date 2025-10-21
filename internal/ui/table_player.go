@@ -77,6 +77,7 @@ type tablePlayerModel struct {
 	height          int
 	width           int
 	selfSteamID     steamid.SteamID
+	inputActive     bool
 }
 
 func (m *tablePlayerModel) Init() tea.Cmd {
@@ -85,6 +86,8 @@ func (m *tablePlayerModel) Init() tea.Cmd {
 
 func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case inputZoneChangeMsg:
+		m.inputActive = m.team == tf.RED && msg.zone == zonePlayersRED
 	case config.Config:
 		m.selfSteamID = msg.SteamID
 
@@ -161,6 +164,9 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	case tea.KeyMsg:
+		if !m.inputActive {
+			break
+		}
 		var cmd tea.Cmd
 		switch {
 		case key.Matches(msg, defaultKeyMap.up):

@@ -36,7 +36,6 @@ type rootModel struct {
 	chatModel              chatModel
 	redTableModel          tea.Model
 	bluTableModel          tea.Model
-	contentViewPortHeight  int
 	footerHeight           int
 	headerHeight           int
 	serverMode             bool
@@ -46,7 +45,7 @@ func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, b
 	app := &rootModel{
 		currentView:            viewMain,
 		previousView:           viewMain,
-		activeTab:              tabOverview,
+		activeTab:              tabServers,
 		helpModel:              newHelpModel(buildVersion, buildDate, buildCommit, loader.Path(), cachePath),
 		redTableModel:          newPlayerTableModel(tf.RED, userConfig.SteamID, userConfig.ServerModeEnabled),
 		bluTableModel:          newPlayerTableModel(tf.BLU, userConfig.SteamID, userConfig.ServerModeEnabled),
@@ -63,7 +62,6 @@ func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, b
 		chatModel:              newChatModel(),
 		serverDetailPanelModel: newServerDetailPanel(),
 		serverMode:             userConfig.ServerModeEnabled,
-		contentViewPortHeight:  10,
 		headerHeight:           1,
 		footerHeight:           1,
 	}
@@ -94,18 +92,6 @@ func (m rootModel) Init() tea.Cmd {
 	)
 }
 
-func logMsg(inMsg tea.Msg) {
-	// Filter out very noisy stuff
-	switch inMsg.(type) {
-	case events.Event:
-		break
-	case Players:
-		break
-	default:
-		slog.Debug("tea.Msg", slog.Any("msg", inMsg))
-	}
-}
-
 func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	logMsg(inMsg)
 
@@ -119,9 +105,8 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		m.contentViewPortHeight = m.height - m.headerHeight - m.footerHeight
-
-		return m, setContentViewPortHeight(m.contentViewPortHeight, m.height, m.width)
+		contentViewPortHeight := m.height - m.headerHeight - m.footerHeight
+		return m, setContentViewPortHeight(contentViewPortHeight, m.height, m.width)
 	case tabView:
 		m.activeTab = msg
 	case tea.KeyMsg:
@@ -197,12 +182,10 @@ func (m rootModel) View() string {
 		lowerPanelViewportHeight := contentViewPortHeight - lipgloss.Height(topContent) - 2
 		var ptContent string
 		switch m.activeTab {
-		case tabOverview:
-			if m.serverMode {
-				ptContent = m.serverDetailPanelModel.Render(lowerPanelViewportHeight)
-			} else {
-				ptContent = m.detailPanelModel.Render(lowerPanelViewportHeight)
-			}
+		case tabServers:
+			ptContent = m.serverDetailPanelModel.Render(lowerPanelViewportHeight)
+		case tabPlayers:
+			ptContent = m.detailPanelModel.Render(lowerPanelViewportHeight)
 		case tabBans:
 			ptContent = m.banTableModel.Render(lowerPanelViewportHeight)
 		case tabBD:
@@ -254,4 +237,24 @@ func (m rootModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {
 	m.serverDetailPanelModel, cmds[15] = m.serverDetailPanelModel.Update(msg)
 
 	return m, tea.Batch(cmds...)
+}
+
+// logMsg is useful for debugging events. Tail the log file ~/.config/tf-tui/tf-tui.log
+func logMsg(inMsg tea.Msg) {
+	// Filter out very noisy stuff
+	switch inMsg.(type) {
+	case selectServerSnapshotMsg:
+	case LogRow:
+		break
+	case events.Event:
+		break
+	case Players:
+		break
+	case Snapshot:
+		break
+	case []Snapshot:
+		break
+	default:
+		slog.Debug("tea.Msg", slog.Any("msg", inMsg))
+	}
 }

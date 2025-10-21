@@ -94,3 +94,21 @@ type selectServerSnapshotMsg struct {
 func setServer(server Snapshot) tea.Cmd {
 	return func() tea.Msg { return selectServerSnapshotMsg{server: server} }
 }
+
+type inputZone int
+
+const (
+	zoneServers inputZone = iota
+	zonePlayersRED
+	zonePlayersBLU
+	zoneConfig
+	zoneConsoleInput
+)
+
+type inputZoneChangeMsg struct {
+	zone inputZone
+}
+
+func setInputZone(zone inputZone) tea.Cmd {
+	return func() tea.Msg { return inputZoneChangeMsg{zone: zone} }
+}

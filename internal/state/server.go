@@ -119,7 +119,6 @@ func (s *serverState) start(ctx context.Context) error {
 		}
 		parts := strings.Split(s.server.Address, ":")
 		record, errRecord := geoip.Lookup(ctx, parts[0])
-		slog.Info(record.Country.ISOCode)
 		if errRecord != nil {
 			slog.Error("failed to lookup server country code", slog.String("error", errRecord.Error()))
 		} else {

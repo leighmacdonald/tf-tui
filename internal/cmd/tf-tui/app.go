@@ -32,9 +32,9 @@ type App struct {
 	database      store.DBTX
 }
 
-// NewApp returns a new application instance. To actually start the app you must call
+// New returns a new application instance. To actually start the app you must call
 // Start().
-func NewApp(conf config.Config, states *state.Manager, database store.DBTX, router *events.Router,
+func New(conf config.Config, states *state.Manager, database store.DBTX, router *events.Router,
 	configUpdates chan config.Config,
 ) *App {
 	app := &App{
