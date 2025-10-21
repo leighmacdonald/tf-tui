@@ -81,7 +81,7 @@ func (r Connection) rconLarge(conn *rcon.RemoteConsole, cmd string) (string, err
 			s := len(resp)
 			response += resp
 
-			if s < 4000 {
+			if s < 4100 {
 				break
 			}
 		}
