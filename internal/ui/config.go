@@ -140,13 +140,14 @@ type ConfigWriter interface {
 }
 
 type configModel struct {
-	fields     []*validatingTextInputModel
-	focusIndex configIdx
-	config     config.Config
-	activeView contentView
-	width      int
-	height     int
-	loader     ConfigWriter
+	fields      []*validatingTextInputModel
+	focusIndex  configIdx
+	config      config.Config
+	activeView  contentView
+	width       int
+	height      int
+	loader      ConfigWriter
+	inputActive bool
 }
 
 func newConfigModal(config config.Config, loader ConfigWriter) tea.Model {
@@ -187,6 +188,8 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.fields[fieldTFAPIBaseURL], cmds[2] = m.fields[fieldTFAPIBaseURL].Update(msg)
 
 	switch msg := msg.(type) {
+	case inputZoneChangeMsg:
+		m.inputActive = msg.zone == zoneConfig
 	case contentView:
 		m.activeView = msg
 		if m.activeView == viewConfig {

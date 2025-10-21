@@ -74,6 +74,7 @@ type serverTableModel struct {
 	width           int
 	height          int
 	contentHeight   int
+	inputActive     bool
 }
 
 func (m *serverTableModel) Init() tea.Cmd {
@@ -82,6 +83,8 @@ func (m *serverTableModel) Init() tea.Cmd {
 
 func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 	switch msg := msg.(type) {
+	case inputZoneChangeMsg:
+		m.inputActive = msg.zone == zoneServers
 	case contentViewPortHeightMsg:
 		m.width = msg.width
 		m.height = msg.height
@@ -113,7 +116,7 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 
 		for _, item := range m.data.servers {
 			if zone.Get(m.zoneID + item.HostPort).InBounds(msg) {
-				return m, setServer(item)
+				return m, tea.Batch(setServer(item), setInputZone(zoneServers))
 			}
 		}
 

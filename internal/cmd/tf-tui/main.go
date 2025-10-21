@@ -169,7 +169,7 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 
 	done := make(chan any)
-	app := NewApp(userConfig, states, database, router, configUpdates)
+	app := New(userConfig, states, database, router, configUpdates)
 
 	go func() {
 		if err := app.createUI(cmd.Context(), configLoader).Run(); err != nil {

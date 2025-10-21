@@ -134,7 +134,7 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 				}
 
 				line := strings.TrimSpace(string(buffer))
-				slog.Debug("Log line", slog.String("src", "debug"), slog.String("line", line))
+				// slog.Debug("Log line", slog.String("src", "debug"), slog.String("line", line))
 				receiver.Send("", line)
 			case s2aLogString2: // Secure format (with secret)
 				line := string(buffer)
@@ -153,7 +153,7 @@ func (l *Remote) Start(ctx context.Context, receiver Receiver) {
 					continue
 				}
 				linePart := strings.TrimSpace(line[idx:readLen])
-				slog.Debug("Log line", slog.String("src", "debug"), slog.String("line", linePart))
+				// slog.Debug("Log line", slog.String("src", "debug"), slog.String("line", linePart))
 				hostPort, found := l.ServerHostMap[int(secret)]
 				if !found {
 					slog.Error("Got unknown log secret", slog.Int64("log_secret", secret))

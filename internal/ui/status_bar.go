@@ -71,9 +71,7 @@ func (m statusBarModel) View() string {
 			styles.StatusRedTeam.Render(fmt.Sprintf("CPU %2.2f  ", m.snapshot.Status.Stats.CPU)),
 			styles.StatusMessage.Render(fmt.Sprintf("In/Out kb/s %.2f/%.2f", m.snapshot.Status.Stats.InKBs, m.snapshot.Status.Stats.OutKBs)),
 			styles.StatusRedTeam.Render(fmt.Sprintf("Up %d", m.snapshot.Status.Stats.Uptime)),
-			styles.StatusMap.Render(fmt.Sprintf("Maps %d", m.snapshot.Status.Stats.MapChanges)),
-			styles.StatusMap.Render(fmt.Sprintf("Plr %d", m.snapshot.Status.Stats.Players)),
-			styles.StatusMap.Render(fmt.Sprintf("Con %d", m.snapshot.Status.Stats.Connects)),
+			styles.StatusMap.Render("steam://run/440//+connect%20"+m.snapshot.HostPort),
 		)
 	}
 	args = append(args,

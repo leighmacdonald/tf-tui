@@ -101,11 +101,13 @@ var (
 	HelpBox = lipgloss.NewStyle().Padding(3)
 
 	// 🚨 👮 💂 🕵️ 👷 🐈 🏟️ 🪵 ♻️.
-	IconDead  = "💀"
-	IconComp  = "🏁"
-	IconCheck = "✅"
-	IconBans  = "🛑"
-	IconVac   = "👮"
+	IconServers = "🌍"
+	IconPlayers = "👥"
+	IconDead    = "💀"
+	IconComp    = "🏁"
+	IconCheck   = "✅"
+	IconBans    = "🛑"
+	IconVac     = "👮"
 	// IconNotes   = "📓".
 	IconInfo    = "💡"
 	IconChat    = "🌮"

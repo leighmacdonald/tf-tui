@@ -2,7 +2,6 @@ package events
 
 import (
 	"errors"
-	"log/slog"
 	"sync"
 
 	"github.com/leighmacdonald/tf-tui/internal/config"
@@ -80,7 +79,7 @@ func (r *Router) Send(hostPort string, line string) {
 			select {
 			case handler <- logEvent:
 			default:
-				slog.Warn("Failed to send event", slog.String("event", line), slog.String("host", hostPort))
+				// slog.Warn("Failed to send event", slog.String("event", line), slog.String("host", hostPort))
 			}
 		}
 	}
@@ -92,7 +91,7 @@ func (r *Router) Send(hostPort string, line string) {
 			select {
 			case handler <- logEvent:
 			default:
-				slog.Warn("Failed to send event", slog.String("event", line), slog.String("host", hostPort))
+				// slog.Warn("Failed to send event", slog.String("event", line), slog.String("host", hostPort))
 			}
 		}
 	}
@@ -102,7 +101,7 @@ func (r *Router) Send(hostPort string, line string) {
 		select {
 		case handler <- logEvent:
 		default:
-			slog.Warn("Failed to send event", slog.String("event", line), slog.String("host", hostPort))
+			// slog.Warn("Failed to send event", slog.String("event", line), slog.String("host", hostPort))
 		}
 	}
 }

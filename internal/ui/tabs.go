@@ -11,7 +11,8 @@ import (
 type tabView int
 
 const (
-	tabOverview tabView = iota
+	tabServers tabView = iota
+	tabPlayers
 	tabBans
 	tabBD
 	tabComp
@@ -20,46 +21,51 @@ const (
 )
 
 type tabLabel struct {
-	label string
-	tab   tabView
-	id    string
+	label  string
+	tab    tabView
+	zoneID string
 }
 
 func newTabsModel() tea.Model {
 	return &tabsModel{
 		tabs: []tabLabel{
 			{
-				label: styles.IconInfo + " Overview",
-				tab:   tabOverview,
-				id:    zone.NewPrefix(),
+				label:  styles.IconServers + " Servers",
+				tab:    tabServers,
+				zoneID: zone.NewPrefix(),
 			},
 			{
-				label: styles.IconBans + " Bans",
-				tab:   tabBans,
-				id:    zone.NewPrefix(),
+				label:  styles.IconPlayers + " Players",
+				tab:    tabPlayers,
+				zoneID: zone.NewPrefix(),
 			},
 			{
-				label: styles.IconBD + " Bot Det.",
-				tab:   tabBD,
-				id:    zone.NewPrefix(),
+				label:  styles.IconBans + " Bans",
+				tab:    tabBans,
+				zoneID: zone.NewPrefix(),
 			},
 			{
-				label: styles.IconComp + " Comp",
-				tab:   tabComp,
-				id:    zone.NewPrefix(),
+				label:  styles.IconBD + " Bot Det.",
+				tab:    tabBD,
+				zoneID: zone.NewPrefix(),
 			},
 			{
-				label: styles.IconChat + " Chat",
-				tab:   tabChat,
-				id:    zone.NewPrefix(),
+				label:  styles.IconComp + " Comp",
+				tab:    tabComp,
+				zoneID: zone.NewPrefix(),
 			},
 			{
-				label: styles.IconConsole + " Console",
-				tab:   tabConsole,
-				id:    zone.NewPrefix(),
+				label:  styles.IconChat + " Chat",
+				tab:    tabChat,
+				zoneID: zone.NewPrefix(),
+			},
+			{
+				label:  styles.IconConsole + " Console",
+				tab:    tabConsole,
+				zoneID: zone.NewPrefix(),
 			},
 		},
-		selectedTab: tabOverview,
+		selectedTab: tabServers,
 	}
 }
 
@@ -100,17 +106,17 @@ func (m tabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, defaultKeyMap.nextTab):
 			m.selectedTab++
 			if m.selectedTab > tabConsole {
-				m.selectedTab = tabOverview
+				m.selectedTab = tabServers
 			}
 			changed = true
 		case key.Matches(msg, defaultKeyMap.prevTab):
 			m.selectedTab--
-			if m.selectedTab < tabOverview {
+			if m.selectedTab < tabServers {
 				m.selectedTab = tabConsole
 			}
 			changed = true
 		case key.Matches(msg, defaultKeyMap.overview):
-			m.selectedTab = tabOverview
+			m.selectedTab = tabServers
 			changed = true
 		case key.Matches(msg, defaultKeyMap.bans):
 			m.selectedTab = tabBans

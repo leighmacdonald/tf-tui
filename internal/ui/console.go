@@ -1,16 +1,19 @@
 package ui
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"time"
 	"unicode"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
+	zone "github.com/lrstanley/bubblezone"
 	"github.com/muesli/reflow/wordwrap"
 )
 
@@ -61,18 +64,27 @@ type consoleModel struct {
 	rowsMu *sync.RWMutex
 	// indexed by log secret
 	rowsRendered   map[string]string
+	rowsCount      map[string]int
 	width          int
 	viewPort       viewport.Model
 	focused        bool
 	filterNoisy    bool
 	selectedServer Snapshot
+	input          textinput.Model
+	inputActive    bool
+	inputZoneID    string
 }
 
 func newConsoleModel() *consoleModel {
+	input := textinput.New()
+	input.Prompt = lipgloss.NewStyle().Foreground(styles.ColourVintage).Background(styles.Black).Inline(true).Render("RCON  ")
 	model := consoleModel{
 		rowsMu:       &sync.RWMutex{},
 		rowsRendered: map[string]string{},
+		rowsCount:    map[string]int{},
 		viewPort:     viewport.New(10, 20),
+		input:        input,
+		inputZoneID:  zone.NewPrefix(),
 	}
 
 	return &model
@@ -87,7 +99,13 @@ func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
 
 	m.viewPort, cmds[0] = m.viewPort.Update(msg)
 
+	if m.inputActive {
+		m.input, cmds[1] = m.input.Update(msg)
+	}
+
 	switch msg := msg.(type) {
+	case inputZoneChangeMsg:
+		m.inputActive = msg.zone == zoneConsoleInput
 	case selectServerSnapshotMsg:
 		m.selectedServer = msg.server
 	case contentViewPortHeightMsg:
@@ -132,6 +150,10 @@ func (m *consoleModel) onLogs(event events.Event) *consoleModel {
 	// and the console log fills becoming unusable.
 	prev := m.rowsRendered[event.HostPort]
 	m.rowsRendered[event.HostPort] = prev + "\n" + newRow.Render(m.width-10)
+	if _, ok := m.rowsCount[event.HostPort]; !ok {
+		m.rowsCount[event.HostPort] = 0
+	}
+	m.rowsCount[event.HostPort]++
 	m.rowsMu.Unlock()
 
 	return m
@@ -146,17 +168,23 @@ func safeString(s string) string {
 }
 
 func (m *consoleModel) Render(height int) string {
-	title := renderTitleBar(m.width, "Console Log")
-	m.viewPort.Height = height - lipgloss.Height(title)
-	wasBottom := m.viewPort.AtBottom()
+	title := "Console Log"
 	content, found := m.rowsRendered[m.selectedServer.HostPort]
-	if !found {
+	if !found || content == "" {
 		content = "<<< Start of logs >>>\n"
+	} else {
+		title = renderTitleBar(m.width, fmt.Sprintf("Console Log: %d Messages", m.rowsCount[m.selectedServer.HostPort]))
 	}
+
+	input := zone.Mark(m.inputZoneID, m.input.View())
+
+	m.viewPort.Height = height - lipgloss.Height(title) - lipgloss.Height(input)
+	wasBottom := m.viewPort.AtBottom()
+
 	m.viewPort.SetContent(content)
 	if wasBottom {
 		m.viewPort.GotoBottom()
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View())
+	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View(), input)
 }
