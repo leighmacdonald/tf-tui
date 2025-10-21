@@ -22,6 +22,7 @@ func NewLoader(changes chan<- Config) *Loader {
 	loader.SetDefault("update_freq_ms", 2000)
 	loader.SetDefault("server_mode_enabled", false)
 	loader.SetDefault("server_log_address", "1.2.3.4:27115")
+	loader.SetDefault("server_upnp_enabled", false)
 	loader.SetDefault("server_bind_address", "1.2.3.4:27115")
 	loader.SetDefault("api_base_url", "https://tf-api.roto.lol/")
 	loader.SetDefault("bd_lists", []map[string]string{})

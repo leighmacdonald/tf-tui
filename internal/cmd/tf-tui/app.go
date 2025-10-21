@@ -9,6 +9,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/tf-tui/internal/config"
+	"github.com/leighmacdonald/tf-tui/internal/network/upnp"
 	"github.com/leighmacdonald/tf-tui/internal/state"
 	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
@@ -32,6 +33,7 @@ type App struct {
 	router        *events.Router
 	database      store.DBTX
 	parentCtx     chan any
+	upnp          *upnp.UPNPManager
 }
 
 // New returns a new application instance. To actually start the app you must call
@@ -39,6 +41,7 @@ type App struct {
 func New(conf config.Config, states *state.Manager, database store.DBTX, router *events.Router,
 	configUpdates chan config.Config,
 ) *App {
+
 	app := &App{
 		config:        conf,
 		state:         states,
@@ -72,6 +75,11 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 
 	// Start sending UI updates to the UI.
 	go app.uiSender(ctx)
+
+	if app.config.ServerModeEnabled && app.config.ServerUPNPEnabled {
+		external, internal := app.config.UPNPPortMapping()
+		go upnp.New(external, internal).Start(ctx)
+	}
 
 	for {
 		select {
