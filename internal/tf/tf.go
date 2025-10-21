@@ -86,8 +86,31 @@ type CVar struct {
 	Description string
 }
 
-func ParseCVars(lines string) []CVar {
-	var cvars []CVar
+type CVarList []CVar
+
+func (c CVarList) Filter(prefix string) CVarList {
+	var matching CVarList
+	prefix = strings.ToLower(prefix)
+	for _, cmd := range c {
+		if prefix == "" || strings.HasPrefix(cmd.Name, prefix) {
+			matching = append(matching, cmd)
+		}
+	}
+
+	return matching
+}
+
+func (c CVarList) Names() []string {
+	var names []string
+	for _, name := range c {
+		names = append(names, name.Name)
+	}
+
+	return names
+}
+
+func ParseCVars(lines string) CVarList {
+	var cvars CVarList
 	for line := range strings.Lines(lines) {
 		var cvar CVar
 		columns := strings.Split(line, ":")

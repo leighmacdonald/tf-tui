@@ -74,7 +74,7 @@ type ServerConfig struct {
 	Password string `mapstructure:"password"`
 	// LogSecret is how we authenticate the server logs. You MUST set these to unique values for each server
 	// for this functionality to work correctly.
-	LogSecret int `mapstructure:"log_secret"`
+	LogSecret int `mapstructure:"logsecret"`
 }
 
 type SIDFormats string

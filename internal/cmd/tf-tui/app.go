@@ -12,6 +12,7 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/state"
 	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
+	"github.com/leighmacdonald/tf-tui/internal/tf/rcon"
 	"github.com/leighmacdonald/tf-tui/internal/ui"
 )
 
@@ -30,6 +31,7 @@ type App struct {
 	configUpdates chan config.Config
 	router        *events.Router
 	database      store.DBTX
+	parentCtx     chan any
 }
 
 // New returns a new application instance. To actually start the app you must call
@@ -44,6 +46,7 @@ func New(conf config.Config, states *state.Manager, database store.DBTX, router 
 		uiUpdates:     make(chan any),
 		router:        router,
 		database:      database,
+		parentCtx:     make(chan any),
 	}
 
 	return app
@@ -72,6 +75,11 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 
 	for {
 		select {
+		case req := <-app.parentCtx:
+			switch req := req.(type) {
+			case ui.RCONCommand:
+				go app.onRCONCommand(ctx, req)
+			}
 		case conf := <-app.configUpdates:
 			app.uiUpdates <- conf
 		case <-ctx.Done():
@@ -79,6 +87,20 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 		case <-done:
 			return
 		}
+	}
+}
+
+func (app *App) onRCONCommand(ctx context.Context, cmd ui.RCONCommand) {
+	for _, server := range app.config.Servers {
+		if cmd.HostPort != server.Address {
+			continue
+		}
+
+		if _, err := rcon.New(server.Address, server.Password).Exec(ctx, cmd.Command, true); err != nil {
+			slog.Error("Failed to exec rcon")
+		}
+
+		break
 	}
 }
 
@@ -185,9 +207,16 @@ func (app *App) updateUIState() {
 
 func (app *App) createUI(ctx context.Context, loader ui.ConfigWriter) UI {
 	if app.ui == nil {
-		app.ui = ui.New(ctx, app.config, false,
-			BuildVersion, BuildDate, BuildCommit,
-			loader, config.PathCache(config.CacheDirName))
+		app.ui = ui.New(
+			ctx,
+			app.config,
+			false,
+			BuildVersion,
+			BuildDate,
+			BuildCommit,
+			loader,
+			config.PathCache(config.CacheDirName),
+			app.parentCtx)
 	}
 
 	return app.ui
