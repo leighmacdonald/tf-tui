@@ -7,10 +7,12 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
@@ -65,6 +67,7 @@ type consoleModel struct {
 	// indexed by log secret
 	rowsRendered   map[string]string
 	rowsCount      map[string]int
+	cvarList       map[string]tf.CVarList
 	width          int
 	viewPort       viewport.Model
 	focused        bool
@@ -77,11 +80,14 @@ type consoleModel struct {
 
 func newConsoleModel() *consoleModel {
 	input := textinput.New()
-	input.Prompt = lipgloss.NewStyle().Foreground(styles.ColourVintage).Background(styles.Black).Inline(true).Render("RCON  ")
+	input.CharLimit = 120
+	input.Placeholder = "cmd..."
+	input.Prompt = lipgloss.NewStyle().Padding(0).Foreground(styles.ColourVintage).Background(styles.Black).Inline(true).Render("RCON  ")
 	model := consoleModel{
 		rowsMu:       &sync.RWMutex{},
 		rowsRendered: map[string]string{},
 		rowsCount:    map[string]int{},
+		cvarList:     map[string]tf.CVarList{},
 		viewPort:     viewport.New(10, 20),
 		input:        input,
 		inputZoneID:  zone.NewPrefix(),
@@ -91,7 +97,7 @@ func newConsoleModel() *consoleModel {
 }
 
 func (m *consoleModel) Init() tea.Cmd {
-	return nil
+	return textinput.Blink
 }
 
 func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
@@ -101,18 +107,45 @@ func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
 
 	if m.inputActive {
 		m.input, cmds[1] = m.input.Update(msg)
+		m.input.SetValue("")
 	}
 
 	switch msg := msg.(type) {
+
+	case tea.KeyMsg:
+		switch { //nolint:gocritic
+		case key.Matches(msg, defaultKeyMap.accept):
+			cmd := m.input.Value()
+			if cmd == "" {
+				break
+			}
+			cmds = append(cmds, sendRCONCommand(m.selectedServer.HostPort, cmd))
+		}
+	case tabView:
+		if msg == tabConsole {
+			m.inputActive = true
+			if m.inputActive && !m.input.Focused() {
+				cmds = append(cmds, m.input.Focus())
+			}
+		}
 	case inputZoneChangeMsg:
 		m.inputActive = msg.zone == zoneConsoleInput
+		if m.inputActive && !m.input.Focused() {
+			cmds = append(cmds, m.input.Focus())
+		}
 	case selectServerSnapshotMsg:
 		m.selectedServer = msg.server
+		if cvars, ok := m.cvarList[msg.server.HostPort]; ok {
+			m.input.SetSuggestions(cvars.Filter("").Names())
+		}
 	case contentViewPortHeightMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
+		m.input.Width = msg.width - 8
 	case events.Event:
 		return m.onLogs(msg), tea.Batch(cmds...)
+	case serverCVarList:
+		m.cvarList[msg.HostPort] = msg.List
 	}
 
 	return m, tea.Batch(cmds...)

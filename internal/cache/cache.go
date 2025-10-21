@@ -53,7 +53,7 @@ func New() (Filesystem, error) {
 func (c Filesystem) Set(steamID steamid.SteamID, variant ItemVariant, content []byte) error {
 	file, errFile := os.Create(path.Join(c.cacheDir, cacheName(steamID, variant)))
 	if errFile != nil {
-		return errors.Join(errCacheSet, errFile)
+		return errors.Join(errFile, errCacheSet)
 	}
 
 	defer func(file io.Closer) {
@@ -63,7 +63,7 @@ func (c Filesystem) Set(steamID steamid.SteamID, variant ItemVariant, content []
 	}(file)
 
 	if _, err := file.Write(content); err != nil {
-		return errors.Join(errCacheSet, err)
+		return errors.Join(err, errCacheSet)
 	}
 
 	return nil

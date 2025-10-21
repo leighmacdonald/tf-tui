@@ -112,3 +112,21 @@ type inputZoneChangeMsg struct {
 func setInputZone(zone inputZone) tea.Cmd {
 	return func() tea.Msg { return inputZoneChangeMsg{zone: zone} }
 }
+
+type serverCVarList struct {
+	HostPort string
+	List     tf.CVarList
+}
+
+func setServerCVarList(hostPort string, cvars tf.CVarList) tea.Cmd {
+	return func() tea.Msg { return serverCVarList{HostPort: hostPort, List: cvars} }
+}
+
+type RCONCommand struct {
+	HostPort string
+	Command  string
+}
+
+func sendRCONCommand(hostPort string, command string) tea.Cmd {
+	return func() tea.Msg { return RCONCommand{HostPort: hostPort, Command: command} }
+}

@@ -39,10 +39,12 @@ type rootModel struct {
 	footerHeight           int
 	headerHeight           int
 	serverMode             bool
+	parentContextChan      chan any
 }
 
-func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string, loader ConfigWriter, cachePath string) *rootModel {
+func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string, loader ConfigWriter, cachePath string, parentChan chan any) *rootModel {
 	app := &rootModel{
+		parentContextChan:      parentChan,
 		currentView:            viewMain,
 		previousView:           viewMain,
 		activeTab:              tabServers,
