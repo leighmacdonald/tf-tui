@@ -9,6 +9,8 @@ import (
 	"os/user"
 	"path"
 	"runtime"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -57,6 +59,7 @@ type Config struct {
 	ServerLogAddress string `mapstructure:"server_log_address"`
 	// ServerBindAddress is the address where the server should bind to.
 	ServerBindAddress string `mapstructure:"server_bind_address"`
+	ServerUPNPEnabled bool   `mapstructure:"server_upnp_enabled"`
 	// BDLists contains a list of bot detector lists to use.
 	BDLists []UserList `mapstructure:"bd_lists"`
 	// Links can be used to provide additional links to websites in the overview panel.
@@ -65,6 +68,25 @@ type Config struct {
 	Servers []ServerConfig `mapstructure:"servers"`
 	// Client is the connect info for running in local client mode.
 	Client ServerConfig `mapstructure:"client"`
+}
+
+func (c Config) UPNPPortMapping() (uint16, uint16) {
+	return getPort(c.ServerLogAddress), getPort(c.ServerBindAddress)
+}
+
+func getPort(addr string) uint16 {
+	parts := strings.Split(addr, ":")
+	if len(parts) != 2 {
+		return 27115
+	}
+
+	port, errPort := strconv.ParseUint(parts[1], 10, 16)
+	if errPort != nil {
+		slog.Error("Invalid port mapping", slog.String("error", errPort.Error()))
+		return 27115
+	}
+
+	return uint16(port)
 }
 
 type ServerConfig struct {

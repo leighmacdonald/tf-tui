@@ -11,6 +11,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/golang-migrate/migrate/v4 v4.19.0
+	github.com/huin/goupnp v1.3.0
 	github.com/joho/godotenv v1.5.1
 	github.com/leighmacdonald/rcon v1.0.10
 	github.com/leighmacdonald/steamid/v4 v4.0.6
@@ -23,6 +24,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b
+	golang.org/x/sync v0.17.0
 	modernc.org/sqlite v1.39.1
 )
 
