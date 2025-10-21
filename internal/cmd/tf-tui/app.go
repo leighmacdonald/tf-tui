@@ -97,7 +97,8 @@ func (app *App) onRCONCommand(ctx context.Context, cmd ui.RCONCommand) {
 		}
 
 		if _, err := rcon.New(server.Address, server.Password).Exec(ctx, cmd.Command, true); err != nil {
-			slog.Error("Failed to exec rcon")
+			slog.Error("Failed to exec rcon", slog.String("server", cmd.HostPort),
+				slog.String("cmd", cmd.Command), slog.String("error", err.Error()))
 		}
 
 		break
