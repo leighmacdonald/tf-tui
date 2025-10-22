@@ -2,6 +2,9 @@
 package tf
 
 import (
+	"log/slog"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/leighmacdonald/steamid/v4/extra"
@@ -76,6 +79,48 @@ type Status struct {
 	extra.Status
 	Stats  Stats
 	Region string
+}
+
+type GamePlugin struct {
+	Index   int
+	Name    string
+	Version string
+	Author  string
+}
+
+// [03] TF2 Tools (1.13.0.7251) by AlliedModders LLC
+// 45 "NativeVotes MapChooser" (1.8.0 beta 1-ut) by AlliedModders LLC and Powerlord
+var lineMatcher = regexp.MustCompile(`^\s+\[?(\d+)\]?\s?(.+?)\((.+?)\)\sby\s(.+?)$`) //noling:gochecknoglobals
+
+// ParseGamePlugins transforms the output of the `sm plugins list` or `meta list` into a slice of GamePlugin.
+func ParseGamePlugins(body string) []GamePlugin {
+	var plugins []GamePlugin
+	for line := range strings.Lines(body) {
+		if line == "" {
+			continue
+		}
+
+		match := lineMatcher.FindStringSubmatch(strings.TrimRight(line, "\n"))
+		if len(match) != 5 {
+			continue
+		}
+
+		index, errIndex := strconv.ParseUint(match[1], 10, 64)
+		if errIndex != nil {
+			slog.Error("Failed to parse index", slog.String("error", errIndex.Error()))
+
+			continue
+		}
+
+		plugins = append(plugins, GamePlugin{
+			Index:   int(index),
+			Name:    strings.TrimSpace(strings.ReplaceAll(match[2], "\"", "")),
+			Version: match[3],
+			Author:  match[4],
+		})
+	}
+
+	return plugins
 }
 
 type CVar struct {

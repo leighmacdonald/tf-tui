@@ -26,12 +26,17 @@ type UPNPManager struct {
 func (u UPNPManager) Start(ctx context.Context) {
 	ticker := time.NewTicker(time.Minute * 15)
 
-	u.updateMapping(ctx)
+	if err := u.updateMapping(ctx); err != nil {
+		slog.Error("Failed to update UPNP mapping", slog.String("error", err.Error()))
+	}
 
 	for {
 		select {
 		case <-ticker.C:
-			u.updateMapping(ctx)
+			slog.Debug("Refreshing UPNP mapping")
+			if err := u.updateMapping(ctx); err != nil {
+				slog.Error("Failed to update UPNP mapping", slog.String("error", err.Error()))
+			}
 		case <-ctx.Done():
 			return
 		}

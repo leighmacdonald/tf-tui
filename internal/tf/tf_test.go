@@ -18,3 +18,23 @@ ai_moveprobe_debug                       : 0        : , "sv"           : `
 	require.Len(t, cvars, 5)
 
 }
+
+func TestParsePlugins(t *testing.T) {
+	const smPlugins = `[SM] Listing 48 plugins:
+  01 "Admin Help" (1.13.0.7251) by AlliedModders LLC
+  02 "No Contracker" (1.1) by Malifox, Sreaper
+  03 "Player Commands" (1.13.0.7251) by AlliedModders LLC
+  04 "Disable Auto-Kick" (0.3) by The-Killer`
+	const metaPlugins = `rcon (1 hosts)> meta list
+  Listing 9 plugins:
+  [01] SourceMod (1.13.0.7251) by AlliedModders LLC
+  [02] Sentry Error Logger (1.2) by rob5300 - Creators.TF
+  [03] TF2 Tools (1.13.0.7251) by AlliedModders LLC
+  [04] SDK Hooks (1.13.0.7251) by AlliedModders LLC
+`
+	mmPluginsFound := tf.ParseGamePlugins(metaPlugins)
+	require.Len(t, mmPluginsFound, 4)
+	smPluginsFound := tf.ParseGamePlugins(smPlugins)
+	require.Len(t, smPluginsFound, 4)
+
+}
