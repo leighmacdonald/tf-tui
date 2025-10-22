@@ -74,6 +74,8 @@ type serverState struct {
 	address         string
 	eventCount      atomic.Int64
 	cvars           []tf.CVar
+	pluginsSM       []tf.GamePlugin
+	pluginsMeta     []tf.GamePlugin
 }
 
 func (s *serverState) close(ctx context.Context) error {
@@ -90,6 +92,47 @@ func (s *serverState) unregisterAddress(ctx context.Context) error {
 	slog.Debug("Successfully unregistered logaddress", slog.String("address", s.externalAddress))
 
 	return nil
+}
+
+func (s *serverState) onConnect(ctx context.Context) {
+	s.registerAddress(ctx)
+	s.fetchCVarList(ctx)
+	s.fetchSMPluginsList(ctx)
+	s.fetchMetaPluginsList(ctx)
+}
+
+func (s *serverState) fetchSMPluginsList(ctx context.Context) {
+	body, errData := rcon.New(s.server.Address, s.server.Password).Exec(ctx, "sm plugins list", true)
+	if errData != nil {
+		slog.Error("Failed to get sm plugins list", slog.String("error", errData.Error()))
+
+		return
+	}
+
+	s.pluginsSM = tf.ParseGamePlugins(body)
+}
+func (s *serverState) fetchMetaPluginsList(ctx context.Context) {
+	body, errData := rcon.New(s.server.Address, s.server.Password).Exec(ctx, "meta list", true)
+	if errData != nil {
+		slog.Error("Failed to get meta list", slog.String("error", errData.Error()))
+
+		return
+	}
+
+	s.pluginsMeta = tf.ParseGamePlugins(body)
+}
+
+func (s *serverState) fetchCVarList(ctx context.Context) {
+	cvarData, errData := rcon.New(s.server.Address, s.server.Password).Exec(ctx, "cvarlist", true)
+	if errData != nil {
+		slog.Error("Failed to get cvar list", slog.String("error", errData.Error()))
+
+		return
+	}
+
+	cvars := tf.ParseCVars(cvarData)
+
+	s.cvars = cvars
 }
 
 func (s *serverState) registerAddress(ctx context.Context) error {
@@ -110,23 +153,12 @@ func (s *serverState) registerAddress(ctx context.Context) error {
 		return ErrRegistration
 	}
 
-	cvarData, errData := conn.Exec(ctx, "cvarlist", true)
-	if errData != nil {
-		return errData
-	}
-
-	cvars := tf.ParseCVars(cvarData)
-
-	s.cvars = cvars
-
 	return nil
 }
 
 func (s *serverState) start(ctx context.Context) error {
 	if s.remote {
-		if err := s.registerAddress(ctx); err != nil {
-			return err
-		}
+		s.onConnect(ctx)
 		parts := strings.Split(s.server.Address, ":")
 		record, errRecord := geoip.Lookup(ctx, parts[0])
 		if errRecord != nil {
