@@ -33,7 +33,6 @@ type App struct {
 	router        *events.Router
 	database      store.DBTX
 	parentCtx     chan any
-	upnp          *upnp.UPNPManager
 }
 
 // New returns a new application instance. To actually start the app you must call
