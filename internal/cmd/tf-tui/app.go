@@ -164,8 +164,10 @@ func (app *App) updateUIState() {
 	uiSnaps := make([]ui.Snapshot, len(snapshots))
 	for idx, snap := range snapshots {
 		uiSnapsnot := ui.Snapshot{
-			HostPort: snap.HostPort,
-			Status:   snap.Status,
+			PluginsSM:   snap.PluginsSM,
+			PluginsMeta: snap.PluginsMeta,
+			HostPort:    snap.HostPort,
+			Status:      snap.Status,
 			Server: ui.Server{
 				Hostname: snap.Status.ServerName,
 				Map:      snap.Status.Map,

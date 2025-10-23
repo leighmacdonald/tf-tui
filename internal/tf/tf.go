@@ -4,6 +4,7 @@ package tf
 import (
 	"log/slog"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -93,7 +94,7 @@ type GamePlugin struct {
 var lineMatcher = regexp.MustCompile(`^\s+\[?(\d+)\]?\s?(.+?)\((.+?)\)\sby\s(.+?)$`) //noling:gochecknoglobals
 
 // ParseGamePlugins transforms the output of the `sm plugins list` or `meta list` into a slice of GamePlugin.
-func ParseGamePlugins(body string) []GamePlugin {
+func ParseGamePlugins(body string, sortName bool) []GamePlugin {
 	var plugins []GamePlugin
 	for line := range strings.Lines(body) {
 		if line == "" {
@@ -117,6 +118,12 @@ func ParseGamePlugins(body string) []GamePlugin {
 			Name:    strings.TrimSpace(strings.ReplaceAll(match[2], "\"", "")),
 			Version: match[3],
 			Author:  match[4],
+		})
+	}
+
+	if sortName {
+		slices.SortStableFunc(plugins, func(a, b GamePlugin) int {
+			return strings.Compare(a.Name, b.Name)
 		})
 	}
 

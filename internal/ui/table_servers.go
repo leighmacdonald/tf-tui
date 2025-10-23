@@ -72,7 +72,6 @@ type serverTableModel struct {
 	data            *serverTableData
 	selectedsServer string
 	width           int
-	height          int
 	contentHeight   int
 	inputActive     bool
 }
@@ -87,7 +86,6 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 		m.inputActive = msg.zone == zoneServers
 	case contentViewPortHeightMsg:
 		m.width = msg.width
-		m.height = msg.height
 		m.contentHeight = min(msg.contentViewPortHeight, msg.height/2)
 		m.viewport.Width = msg.width
 		m.viewport.Height = min(msg.contentViewPortHeight, msg.height/2) - 2

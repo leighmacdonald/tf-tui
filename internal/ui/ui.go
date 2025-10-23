@@ -29,6 +29,9 @@ type Snapshot struct {
 	HostPort string
 	Server   Server
 	Status   tf.Status
+	// TODO only send these once
+	PluginsSM   []tf.GamePlugin
+	PluginsMeta []tf.GamePlugin
 }
 
 func (s Snapshot) AvgPing() float64 {

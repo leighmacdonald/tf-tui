@@ -32,9 +32,9 @@ func TestParsePlugins(t *testing.T) {
   [03] TF2 Tools (1.13.0.7251) by AlliedModders LLC
   [04] SDK Hooks (1.13.0.7251) by AlliedModders LLC
 `
-	mmPluginsFound := tf.ParseGamePlugins(metaPlugins)
+	mmPluginsFound := tf.ParseGamePlugins(metaPlugins, false)
 	require.Len(t, mmPluginsFound, 4)
-	smPluginsFound := tf.ParseGamePlugins(smPlugins)
+	smPluginsFound := tf.ParseGamePlugins(smPlugins, false)
 	require.Len(t, smPluginsFound, 4)
 
 }
