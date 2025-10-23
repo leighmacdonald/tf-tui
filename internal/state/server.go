@@ -97,7 +97,9 @@ func (s *serverState) unregisterAddress(ctx context.Context) error {
 }
 
 func (s *serverState) onStart(ctx context.Context) {
-	s.registerAddress(ctx)
+	if err := s.registerAddress(ctx); err != nil {
+		slog.Error("Failed to register log address", slog.String("error", err.Error()))
+	}
 	s.fetchCVarList(ctx)
 	s.fetchSMPluginsList(ctx)
 	s.fetchMetaPluginsList(ctx)
