@@ -89,16 +89,6 @@ func (m serverDetailPanelModel) Render(height int) string {
 	titleBar := renderTitleBar(m.width, "Server Overview: "+m.snapshot.Status.ServerName)
 	m.viewportDetail.Height = height - lipgloss.Height(titleBar)
 
-	var metaPlugins []string
-	for _, plugin := range m.snapshot.PluginsMeta {
-		metaPlugins = append(metaPlugins, lipgloss.JoinHorizontal(lipgloss.Top), strconv.Itoa(plugin.Index), plugin.Name, plugin.Version, plugin.Author)
-	}
-
-	var smPlugins []string
-	for _, plugin := range m.snapshot.PluginsSM {
-		smPlugins = append(smPlugins, lipgloss.JoinHorizontal(lipgloss.Top), strconv.Itoa(plugin.Index), plugin.Name, plugin.Version, plugin.Author)
-	}
-
 	bottomViews := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		m.viewportDetail.View(),
