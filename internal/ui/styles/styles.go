@@ -40,6 +40,9 @@ var (
 	ColourUnusual = lipgloss.Color("#8650ac")
 	ColourVintage = lipgloss.Color("#476291")
 
+	PluginTitle = lipgloss.NewStyle().Foreground(Gray).Padding(0)
+	PluginItem  = lipgloss.NewStyle().Foreground(Gray).Padding(0)
+
 	HeaderStyleRed = lipgloss.NewStyle().Background(Black).Foreground(Red).Bold(true).Align(lipgloss.Left).PaddingLeft(0)
 	HeaderStyleBlu = lipgloss.NewStyle().Background(Black).Foreground(Blu).Bold(true).Align(lipgloss.Left).PaddingLeft(0)
 

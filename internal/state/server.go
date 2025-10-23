@@ -27,11 +27,13 @@ var (
 )
 
 type Snapshot struct {
-	HostPort  string
-	Players   Players
-	Status    tf.Status
-	Region    string
-	createdOn time.Time
+	HostPort    string
+	Players     Players
+	Status      tf.Status
+	Region      string
+	PluginsSM   []tf.GamePlugin
+	PluginsMeta []tf.GamePlugin
+	createdOn   time.Time
 }
 
 func newServerState(conf config.Config, server config.ServerConfig, router *events.Router, bdFetcher *bd.Fetcher,
@@ -94,11 +96,22 @@ func (s *serverState) unregisterAddress(ctx context.Context) error {
 	return nil
 }
 
-func (s *serverState) onConnect(ctx context.Context) {
+func (s *serverState) onStart(ctx context.Context) {
 	s.registerAddress(ctx)
 	s.fetchCVarList(ctx)
 	s.fetchSMPluginsList(ctx)
 	s.fetchMetaPluginsList(ctx)
+	s.resolveCountry(ctx)
+}
+
+func (s *serverState) resolveCountry(ctx context.Context) {
+	parts := strings.Split(s.server.Address, ":")
+	record, errRecord := geoip.Lookup(ctx, parts[0])
+	if errRecord != nil {
+		slog.Error("failed to lookup server country code", slog.String("error", errRecord.Error()))
+	} else {
+		s.countryCode = strings.ToLower(record.Country.ISOCode)
+	}
 }
 
 func (s *serverState) fetchSMPluginsList(ctx context.Context) {
@@ -109,8 +122,9 @@ func (s *serverState) fetchSMPluginsList(ctx context.Context) {
 		return
 	}
 
-	s.pluginsSM = tf.ParseGamePlugins(body)
+	s.pluginsSM = tf.ParseGamePlugins(body, false)
 }
+
 func (s *serverState) fetchMetaPluginsList(ctx context.Context) {
 	body, errData := rcon.New(s.server.Address, s.server.Password).Exec(ctx, "meta list", true)
 	if errData != nil {
@@ -119,7 +133,7 @@ func (s *serverState) fetchMetaPluginsList(ctx context.Context) {
 		return
 	}
 
-	s.pluginsMeta = tf.ParseGamePlugins(body)
+	s.pluginsMeta = tf.ParseGamePlugins(body, false)
 }
 
 func (s *serverState) fetchCVarList(ctx context.Context) {
@@ -158,14 +172,8 @@ func (s *serverState) registerAddress(ctx context.Context) error {
 
 func (s *serverState) start(ctx context.Context) error {
 	if s.remote {
-		s.onConnect(ctx)
-		parts := strings.Split(s.server.Address, ":")
-		record, errRecord := geoip.Lookup(ctx, parts[0])
-		if errRecord != nil {
-			slog.Error("failed to lookup server country code", slog.String("error", errRecord.Error()))
-		} else {
-			s.countryCode = strings.ToLower(record.Country.ISOCode)
-		}
+		s.onStart(ctx)
+
 	}
 
 	// Start recording events.
@@ -311,7 +319,15 @@ func (s *serverState) Snapshot() Snapshot {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return Snapshot{Players: s.players, Status: s.status, Region: s.countryCode, createdOn: time.Now(), HostPort: s.server.Address}
+	return Snapshot{
+		HostPort:    s.server.Address,
+		Players:     s.players,
+		Status:      s.status,
+		Region:      s.countryCode,
+		PluginsSM:   s.pluginsSM,
+		PluginsMeta: s.pluginsMeta,
+		createdOn:   time.Now(),
+	}
 }
 
 func (s *serverState) updateDump(ctx context.Context) {

@@ -173,41 +173,34 @@ func (m rootModel) View() string {
 	case viewHelp:
 		content = m.helpModel.View()
 	case viewMain:
-		var topContent string
+		var upper string
 		if m.serverMode {
-			topContent = lipgloss.JoinHorizontal(lipgloss.Top, m.serversTableModel.View())
+			upper = m.serversTableModel.View()
 		} else {
-			topContent = lipgloss.JoinHorizontal(lipgloss.Top, m.redTableModel.View(), m.bluTableModel.View())
+			upper = lipgloss.JoinHorizontal(lipgloss.Top, m.redTableModel.View(), m.bluTableModel.View())
 		}
 
-		topContentHeight := min(m.height-lipgloss.Height(topContent)-5, 20)
-		lowerPanelViewportHeight := contentViewPortHeight - lipgloss.Height(topContent) - 2
-		var ptContent string
+		// topContentHeight := min(m.height-lipgloss.Height(upper)-5, 20)
+		lowerPanelViewportHeight := contentViewPortHeight - lipgloss.Height(upper) - 2
+		var lower string
 		switch m.activeTab {
 		case tabServers:
-			ptContent = m.serverDetailPanelModel.Render(lowerPanelViewportHeight)
+			lower = m.serverDetailPanelModel.Render(lowerPanelViewportHeight)
 		case tabPlayers:
-			ptContent = m.detailPanelModel.Render(lowerPanelViewportHeight)
+			lower = m.detailPanelModel.Render(lowerPanelViewportHeight)
 		case tabBans:
-			ptContent = m.banTableModel.Render(lowerPanelViewportHeight)
+			lower = m.banTableModel.Render(lowerPanelViewportHeight)
 		case tabBD:
-			ptContent = m.bdTableModel.Render(lowerPanelViewportHeight)
+			lower = m.bdTableModel.Render(lowerPanelViewportHeight)
 		case tabComp:
-			ptContent = m.compTableModel.Render(lowerPanelViewportHeight)
+			lower = m.compTableModel.Render(lowerPanelViewportHeight)
 		case tabChat:
-			ptContent = m.chatModel.View(lowerPanelViewportHeight)
+			lower = m.chatModel.View(lowerPanelViewportHeight)
 		case tabConsole:
-			ptContent = m.consoleModel.Render(lowerPanelViewportHeight)
+			lower = m.consoleModel.Render(lowerPanelViewportHeight)
 		}
 
-		content = lipgloss.JoinVertical(
-			lipgloss.Top,
-			topContent,
-			"",
-			lipgloss.NewStyle().
-				Width(m.width-2).
-				Height(topContentHeight).
-				Render(ptContent))
+		content = lipgloss.JoinVertical(lipgloss.Top, upper, lower)
 	}
 
 	ctr := styles.ContentContainerStyle.Height(contentViewPortHeight).Render(content)
