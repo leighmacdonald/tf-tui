@@ -59,15 +59,16 @@ func newChatModel() chatModel {
 }
 
 type chatModel struct {
-	players      Players
-	viewport     viewport.Model
-	ready        bool
-	rows         []ChatRow
-	rowsRendered string
-	width        int
-	inputOpen    bool
-	chatType     ChatType
-	incoming     chan events.Event
+	players         Players
+	viewport        viewport.Model
+	ready           bool
+	rows            map[string][]ChatRow
+	rowsRendered    map[string]string
+	selectedsServer string
+	width           int
+	inputOpen       bool
+	chatType        ChatType
+	incoming        chan events.Event
 }
 
 func (m chatModel) Placeholder() string {
@@ -90,6 +91,8 @@ func (m chatModel) Init() tea.Cmd {
 
 func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 	switch msg := msg.(type) {
+	case selectServerSnapshotMsg:
+		m.selectedsServer = msg.server.HostPort
 	case contentViewPortHeightMsg:
 		m.width = msg.width
 		if !m.ready {
@@ -127,9 +130,14 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 			team:      team,
 			dead:      evt.Dead,
 		}
-		m.rows = append(m.rows, row)
-		m.rowsRendered = lipgloss.JoinVertical(lipgloss.Left, m.rowsRendered, row.View())
-		m.viewport.SetContent(m.rowsRendered)
+
+		if _, ok := m.rows[msg.HostPort]; !ok {
+			m.rows[msg.HostPort] = []ChatRow{}
+		}
+
+		m.rows[msg.HostPort] = append(m.rows[msg.HostPort], row)
+		previous, _ := m.rowsRendered[msg.HostPort]
+		m.rowsRendered[msg.HostPort] = lipgloss.JoinVertical(lipgloss.Left, previous, row.View())
 	}
 
 	var cmd tea.Cmd
@@ -141,6 +149,8 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 func (m chatModel) View(height int) string {
 	titleBar := renderTitleBar(m.width, "Game Chat")
 	m.viewport.Height = height - lipgloss.Height(titleBar)
+	rows, _ := m.rowsRendered[m.selectedsServer]
+	m.viewport.SetContent(rows)
 
 	return lipgloss.JoinVertical(lipgloss.Left, titleBar, m.viewport.View())
 }
