@@ -168,6 +168,7 @@ func (app *App) updateUIState() {
 			PluginsMeta: snap.PluginsMeta,
 			HostPort:    snap.HostPort,
 			Status:      snap.Status,
+			CVars:       snap.CVars,
 			Server: ui.Server{
 				Hostname: snap.Status.ServerName,
 				Map:      snap.Status.Map,
