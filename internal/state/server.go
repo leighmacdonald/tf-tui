@@ -33,6 +33,7 @@ type Snapshot struct {
 	Region      string
 	PluginsSM   []tf.GamePlugin
 	PluginsMeta []tf.GamePlugin
+	CVars       tf.CVarList
 	createdOn   time.Time
 }
 
@@ -146,9 +147,7 @@ func (s *serverState) fetchCVarList(ctx context.Context) {
 		return
 	}
 
-	cvars := tf.ParseCVars(cvarData)
-
-	s.cvars = cvars
+	s.cvars = tf.ParseCVars(cvarData)
 }
 
 func (s *serverState) registerAddress(ctx context.Context) error {
@@ -327,6 +326,7 @@ func (s *serverState) Snapshot() Snapshot {
 		Region:      s.countryCode,
 		PluginsSM:   s.pluginsSM,
 		PluginsMeta: s.pluginsMeta,
+		CVars:       s.cvars,
 		createdOn:   time.Now(),
 	}
 }

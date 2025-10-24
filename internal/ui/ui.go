@@ -32,6 +32,7 @@ type Snapshot struct {
 	// TODO only send these once
 	PluginsSM   []tf.GamePlugin
 	PluginsMeta []tf.GamePlugin
+	CVars       tf.CVarList
 }
 
 func (s Snapshot) AvgPing() float64 {
