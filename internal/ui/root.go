@@ -174,7 +174,7 @@ func (m rootModel) View() string {
 		content = m.helpModel.View()
 	case viewMain:
 		var upper string
-		if m.serverMode {
+		if m.serverMode && m.activeTab == tabServers {
 			upper = m.serversTableModel.View()
 		} else {
 			upper = lipgloss.JoinHorizontal(lipgloss.Top, m.redTableModel.View(), m.bluTableModel.View())
