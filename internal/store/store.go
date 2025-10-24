@@ -64,6 +64,7 @@ func configureConnection(ctx context.Context, connection *sql.DB) error {
 func Open(ctx context.Context, path string, autoMigrate bool) (*sql.DB, error) {
 	if path == "" {
 		path = ":memory:"
+		slog.Warn("Using in-memory database. Data will be lost.", slog.String("reason", "db path empty"))
 	}
 
 	path += "?cache=private"

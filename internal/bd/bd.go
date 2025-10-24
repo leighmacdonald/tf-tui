@@ -1,3 +1,4 @@
+// Package bd handles fetching and querying the TF2 Bot Detector list schema.
 package bd
 
 import (
@@ -12,19 +13,22 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/cache"
 	"github.com/leighmacdonald/tf-tui/internal/config"
-	"github.com/leighmacdonald/tf-tui/internal/encoding"
+	"github.com/leighmacdonald/tf-tui/internal/network/encoding"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 )
 
+// HTTPDoer defines a common interface for HTTP clients.
 type HTTPDoer interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
+// Match represents a matching bot detector player entry.
 type Match struct {
 	Player   tfapi.BDPlayer
 	ListName string
 }
 
+// New creates a new bot detector client.
 func New(httpClient HTTPDoer, userLists []config.UserList, cache cache.Cache) *Fetcher {
 	return &Fetcher{
 		mu:         &sync.RWMutex{},
@@ -35,6 +39,7 @@ func New(httpClient HTTPDoer, userLists []config.UserList, cache cache.Cache) *F
 	}
 }
 
+// Fetcher tracks the current known bot detector list state, updating periodically.
 type Fetcher struct {
 	configured []config.UserList
 	mu         *sync.RWMutex
@@ -43,6 +48,7 @@ type Fetcher struct {
 	cache      cache.Cache
 }
 
+// Update downloads all configured bot lists concurrently.
 func (m *Fetcher) Update(ctx context.Context) {
 	var (
 		waitGroup = sync.WaitGroup{}
@@ -126,6 +132,7 @@ func (m *Fetcher) Update(ctx context.Context) {
 	m.mu.Unlock()
 }
 
+// Search through all bot lists. Can return multiple matched results.
 func (m *Fetcher) Search(steamID steamid.SteamID) []Match {
 	matched := []Match{}
 	for _, list := range m.lists {

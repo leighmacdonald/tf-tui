@@ -3,7 +3,7 @@ package geoip_test
 import (
 	"testing"
 
-	"github.com/leighmacdonald/tf-tui/internal/geoip"
+	"github.com/leighmacdonald/tf-tui/internal/network/geoip"
 	"github.com/stretchr/testify/require"
 )
 

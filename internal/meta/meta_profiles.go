@@ -12,7 +12,7 @@ import (
 
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/cache"
-	"github.com/leighmacdonald/tf-tui/internal/encoding"
+	"github.com/leighmacdonald/tf-tui/internal/network/encoding"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
 )
 

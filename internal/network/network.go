@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/leighmacdonald/tf-tui/internal/encoding"
+	"github.com/leighmacdonald/tf-tui/internal/network/encoding"
 )
 
 // httpClientV4 creates a http client only capable of speaking ipv4. This is used when querying the external

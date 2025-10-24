@@ -12,7 +12,7 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/bd"
 	"github.com/leighmacdonald/tf-tui/internal/config"
-	"github.com/leighmacdonald/tf-tui/internal/geoip"
+	"github.com/leighmacdonald/tf-tui/internal/network/geoip"
 	"github.com/leighmacdonald/tf-tui/internal/store"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
@@ -175,7 +175,6 @@ func (s *serverState) registerAddress(ctx context.Context) error {
 func (s *serverState) start(ctx context.Context) error {
 	if s.remote {
 		s.onStart(ctx)
-
 	}
 
 	// Start recording events.

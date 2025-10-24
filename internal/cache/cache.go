@@ -1,3 +1,4 @@
+// Package cache implements a very trivial filesystem cache.
 package cache
 
 import (
@@ -14,6 +15,7 @@ import (
 )
 
 const (
+	// How long until a entry is considered stale.
 	maxCacheAge = time.Hour * 24 * 7 // Please dont hurt me
 )
 
@@ -24,6 +26,7 @@ var (
 )
 
 type Cache interface {
+	//
 	Get(steamID steamid.SteamID, variant ItemVariant) ([]byte, error)
 	Set(steamID steamid.SteamID, variant ItemVariant, content []byte) error
 }
@@ -34,6 +37,7 @@ const (
 	CacheMetaProfile ItemVariant = iota
 )
 
+// Filesystem implements the default filesystem based Cache interface.
 type Filesystem struct {
 	cacheDir string
 }

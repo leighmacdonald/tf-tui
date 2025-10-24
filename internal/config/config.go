@@ -1,3 +1,4 @@
+// Package config handles loading and reloading config files.
 package config
 
 import (
