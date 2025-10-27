@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
@@ -43,6 +44,7 @@ type tableBDModel struct {
 	table   *table.Table
 	matched []MatchedBDPlayer
 	width   int
+	height  int
 }
 
 func (m tableBDModel) Init() tea.Cmd {
@@ -51,8 +53,9 @@ func (m tableBDModel) Init() tea.Cmd {
 
 func (m tableBDModel) Update(msg tea.Msg) (tableBDModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case contentViewPortHeightMsg:
+	case viewPortSizeMsg:
 		m.width = msg.width
+		m.height = msg.lowerSize
 	case selectedPlayerMsg:
 		var rows [][]string
 		// FIXME
@@ -75,30 +78,31 @@ func (m tableBDModel) Update(msg tea.Msg) (tableBDModel, tea.Cmd) {
 }
 
 func (m tableBDModel) Render(height int) string {
-	titleBar := renderTitleBar(m.width, "Bot Detector Matches")
-	renderedTable := m.table.Height(height).StyleFunc(func(row, col int) lipgloss.Style {
-		var width int
-		switch bdTableCol(col) {
-		case colBDListName:
-			width = int(colBDListNameSize)
-		case colBDLastSeen:
-			width = int(colBDLastSeenSize)
-		case colBDLastName:
-			width = int(colBDLastNameSize)
-		case colBDAttributes:
-			width = int(colBDAttributesSize)
-		case colBDProof:
-			width = m.width - int(colBDListNameSize) - int(colBDLastSeenSize) - int(colBDAttributesSize) - int(colBDLastNameSize) - 2
-		}
-		switch {
-		case row == table.HeaderRow:
-			return styles.BanTableHeading.Width(width)
-		case row%2 == 0:
-			return styles.TableRowValuesEven.Width(width)
-		default:
-			return styles.TableRowValuesOdd.Width(width)
-		}
-	}).Render()
+	renderedTable := m.table.
+		Height(height - 2).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			var width int
+			switch bdTableCol(col) {
+			case colBDListName:
+				width = int(colBDListNameSize)
+			case colBDLastSeen:
+				width = int(colBDLastSeenSize)
+			case colBDLastName:
+				width = int(colBDLastNameSize)
+			case colBDAttributes:
+				width = int(colBDAttributesSize)
+			case colBDProof:
+				width = m.width - int(colBDListNameSize) - int(colBDLastSeenSize) - int(colBDAttributesSize) - int(colBDLastNameSize) - 2
+			}
+			switch {
+			case row == table.HeaderRow:
+				return styles.BanTableHeading.Width(width)
+			case row%2 == 0:
+				return styles.TableRowValuesEven.Width(width)
+			default:
+				return styles.TableRowValuesOdd.Width(width)
+			}
+		}).Render()
 
-	return lipgloss.JoinVertical(lipgloss.Top, titleBar, renderedTable)
+	return model.Container("Bot Detector", m.width, height, renderedTable)
 }

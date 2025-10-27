@@ -9,6 +9,7 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
@@ -93,13 +94,13 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case selectServerSnapshotMsg:
 		m.selectedsServer = msg.server.HostPort
-	case contentViewPortHeightMsg:
+	case viewPortSizeMsg:
 		m.width = msg.width
 		if !m.ready {
-			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)
+			m.viewport = viewport.New(msg.width, msg.lowerSize)
 			m.ready = true
 		} else {
-			m.viewport.Height = msg.contentViewPortHeight
+			m.viewport.Height = msg.lowerSize
 		}
 	case Snapshot:
 		m.players = msg.Server.Players
@@ -147,10 +148,8 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 }
 
 func (m chatModel) View(height int) string {
-	titleBar := renderTitleBar(m.width, "Game Chat")
-	m.viewport.Height = height - lipgloss.Height(titleBar)
-	rows := m.rowsRendered[m.selectedsServer]
-	m.viewport.SetContent(rows)
+	m.viewport.Height = height - 2
+	m.viewport.SetContent(m.rowsRendered[m.selectedsServer])
 
-	return lipgloss.JoinVertical(lipgloss.Left, titleBar, m.viewport.View())
+	return model.Container("Chat Logs", m.width, height, m.viewport.View())
 }

@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
@@ -48,15 +49,16 @@ func (m tableBansModel) Init() tea.Cmd {
 
 func (m tableBansModel) Update(msg tea.Msg) (tableBansModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case contentViewPortHeightMsg:
+	case viewPortSizeMsg:
 		m.width = msg.width
 		m.height = msg.height
 		if !m.ready {
-			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)
+			m.viewport = viewport.New(msg.width, msg.lowerSize-2)
 			m.ready = true
+			m.contentViewPortHeight = msg.lowerSize
 		} else {
-			m.contentViewPortHeight = msg.contentViewPortHeight
-			m.viewport.Height = msg.contentViewPortHeight
+			m.contentViewPortHeight = msg.lowerSize
+			m.viewport.Height = msg.lowerSize - 2
 		}
 	case selectedPlayerMsg:
 		m.player = msg.player
@@ -116,7 +118,7 @@ func (m tableBansModel) Render(height int) string {
 		}).Render()
 	}
 
-	m.viewport.SetContent(lipgloss.JoinVertical(lipgloss.Left, renderTitleBar(m.width, "Bans"), content))
+	m.viewport.SetContent(content)
 
-	return m.viewport.View()
+	return model.Container("Bans", m.width, m.contentViewPortHeight, m.viewport.View())
 }

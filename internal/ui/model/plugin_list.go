@@ -10,15 +10,17 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
+	zone "github.com/lrstanley/bubblezone"
 )
 
 func NewPluginList(title string) list.Model {
-	newList := list.New(nil, PluginDelegate[PluginItem[tf.GamePlugin]]{}, 2, 2)
+	newList := list.New(nil, PluginDelegate[GamePluginItem[tf.GamePlugin]]{}, 2, 2)
 	newList.SetStatusBarItemName("plugin", "plugins")
 	setListDefaults(&newList, title)
 
 	return newList
 }
+
 func NewCVarList() list.Model {
 	newList := list.New(nil, CVarDelegate[CVarItem[tf.CVar]]{}, 2, 2)
 	newList.SetStatusBarItemName("cvar", "cvars")
@@ -32,15 +34,16 @@ func setListDefaults(newList *list.Model, title string) {
 	newList.DisableQuitKeybindings()
 	newList.SetShowStatusBar(false)
 	newList.SetShowHelp(false)
+	newList.SetShowTitle(false)
 	newList.Styles.Title = styles.PluginTitle
 	newList.Styles.TitleBar = lipgloss.NewStyle().Padding(0).Align(lipgloss.Center)
 }
 
-type PluginItem[T any] struct {
+type GamePluginItem[T any] struct {
 	Item T
 }
 
-func (i PluginItem[T]) FilterValue() string { return "" }
+func (i GamePluginItem[T]) FilterValue() string { return "" }
 
 type PluginDelegate[T any] struct{}
 
@@ -48,18 +51,18 @@ func (d PluginDelegate[T]) Height() int                             { return 1 }
 func (d PluginDelegate[T]) Spacing() int                            { return 0 }
 func (d PluginDelegate[T]) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d PluginDelegate[T]) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(PluginItem[tf.GamePlugin])
+	i, ok := listItem.(GamePluginItem[tf.GamePlugin])
 	if !ok {
 		return
 	}
 
 	str := fmt.Sprintf("#%d: %s ", i.Item.Index, i.Item.Name)
 	var err error
-	render := styles.PluginItem.Render
+	render := styles.PluginItem.Inline(true).Padding(0).Render
 	if index == m.Index() {
-		_, err = fmt.Fprint(w, render(styles.SelectedCellStyleRed.Render(str)))
+		_, err = fmt.Fprint(w, render(styles.ListSelectedRow.Render(str)))
 	} else {
-		_, err = fmt.Fprint(w, render(str))
+		_, err = fmt.Fprint(w, render(styles.ListUnelectedRow.Render(str)))
 	}
 
 	if err != nil {
@@ -79,21 +82,23 @@ func (d CVarDelegate[T]) Height() int                             { return 1 }
 func (d CVarDelegate[T]) Spacing() int                            { return 0 }
 func (d CVarDelegate[T]) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 func (d CVarDelegate[T]) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(CVarItem[tf.CVar])
+	cvar, ok := listItem.(CVarItem[tf.CVar])
 	if !ok {
 		return
 	}
 
-	str := fmt.Sprintf("%s: %s ", i.Item.Name, i.Item.Value)
-	var err error
-	render := styles.PluginItem.Render
+	var (
+		line    = fmt.Sprintf("%s: %s ", cvar.Item.Name, cvar.Item.Value)
+		content string
+	)
+
 	if index == m.Index() {
-		_, err = fmt.Fprint(w, render(styles.SelectedCellStyleRed.Render(str)))
+		content = styles.ListSelectedRow.Render(line)
 	} else {
-		_, err = fmt.Fprint(w, render(str))
+		content = styles.ListUnelectedRow.Render(line)
 	}
 
-	if err != nil {
+	if _, err := fmt.Fprint(w, zone.Mark("", content)); err != nil {
 		slog.Error("Failed to render item delegate", slog.String("error", err.Error()))
 	}
 }

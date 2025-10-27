@@ -151,7 +151,7 @@ func (m *serverTableData) At(row int, col int) string {
 		}
 		return ""
 	case colServerInRate:
-		return fmt.Sprintf("%.2f KBs", snapshot.Status.Stats.InKBs)
+		return fmt.Sprintf("%.2f", snapshot.Status.Stats.InKBs)
 	case colServerOutRate:
 		return fmt.Sprintf("%.2f", snapshot.Status.Stats.OutKBs)
 	case colServerConnects:

@@ -1,10 +1,10 @@
 package ui
 
 import (
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -58,22 +58,20 @@ var defaultServerTableColumns = []serverTableCol{
 func newServerTableModel() *serverTableModel {
 	zoneID := zone.NewPrefix()
 	return &serverTableModel{
-		zoneID:   zoneID,
-		table:    newUnstyledTable(),
-		data:     newTableServerData(zoneID, nil, defaultServerTableColumns...),
-		viewport: viewport.New(1, 1),
+		zoneID: zoneID,
+		table:  newUnstyledTable(),
+		data:   newTableServerData(zoneID, nil, defaultServerTableColumns...),
 	}
 }
 
 type serverTableModel struct {
-	zoneID          string
-	viewport        viewport.Model
-	table           *table.Table
-	data            *serverTableData
-	selectedsServer string
-	width           int
-	contentHeight   int
-	inputActive     bool
+	zoneID         string
+	table          *table.Table
+	data           *serverTableData
+	selectedServer string
+	width          int
+	contentHeight  int
+	inputActive    bool
 }
 
 func (m *serverTableModel) Init() tea.Cmd {
@@ -82,31 +80,29 @@ func (m *serverTableModel) Init() tea.Cmd {
 
 func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case inputZoneChangeMsg:
-		m.inputActive = msg.zone == zoneServers
-	case contentViewPortHeightMsg:
+	case keyZone:
+		m.inputActive = msg == serverTable
+	case viewPortSizeMsg:
 		m.width = msg.width
-		m.contentHeight = min(msg.contentViewPortHeight, msg.height/2)
-		m.viewport.Width = msg.width
-		m.viewport.Height = min(msg.contentViewPortHeight, msg.height/2) - 2
+		m.contentHeight = msg.upperSize
 	case []Snapshot:
 		m.data = newTableServerData(m.zoneID, msg)
 		m.data.Sort(m.data.sortColumn, m.data.asc)
 		m.table.Data(m.data)
 		// Send a snapshot for the currently selected server.
 		if len(m.data.servers) > 0 {
-			if m.selectedsServer == "" {
-				m.selectedsServer = m.data.servers[0].HostPort
+			if m.selectedServer == "" {
+				m.selectedServer = m.data.servers[0].HostPort
 			}
 			for _, snaps := range m.data.servers {
-				if m.selectedsServer == snaps.HostPort {
+				if m.selectedServer == snaps.HostPort {
 					return m, setServer(snaps)
 				}
 			}
 
 		}
 	case selectServerSnapshotMsg:
-		m.selectedsServer = msg.server.HostPort
+		m.selectedServer = msg.server.HostPort
 	case tea.MouseMsg:
 		if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
 			return m, nil
@@ -114,7 +110,7 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 
 		for _, item := range m.data.servers {
 			if zone.Get(m.zoneID + item.HostPort).InBounds(msg) {
-				return m, tea.Batch(setServer(item), setInputZone(zoneServers))
+				return m, tea.Batch(setServer(item), setKeyZone(serverTable))
 			}
 		}
 
@@ -153,17 +149,15 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 		}
 	}
 
-	var cmd tea.Cmd
-	m.viewport, cmd = m.viewport.Update(msg)
-
-	return m, cmd
+	return m, nil
 }
 
 func (m *serverTableModel) View() string {
 	currentIdx := m.currentRowIndex()
 
 	content := m.table.
-		Width(m.width).
+		Width(m.width - 4).
+		Height(m.contentHeight).
 		Headers(m.data.Headers()...).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			mappedCol := m.data.enabledColumns[col]
@@ -206,13 +200,12 @@ func (m *serverTableModel) View() string {
 		}).
 		String()
 
-	m.viewport.SetContent(content)
-	return m.viewport.View()
+	return model.Container("Servers", m.width-4, m.contentHeight, content)
 }
 
 func (m *serverTableModel) currentRowIndex() int {
 	for rowIdx, server := range m.data.servers {
-		if server.HostPort == m.selectedsServer {
+		if server.HostPort == m.selectedServer {
 			return rowIdx
 		}
 	}

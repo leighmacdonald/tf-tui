@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 	"github.com/muesli/reflow/wordwrap"
@@ -82,7 +83,7 @@ func newConsoleModel() *consoleModel {
 	input := textinput.New()
 	input.CharLimit = 120
 	input.Placeholder = "cmd..."
-	input.Prompt = lipgloss.NewStyle().Padding(0).Foreground(styles.ColourVintage).Background(styles.Black).Inline(true).Render("RCON  ")
+	input.Prompt = styles.ConsolePrompt
 	model := consoleModel{
 		rowsMu:       &sync.RWMutex{},
 		rowsRendered: map[string]string{},
@@ -128,8 +129,8 @@ func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
 				cmds = append(cmds, m.input.Focus())
 			}
 		}
-	case inputZoneChangeMsg:
-		m.inputActive = msg.zone == zoneConsoleInput
+	case keyZone:
+		m.inputActive = msg == consoleInput
 		if m.inputActive && !m.input.Focused() {
 			cmds = append(cmds, m.input.Focus())
 		}
@@ -138,7 +139,7 @@ func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
 		if cvars, ok := m.cvarList[msg.server.HostPort]; ok {
 			m.input.SetSuggestions(cvars.Filter("").Names())
 		}
-	case contentViewPortHeightMsg:
+	case viewPortSizeMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
 		m.input.Width = msg.width - 8
@@ -201,17 +202,14 @@ func safeString(s string) string {
 }
 
 func (m *consoleModel) Render(height int) string {
-	title := "Console Log"
 	content, found := m.rowsRendered[m.selectedServer.HostPort]
 	if !found || content == "" {
 		content = "<<< Start of logs >>>\n"
-	} else {
-		title = renderTitleBar(m.width, fmt.Sprintf("Console Log: %d Messages", m.rowsCount[m.selectedServer.HostPort]))
 	}
 
 	input := zone.Mark(m.inputZoneID, m.input.View())
 
-	m.viewPort.Height = height - lipgloss.Height(title) - lipgloss.Height(input)
+	m.viewPort.Height = height - lipgloss.Height(input)
 	wasBottom := m.viewPort.AtBottom()
 
 	m.viewPort.SetContent(content)
@@ -219,5 +217,7 @@ func (m *consoleModel) Render(height int) string {
 		m.viewPort.GotoBottom()
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, title, m.viewPort.View(), input)
+	title := fmt.Sprintf("Console Log: %d Messages", m.rowsCount[m.selectedServer.HostPort])
+
+	return model.Container(title, m.width, height, lipgloss.JoinVertical(lipgloss.Left, m.viewPort.View(), input))
 }

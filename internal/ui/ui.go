@@ -70,8 +70,9 @@ func New(ctx context.Context, config config.Config, doSetup bool, buildVersion s
 				parentCtx),
 			tea.WithMouseCellMotion(),
 			tea.WithAltScreen(),
-			// tea.WithMouseAllMotion(),
-			tea.WithContext(ctx)),
+			tea.WithMouseAllMotion(),
+			tea.WithContext(ctx),
+			tea.WithFPS(120)),
 	}
 }
 

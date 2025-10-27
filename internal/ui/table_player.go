@@ -8,6 +8,7 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 )
@@ -59,21 +60,24 @@ func newPlayerTableModel(team tf.Team, selfSID steamid.SteamID, serverMode bool)
 		id:           zoneID,
 		team:         team,
 		selectedTeam: tf.RED,
-		data:         newTablePlayerData(zoneID, serverMode, Players{}, team),
-		table:        newUnstyledTable(),
-		selfSteamID:  selfSID,
-		serverMode:   serverMode,
+		//	data:         newTablePlayerData(zoneID, serverMode, Players{}, team),
+		table:       newUnstyledTable(),
+		selfSteamID: selfSID,
+		serverMode:  serverMode,
+		serverData:  map[string]*tablePlayerData{},
 	}
 }
 
 type tablePlayerModel struct {
-	id              string
-	serverMode      bool
-	table           *table.Table
-	data            *tablePlayerData
+	id         string
+	serverMode bool
+	table      *table.Table
+	// data            *tablePlayerData
 	team            tf.Team
 	selectedTeam    tf.Team
 	selectedSteamID steamid.SteamID
+	selectedServer  string
+	serverData      map[string]*tablePlayerData
 	height          int
 	width           int
 	selfSteamID     steamid.SteamID
@@ -86,13 +90,13 @@ func (m *tablePlayerModel) Init() tea.Cmd {
 
 func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case inputZoneChangeMsg:
-		m.inputActive = m.team == tf.RED && msg.zone == zonePlayersRED
+	case keyZone:
+		m.inputActive = m.team == tf.RED && msg == playerTableRED
 	case config.Config:
 		m.selfSteamID = msg.SteamID
 
 		return m, nil
-	case contentViewPortHeightMsg:
+	case viewPortSizeMsg:
 		m.width = msg.width
 		m.height = msg.height
 		// When the screen with is a odd number, increase the size of the right player table
@@ -105,8 +109,14 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, nil
+	case selectServerSnapshotMsg:
+		m.selectedServer = msg.server.HostPort
+
 	case sortPlayersMsg:
-		m.data.Sort(msg.sortColumn, msg.asc)
+		if data, ok := m.serverData[m.selectedServer]; ok {
+			data.Sort(msg.sortColumn, msg.asc)
+			m.table.Data(data)
+		}
 
 		return m, nil
 	case tea.MouseMsg:
@@ -120,7 +130,12 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			for _, item := range m.data.players {
+			data, ok := m.serverData[m.selectedServer]
+			if !ok {
+				break
+			}
+
+			for _, item := range data.players {
 				// Check each item to see if it's in bounds.
 				if zone.Get(m.id + item.SteamID.String()).InBounds(msg) {
 					m.selectedSteamID = item.SteamID
@@ -155,7 +170,7 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					default:
 						col = colName
 					}
-					m.data.Sort(col, !m.data.asc)
+					data.Sort(col, !data.asc)
 
 					return m, nil
 				}
@@ -188,37 +203,42 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, m.selectClosestPlayer()
 	case Snapshot:
-		return m.updatePlayers(msg.Server.Players)
+		return m.updatePlayers(msg)
 	}
 
 	return m, nil
 }
 
 func (m *tablePlayerModel) moveSelection(direction direction) tea.Cmd {
+	data, ok := m.serverData[m.selectedServer]
+	if !ok {
+		return nil
+	}
+
 	currentRow := m.currentRowIndex()
 	switch direction { //nolint:exhaustive
 	case up:
-		if currentRow < 0 && len(m.data.players) > 0 {
-			m.selectedSteamID = m.data.players[len(m.data.players)-1].SteamID
+		if currentRow < 0 && len(data.players) > 0 {
+			m.selectedSteamID = data.players[len(data.players)-1].SteamID
 
 			break
 		}
 		if currentRow == 0 {
 			break
 		}
-		if currentRow-1 >= 0 && max(0, len(m.data.players)-1) > currentRow-1 {
-			m.selectedSteamID = m.data.players[currentRow-1].SteamID
+		if currentRow-1 >= 0 && max(0, len(data.players)-1) > currentRow-1 {
+			m.selectedSteamID = data.players[currentRow-1].SteamID
 		}
 	case down:
-		if currentRow < 0 && len(m.data.players) > 0 {
-			m.selectedSteamID = m.data.players[0].SteamID
+		if currentRow < 0 && len(data.players) > 0 {
+			m.selectedSteamID = data.players[0].SteamID
 
 			break
 		}
-		if currentRow >= len(m.data.players)-1 {
+		if currentRow >= len(data.players)-1 {
 			break
 		}
-		m.selectedSteamID = m.data.players[currentRow+1].SteamID
+		m.selectedSteamID = data.players[currentRow+1].SteamID
 	default:
 		return nil
 	}
@@ -234,10 +254,15 @@ func (m *tablePlayerModel) moveSelection(direction direction) tea.Cmd {
 }
 
 func (m *tablePlayerModel) currentPlayer() (Player, bool) {
+	data, ok := m.serverData[m.selectedServer]
+	if !ok {
+		return Player{}, false
+	}
+
 	if m.selectedTeam != m.team {
 		return Player{}, false
 	}
-	for _, player := range m.data.players {
+	for _, player := range data.players {
 		if player.SteamID == m.selectedSteamID {
 			return player, true
 		}
@@ -247,7 +272,12 @@ func (m *tablePlayerModel) currentPlayer() (Player, bool) {
 }
 
 func (m *tablePlayerModel) currentRowIndex() int {
-	for rowIdx, player := range m.data.players {
+	data, ok := m.serverData[m.selectedServer]
+	if !ok {
+		return -1
+	}
+
+	for rowIdx, player := range data.players {
 		if player.SteamID == m.selectedSteamID {
 			return rowIdx
 		}
@@ -257,12 +287,17 @@ func (m *tablePlayerModel) currentRowIndex() int {
 }
 
 func (m *tablePlayerModel) selectClosestPlayer() tea.Cmd {
+	data, ok := m.serverData[m.selectedServer]
+	if !ok {
+		return nil
+	}
+
 	var selectedPlayer Player
 	if m.selectedTeam == m.team {
 		oldID := m.selectedSteamID
-		if player, ok := m.currentPlayer(); !ok && len(m.data.players) > 0 {
-			m.selectedSteamID = m.data.players[0].SteamID
-			selectedPlayer = m.data.players[0]
+		if player, ok := m.currentPlayer(); !ok && len(data.players) > 0 {
+			m.selectedSteamID = data.players[0].SteamID
+			selectedPlayer = data.players[0]
 		} else {
 			m.selectedSteamID = player.SteamID
 			selectedPlayer = player
@@ -276,23 +311,34 @@ func (m *tablePlayerModel) selectClosestPlayer() tea.Cmd {
 	return nil
 }
 
-func (m *tablePlayerModel) updatePlayers(playersUpdate Players) (tea.Model, tea.Cmd) {
-	m.data = newTablePlayerData(m.id, m.serverMode, playersUpdate, m.team)
-	m.data.Sort(m.data.sortColumn, m.data.asc)
-	m.table.Data(m.data)
+func (m *tablePlayerModel) updatePlayers(snapshot Snapshot) (tea.Model, tea.Cmd) {
+	data := newTablePlayerData(m.id, m.serverMode, snapshot.Server.Players, m.team)
+	data.Sort(data.sortColumn, data.asc)
+	m.table.Data(data)
+
+	m.serverData[snapshot.HostPort] = data
 
 	return m, m.selectClosestPlayer()
 }
 
 func (m *tablePlayerModel) View() string {
+	data, ok := m.serverData[m.selectedServer]
+	if !ok {
+		return ""
+	}
 	selectedRowIdx := m.currentRowIndex()
 
-	return m.table.
-		Headers(m.data.Headers()...).
-		StyleFunc(func(row, col int) lipgloss.Style {
-			isSelf := row >= 0 && len(m.data.players)-1 <= row && m.data.players[row].SteamID.Equal(m.selfSteamID)
+	title := "RED"
+	if m.team == tf.BLU {
+		title = "BLU"
+	}
 
-			mappedCol := m.data.enabledColumns[col]
+	return model.Container(title, calcPct(m.width, 50), m.height/2, m.table.
+		Headers(data.Headers()...).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			isSelf := row >= 0 && len(data.players)-1 <= row && data.players[row].SteamID.Equal(m.selfSteamID)
+
+			mappedCol := data.enabledColumns[col]
 			width := colNameSize
 			switch mappedCol {
 			case colUID:
@@ -358,5 +404,5 @@ func (m *tablePlayerModel) View() string {
 				return styles.PlayerTableRowOdd.Width(int(width))
 			}
 		}).
-		String()
+		String())
 }

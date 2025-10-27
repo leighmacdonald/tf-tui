@@ -97,7 +97,7 @@ func (m tabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, nil
-	case contentViewPortHeightMsg:
+	case viewPortSizeMsg:
 		m.width = msg.width
 
 		return m, nil
@@ -138,6 +138,9 @@ func (m tabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m tabsModel) View() string {
+	if m.width == 0 {
+		return ""
+	}
 	var tabs []string
 
 	for _, tab := range m.tabs {
@@ -148,5 +151,5 @@ func (m tabsModel) View() string {
 		}
 	}
 
-	return styles.TabContainer.Width(m.width).Render(lipgloss.JoinHorizontal(lipgloss.Top, tabs...))
+	return styles.WrapX(m.width, styles.TabContainer.Width(m.width).Render(lipgloss.JoinHorizontal(lipgloss.Top, tabs...)), "x")
 }

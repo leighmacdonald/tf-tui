@@ -69,6 +69,7 @@ type Config struct {
 	Servers []ServerConfig `mapstructure:"servers"`
 	// Client is the connect info for running in local client mode.
 	Client ServerConfig `mapstructure:"client"`
+	FPS    int          `mapstructure:"fps"`
 }
 
 func (c Config) UPNPPortMapping() (uint16, uint16) {

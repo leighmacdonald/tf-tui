@@ -107,8 +107,13 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		contentViewPortHeight := m.height - m.headerHeight - m.footerHeight
-		return m, setContentViewPortHeight(contentViewPortHeight, m.height, m.width)
+		upper := (m.height - m.headerHeight - m.footerHeight) / 2
+		lower := upper
+		if upper%2 != 0 {
+			lower -= 1
+		}
+
+		return m, setViewPortSizeMsg(upper, lower, m.height, m.width)
 	case tabView:
 		m.activeTab = msg
 	case tea.KeyMsg:

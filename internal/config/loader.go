@@ -41,6 +41,7 @@ func NewLoader(changes chan<- Config) *Loader {
 		},
 	})
 	loader.SetDefault("debug", false)
+	loader.SetDefault("fps", 60)
 	loader.SetConfigName(DefaultConfigName)
 	loader.SetConfigType("yaml")
 	loader.SetEnvPrefix(EnvPrefix)

@@ -42,15 +42,15 @@ func (m detailPanelModel) Update(msg tea.Msg) (detailPanelModel, tea.Cmd) {
 		m.links = msg.Links
 	case Snapshot:
 		m.players = msg.Server.Players
-	case contentViewPortHeightMsg:
+	case viewPortSizeMsg:
 		m.width = msg.width
 		m.height = msg.height
 		if !m.ready {
-			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)
+			m.viewport = viewport.New(msg.width, msg.lowerSize)
 			m.ready = true
 		} else {
-			m.contentViewPortHeight = msg.contentViewPortHeight
-			m.viewport.Height = msg.contentViewPortHeight
+			m.contentViewPortHeight = msg.lowerSize
+			m.viewport.Height = msg.lowerSize
 		}
 	case selectedPlayerMsg:
 		m.player = msg.player
@@ -143,8 +143,7 @@ func (m detailPanelModel) Render(height int) string {
 
 	m.viewport.SetContent(lipgloss.JoinVertical(lipgloss.Top, rows...))
 
-	titleBar := renderTitleBar(m.width, "Player Overview")
-	m.viewport.Height = height - lipgloss.Height(titleBar)
+	m.viewport.Height = height
 
-	return lipgloss.JoinVertical(lipgloss.Top, titleBar, "", m.viewport.View())
+	return m.viewport.View()
 }

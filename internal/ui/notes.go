@@ -29,10 +29,10 @@ func (m notesModel) Init() tea.Cmd {
 
 func (m notesModel) Update(msg tea.Msg) (notesModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case contentViewPortHeightMsg:
+	case viewPortSizeMsg:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
-		m.viewPort.Height = msg.contentViewPortHeight
+		m.viewPort.Height = msg.lowerSize
 	case selectedPlayerMsg:
 		m.player = msg.player
 		m.textarea.SetValue(msg.notes)
@@ -43,9 +43,8 @@ func (m notesModel) Update(msg tea.Msg) (notesModel, tea.Cmd) {
 
 func (m notesModel) View(height int) string {
 	m.viewPort.SetContent(m.textarea.Value())
-	title := renderTitleBar(m.width, "Player Notes (doesnt work)")
 
-	m.viewPort.Height = height - lipgloss.Height(title)
+	m.viewPort.Height = height
 
-	return lipgloss.JoinVertical(lipgloss.Top, title, m.textarea.View())
+	return lipgloss.JoinVertical(lipgloss.Top, m.textarea.View())
 }

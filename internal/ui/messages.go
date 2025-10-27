@@ -8,18 +8,20 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 )
 
-type contentViewPortHeightMsg struct {
-	contentViewPortHeight int
-	height                int
-	width                 int
+type viewPortSizeMsg struct {
+	upperSize int
+	lowerSize int
+	height    int
+	width     int
 }
 
-func setContentViewPortHeight(viewport int, height int, width int) func() tea.Msg {
+func setViewPortSizeMsg(upper int, lower int, height int, width int) func() tea.Msg {
 	return func() tea.Msg {
-		return contentViewPortHeightMsg{
-			contentViewPortHeight: viewport,
-			height:                height,
-			width:                 width,
+		return viewPortSizeMsg{
+			upperSize: upper,
+			lowerSize: lower,
+			height:    height,
+			width:     width,
 		}
 	}
 }
@@ -93,24 +95,6 @@ type selectServerSnapshotMsg struct {
 
 func setServer(server Snapshot) tea.Cmd {
 	return func() tea.Msg { return selectServerSnapshotMsg{server: server} }
-}
-
-type inputZone int
-
-const (
-	zoneServers inputZone = iota
-	zonePlayersRED
-	zonePlayersBLU
-	zoneConfig
-	zoneConsoleInput
-)
-
-type inputZoneChangeMsg struct {
-	zone inputZone
-}
-
-func setInputZone(zone inputZone) tea.Cmd {
-	return func() tea.Msg { return inputZoneChangeMsg{zone: zone} }
 }
 
 type serverCVarList struct {

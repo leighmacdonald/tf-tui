@@ -19,17 +19,6 @@ func newTextInputModel(value string, placeholder string) textinput.Model {
 	return input
 }
 
-func renderTitleBar(width int, value string) string {
-	return lipgloss.
-		NewStyle().
-		Width(width - 2).
-		Bold(false).
-		AlignHorizontal(lipgloss.Center).
-		Background(styles.Black).
-		Foreground(styles.ColourStrange).
-		Render(value)
-}
-
 func newUnstyledTable(headers ...string) *table.Table {
 	return table.New().
 		Border(lipgloss.NormalBorder()).

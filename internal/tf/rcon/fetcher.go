@@ -95,6 +95,13 @@ func (f Fetcher) Fetch(ctx context.Context) (tf.DumpPlayer, tf.Status, error) {
 		if errStatus != nil {
 			slog.Error("failed to parse status", slog.String("error", errStatus.Error()))
 		} else {
+			var valid []string
+			for _, tag := range status.Tags {
+				if tag != "" {
+					valid = append(valid, tag)
+				}
+			}
+			status.Tags = valid
 			f.lastStatus.Status = status
 		}
 		if match := f.statsRe.FindStringSubmatch(response); len(match) > 0 {

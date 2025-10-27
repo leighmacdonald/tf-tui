@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
@@ -57,15 +58,15 @@ func (m tableCompModel) Init() tea.Cmd {
 
 func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case contentViewPortHeightMsg:
+	case viewPortSizeMsg:
 		m.width = msg.width
 		m.height = msg.height
-		m.table.Height(msg.contentViewPortHeight - 2)
+		m.table.Height(msg.lowerSize - 2)
 		if !m.ready {
-			m.viewport = viewport.New(msg.width, msg.contentViewPortHeight)
+			m.viewport = viewport.New(msg.width, msg.lowerSize)
 			m.ready = true
 		} else {
-			m.viewport.Height = msg.contentViewPortHeight - 1
+			m.viewport.Height = msg.lowerSize - 1
 		}
 	case selectedPlayerMsg:
 		m.player = msg.player
@@ -150,8 +151,7 @@ func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 }
 
 func (m tableCompModel) Render(height int) string {
-	titlebar := renderTitleBar(m.width, "League History")
-	m.viewport.Height = height - lipgloss.Height(titlebar)
+	m.viewport.Height = height - 2
 
-	return lipgloss.JoinVertical(lipgloss.Left, titlebar, m.viewport.View())
+	return model.Container("Competitive History", m.width, height, m.viewport.View())
 }

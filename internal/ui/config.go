@@ -188,8 +188,8 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.fields[fieldTFAPIBaseURL], cmds[2] = m.fields[fieldTFAPIBaseURL].Update(msg)
 
 	switch msg := msg.(type) {
-	case inputZoneChangeMsg:
-		m.inputActive = msg.zone == zoneConfig
+	case keyZone:
+		m.inputActive = msg == configInput
 	case contentView:
 		m.activeView = msg
 		if m.activeView == viewConfig {
