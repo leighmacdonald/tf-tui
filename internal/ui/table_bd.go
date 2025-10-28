@@ -104,5 +104,5 @@ func (m tableBDModel) Render(height int) string {
 			}
 		}).Render()
 
-	return model.Container("Bot Detector", m.width, height, renderedTable)
+	return model.Container("Bot Detector", m.width, height, renderedTable, false)
 }

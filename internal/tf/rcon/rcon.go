@@ -18,6 +18,19 @@ type Connection struct {
 	timeout  time.Duration
 }
 
+// ExecP is a shortcut for executing a rcon command and parsing it to a gerically typed receiver.
+func ExecP[T any](ctx context.Context, addr string, password string, command string, parser func(string) T) T {
+	response, errExec := New(addr, password).Exec(ctx, command, true)
+	if errExec != nil {
+		slog.Error("Failed to exec rcon", slog.String("error", errExec.Error()), slog.String("host", addr))
+		var empty T
+
+		return empty
+	}
+
+	return parser(response)
+}
+
 func New(addr string, password string) Connection {
 	return Connection{
 		addr:     addr,

@@ -118,36 +118,25 @@ func (s *serverState) resolveCountry(ctx context.Context) {
 }
 
 func (s *serverState) fetchSMPluginsList(ctx context.Context) {
-	body, errData := rcon.New(s.server.Address, s.server.Password).Exec(ctx, "sm plugins list", true)
-	if errData != nil {
-		slog.Error("Failed to get sm plugins list", slog.String("error", errData.Error()))
-
-		return
+	if plugins := rcon.ExecP(ctx, s.server.Address, s.server.Password, "sm plugins list", func(s string) []tf.GamePlugin {
+		return tf.ParseGamePlugins(s, false)
+	}); len(plugins) > 0 {
+		s.pluginsSM = plugins
 	}
-
-	s.pluginsSM = tf.ParseGamePlugins(body, false)
 }
 
 func (s *serverState) fetchMetaPluginsList(ctx context.Context) {
-	body, errData := rcon.New(s.server.Address, s.server.Password).Exec(ctx, "meta list", true)
-	if errData != nil {
-		slog.Error("Failed to get meta list", slog.String("error", errData.Error()))
-
-		return
+	if plugins := rcon.ExecP(ctx, s.server.Address, s.server.Password, "meta list", func(s string) []tf.GamePlugin {
+		return tf.ParseGamePlugins(s, false)
+	}); len(plugins) > 0 {
+		s.pluginsMeta = plugins
 	}
-
-	s.pluginsMeta = tf.ParseGamePlugins(body, false)
 }
 
 func (s *serverState) fetchCVarList(ctx context.Context) {
-	cvarData, errData := rcon.New(s.server.Address, s.server.Password).Exec(ctx, "cvarlist", true)
-	if errData != nil {
-		slog.Error("Failed to get cvar list", slog.String("error", errData.Error()))
-
-		return
+	if cvars := rcon.ExecP(ctx, s.server.Address, s.server.Password, "meta list", tf.ParseCVars); len(cvars) > 0 {
+		s.cvars = cvars
 	}
-
-	s.cvars = tf.ParseCVars(cvarData)
 }
 
 func (s *serverState) registerAddress(ctx context.Context) error {

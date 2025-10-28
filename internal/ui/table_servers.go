@@ -200,7 +200,7 @@ func (m *serverTableModel) View() string {
 		}).
 		String()
 
-	return model.Container("Servers", m.width-4, m.contentHeight, content)
+	return model.Container("Servers", m.width-4, m.contentHeight, content, true)
 }
 
 func (m *serverTableModel) currentRowIndex() int {

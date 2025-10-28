@@ -22,7 +22,7 @@ generate:
 	go generate ./...
 
 race:
-	GORACE="race.txt" DEBUG=1 go run -race .
+	GORACE="race.txt" DEBUG=1 go run -race internal/cmd/tf-tui/*
 
 test:
 	go test ./...

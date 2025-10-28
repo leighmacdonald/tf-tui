@@ -90,7 +90,7 @@ func (m tableBansModel) Update(msg tea.Msg) (tableBansModel, tea.Cmd) {
 }
 
 func (m tableBansModel) Render(height int) string {
-	m.viewport.Height = height
+	m.viewport.Height = height - 2
 	var content string
 	if len(m.player.Bans) == 0 {
 		content = styles.InfoMessage.Width(m.width).Render("No bans found " + styles.IconNoBans)
@@ -120,5 +120,5 @@ func (m tableBansModel) Render(height int) string {
 
 	m.viewport.SetContent(content)
 
-	return model.Container("Bans", m.width, m.contentViewPortHeight, m.viewport.View())
+	return model.Container("Bans", m.width, height, m.viewport.View(), false)
 }

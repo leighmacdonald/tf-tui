@@ -8,12 +8,12 @@ import (
 )
 
 var (
-	Accent          = lipgloss.Color("#f4722b")
-	ContainerTitle  = lipgloss.NewStyle().Bold(true)
-	ContainerBorder = lipgloss.DoubleBorder()
-	ContainerStyle  = lipgloss.NewStyle().
-			Border(ContainerBorder).
-			BorderForeground(Black)
+	Accent = lipgloss.Color("#f4722b")
+
+	ContainerTitle       = lipgloss.NewStyle().Bold(true)
+	ContainerBorder      = lipgloss.DoubleBorder()
+	ContainerStyle       = lipgloss.NewStyle().Border(ContainerBorder).BorderForeground(Gray)
+	ContainerStyleActive = lipgloss.NewStyle().Border(ContainerBorder).BorderForeground(Blu)
 
 	HeaderContainerStyle  = lipgloss.NewStyle().Align(lipgloss.Center)
 	ContentContainerStyle = lipgloss.NewStyle().Align(lipgloss.Center)
@@ -135,13 +135,14 @@ func DetailRow(label string, value string) string {
 		PanelValue.Render(value))
 }
 
-func WrapX(width int, value string, sep string) string {
+// WrapX will wrap a centered string with the supplied character up to the lenth specified.
+func WrapX(width int, value string, character string) string {
 	all := width - lipgloss.Width(value)
-	return strings.Repeat(sep, all/2) + value + strings.Repeat(sep, all/2)
+	return strings.Repeat(character, all/2) + value + strings.Repeat(character, all/2)
 }
 
 func TitleBorder(border lipgloss.Border, width int, title string) lipgloss.Border {
-	border.Top = WrapX(width, title, border.Top)
+	border.Top = WrapX(width, "║"+title+"║", border.Top)
 
 	return border
 }

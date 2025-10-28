@@ -219,5 +219,5 @@ func (m *consoleModel) Render(height int) string {
 
 	title := fmt.Sprintf("Console Log: %d Messages", m.rowsCount[m.selectedServer.HostPort])
 
-	return model.Container(title, m.width, height, lipgloss.JoinVertical(lipgloss.Left, m.viewPort.View(), input))
+	return model.Container(title, m.width, height, lipgloss.JoinVertical(lipgloss.Left, m.viewPort.View(), input), false)
 }

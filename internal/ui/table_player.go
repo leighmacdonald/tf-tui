@@ -336,6 +336,9 @@ func (m *tablePlayerModel) View() string {
 	return model.Container(title, calcPct(m.width, 50), m.height/2, m.table.
 		Headers(data.Headers()...).
 		StyleFunc(func(row, col int) lipgloss.Style {
+			if len(data.players) == 0 {
+				return styles.HeaderStyleBlu
+			}
 			isSelf := row >= 0 && len(data.players)-1 <= row && data.players[row].SteamID.Equal(m.selfSteamID)
 
 			mappedCol := data.enabledColumns[col]
@@ -404,5 +407,5 @@ func (m *tablePlayerModel) View() string {
 				return styles.PlayerTableRowOdd.Width(int(width))
 			}
 		}).
-		String())
+		String(), false)
 }

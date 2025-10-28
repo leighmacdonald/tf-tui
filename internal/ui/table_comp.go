@@ -153,5 +153,5 @@ func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 func (m tableCompModel) Render(height int) string {
 	m.viewport.Height = height - 2
 
-	return model.Container("Competitive History", m.width, height, m.viewport.View())
+	return model.Container("Competitive History", m.width, height, m.viewport.View(), false)
 }

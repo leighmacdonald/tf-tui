@@ -151,5 +151,5 @@ func (m chatModel) View(height int) string {
 	m.viewport.Height = height - 2
 	m.viewport.SetContent(m.rowsRendered[m.selectedsServer])
 
-	return model.Container("Chat Logs", m.width, height, m.viewport.View())
+	return model.Container("Chat Logs", m.width, height, m.viewport.View(), false)
 }

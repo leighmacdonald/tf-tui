@@ -116,10 +116,10 @@ func (m serverDetailPanelModel) Render(height int) string {
 	borderSize := 8 // 4 containers, 2 sides each
 	bottomViews := lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		model.Container("Overview", calcPct(m.width-borderSize, 30), height, m.viewportDetail.View()),
-		model.Container(fmt.Sprintf("Meta (%d)", len(m.listMeta.Items())), calcPct(m.width-borderSize, 20), height, m.listMeta.View()),
-		model.Container(fmt.Sprintf("Sourcemod (%d)", len(m.listSM.Items())), calcPct(m.width-borderSize, 20), height, m.listSM.View()),
-		model.Container(fmt.Sprintf("CVars (%d)", len(m.listCvar.Items())), calcPct(m.width-borderSize, 30), height, m.listCvar.View()),
+		model.Container("Overview", calcPct(m.width-borderSize, 30), height, m.viewportDetail.View(), false),
+		model.Container(fmt.Sprintf("Meta (%d)", len(m.listMeta.Items())), calcPct(m.width-borderSize, 20), height, m.listMeta.View(), false),
+		model.Container(fmt.Sprintf("Sourcemod (%d)", len(m.listSM.Items())), calcPct(m.width-borderSize, 20), height, m.listSM.View(), false),
+		model.Container(fmt.Sprintf("CVars (%d)", len(m.listCvar.Items())), calcPct(m.width-borderSize, 30), height, m.listCvar.View(), false),
 	)
 
 	return lipgloss.NewStyle().Width(m.width).Render(bottomViews)

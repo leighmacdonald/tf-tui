@@ -31,6 +31,7 @@ func (b *blackBox) Start(ctx context.Context) {
 	for {
 		select {
 		case event := <-b.logEvents:
+			slog.Info("event")
 			var err error
 			switch data := event.Data.(type) {
 			case events.MsgEvent:
