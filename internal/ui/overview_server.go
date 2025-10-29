@@ -28,13 +28,12 @@ func newServerDetailPanel() serverDetailPanelModel {
 
 type serverDetailPanelModel struct {
 	snapshot       Snapshot
-	width          int
 	viewportDetail viewport.Model
 	listSM         list.Model
 	listMeta       list.Model
 	listCvar       list.Model
 	ready          bool
-	keyZone        keyZone
+	viewState      viewState
 }
 
 func (m serverDetailPanelModel) Init() tea.Cmd {
@@ -43,8 +42,6 @@ func (m serverDetailPanelModel) Init() tea.Cmd {
 
 func (m serverDetailPanelModel) Update(msg tea.Msg) (serverDetailPanelModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case keyZone:
-		m.keyZone = msg
 	case selectServerSnapshotMsg:
 		var smPlugins []list.Item
 		for _, plugin := range m.snapshot.PluginsSM {
@@ -66,7 +63,7 @@ func (m serverDetailPanelModel) Update(msg tea.Msg) (serverDetailPanelModel, tea
 		m.listCvar.SetItems(cvars)
 		m.snapshot = msg.server
 	case viewState:
-		m.width = msg.width
+		m.viewState = msg
 		if !m.ready {
 			m.viewportDetail = viewport.New(msg.width/2, msg.lowerSize)
 			m = m.resize(msg.width-4, msg.lowerSize)
@@ -120,11 +117,11 @@ func (m serverDetailPanelModel) Render(height int) string {
 	borderSize := 8 // 4 containers, 2 sides each
 	bottomViews := lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		model.Container("Overview", calcPct(m.width-borderSize, 30), height, m.viewportDetail.View(), m.keyZone == serverOverview),
-		model.Container(fmt.Sprintf("Meta (%d)", len(m.listMeta.Items())), calcPct(m.width-borderSize, 20), height, m.listMeta.View(), m.keyZone == listMetamod),
-		model.Container(fmt.Sprintf("Sourcemod (%d)", len(m.listSM.Items())), calcPct(m.width-borderSize, 20), height, m.listSM.View(), m.keyZone == listSourcemod),
-		model.Container(fmt.Sprintf("CVars (%d)", len(m.listCvar.Items())), calcPct(m.width-borderSize, 30), height, m.listCvar.View(), m.keyZone == listCvars),
+		model.Container("Overview", calcPct(m.viewState.width-borderSize, 30), height, m.viewportDetail.View(), m.viewState.keyZone == serverOverview),
+		model.Container(fmt.Sprintf("Meta (%d)", len(m.listMeta.Items())), calcPct(m.viewState.width-borderSize, 20), height, m.listMeta.View(), m.viewState.keyZone == listMetamod),
+		model.Container(fmt.Sprintf("Sourcemod (%d)", len(m.listSM.Items())), calcPct(m.viewState.width-borderSize, 20), height, m.listSM.View(), m.viewState.keyZone == listSourcemod),
+		model.Container(fmt.Sprintf("CVars (%d)", len(m.listCvar.Items())), calcPct(m.viewState.width-borderSize, 30), height, m.listCvar.View(), m.viewState.keyZone == listCvars),
 	)
 
-	return lipgloss.NewStyle().Width(m.width).Render(bottomViews)
+	return lipgloss.NewStyle().Width(m.viewState.width).Render(bottomViews)
 }

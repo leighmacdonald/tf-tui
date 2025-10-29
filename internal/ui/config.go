@@ -196,7 +196,7 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// go back to main view
 			if m.viewState.page == pageConfig {
 				m.viewState.page = pageMain
-				cmds = append(cmds, setViewStateStruct(m.viewState)) //nolint:makezero
+				cmds = append(cmds, setViewState(m.viewState)) //nolint:makezero
 			}
 		case key.Matches(msg, defaultKeyMap.up):
 			if m.focusIndex > 0 && m.focusIndex <= fieldSave {
@@ -237,7 +237,7 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(
 					setConfig(cfg),
 					setStatusMessage("Saved config", false),
-					setViewStateStruct(m.viewState))
+					setViewState(m.viewState))
 			}
 		}
 	}

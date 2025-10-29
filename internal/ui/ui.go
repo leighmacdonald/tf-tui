@@ -7,7 +7,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/leighmacdonald/tf-tui/internal/config"
-	"github.com/leighmacdonald/tf-tui/internal/tf"
 	zone "github.com/lrstanley/bubblezone"
 )
 
@@ -24,30 +23,6 @@ const (
 	pageConfig
 	pageHelp
 )
-
-type Snapshot struct {
-	HostPort string
-	Server   Server
-	Status   tf.Status
-	// TODO only send these once
-	PluginsSM   []tf.GamePlugin
-	PluginsMeta []tf.GamePlugin
-	CVars       tf.CVarList
-}
-
-func (s Snapshot) AvgPing() float64 {
-	if len(s.Status.Players) == 0 {
-		return 0
-	}
-
-	var pings float64
-	for _, player := range s.Status.Players {
-		pings += float64(player.Ping)
-	}
-
-	return pings / float64(len(s.Status.Players))
-
-}
 
 type UI struct {
 	program *tea.Program
@@ -72,7 +47,7 @@ func New(ctx context.Context, config config.Config, doSetup bool, buildVersion s
 			tea.WithAltScreen(),
 			tea.WithMouseAllMotion(),
 			tea.WithContext(ctx),
-			tea.WithFPS(120)),
+			tea.WithFPS(30)),
 	}
 }
 

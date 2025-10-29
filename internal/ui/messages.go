@@ -132,10 +132,6 @@ type viewState struct {
 	width     int
 }
 
-func setViewState(section section, page page, keyZone keyZone) tea.Cmd {
-	return func() tea.Msg { return viewState{section: section, page: page, keyZone: keyZone} }
-}
-
-func setViewStateStruct(state viewState) tea.Cmd {
+func setViewState(state viewState) tea.Cmd {
 	return func() tea.Msg { return state }
 }

@@ -111,13 +111,14 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 		vs := m.viewState
 		vs.height = msg.Height
 		vs.width = msg.Width
-		upper := (msg.Height - m.headerHeight - m.footerHeight) / 2
-		lower := upper
-		if upper%2 != 0 {
-			lower -= 1
+		vs.upperSize = (msg.Height - m.headerHeight - m.footerHeight) / 2
+		vs.lowerSize = vs.upperSize
+		if vs.upperSize%2 != 0 {
+			vs.lowerSize -= 1
 		}
+		m.viewState = vs
 
-		return m, setViewStateStruct(vs)
+		return m, setViewState(vs)
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, defaultKeyMap.quit):

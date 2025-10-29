@@ -34,13 +34,11 @@ func newTableBansModel() tableBansModel {
 }
 
 type tableBansModel struct {
-	table                 *table.Table
-	player                Player
-	width                 int
-	height                int
-	ready                 bool
-	contentViewPortHeight int
-	viewport              viewport.Model
+	table     *table.Table
+	player    Player
+	ready     bool
+	viewport  viewport.Model
+	viewState viewState
 }
 
 func (m tableBansModel) Init() tea.Cmd {
@@ -50,14 +48,11 @@ func (m tableBansModel) Init() tea.Cmd {
 func (m tableBansModel) Update(msg tea.Msg) (tableBansModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case viewState:
-		m.width = msg.width
-		m.height = msg.height
+		m.viewState = msg
 		if !m.ready {
 			m.viewport = viewport.New(msg.width, msg.lowerSize-2)
 			m.ready = true
-			m.contentViewPortHeight = msg.lowerSize
 		} else {
-			m.contentViewPortHeight = msg.lowerSize
 			m.viewport.Height = msg.lowerSize - 2
 		}
 	case selectedPlayerMsg:
@@ -93,7 +88,7 @@ func (m tableBansModel) Render(height int) string {
 	m.viewport.Height = height - 2
 	var content string
 	if len(m.player.Bans) == 0 {
-		content = styles.InfoMessage.Width(m.width).Render("No bans found " + styles.IconNoBans)
+		content = styles.InfoMessage.Width(m.viewState.width).Render("No bans found " + styles.IconNoBans)
 	} else {
 		content = m.table.StyleFunc(func(row, col int) lipgloss.Style {
 			var width int
@@ -105,7 +100,7 @@ func (m tableBansModel) Render(height int) string {
 			case colPerm:
 				width = colPermSize
 			case colReason:
-				width = m.width - colSiteSize - colDateSize - colPermSize - 2
+				width = m.viewState.width - colSiteSize - colDateSize - colPermSize - 2
 			}
 			switch {
 			case row == table.HeaderRow:
@@ -120,5 +115,5 @@ func (m tableBansModel) Render(height int) string {
 
 	m.viewport.SetContent(content)
 
-	return model.Container("Bans", m.width, height, m.viewport.View(), false)
+	return model.Container("Bans", m.viewState.width, height, m.viewport.View(), false)
 }

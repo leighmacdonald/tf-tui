@@ -92,7 +92,7 @@ func (m tabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				vs := m.viewState
 				vs.section = item.tab
 
-				return m, setViewStateStruct(vs)
+				return m, setViewState(vs)
 			}
 		}
 
@@ -131,7 +131,7 @@ func (m tabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if changed {
-		return m, setViewStateStruct(m.viewState)
+		return m, setViewState(m.viewState)
 	}
 
 	return m, nil

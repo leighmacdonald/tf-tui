@@ -26,12 +26,10 @@ type detailPanelModel struct {
 	links                 []config.UserLink
 	players               Players
 	player                Player
-	width                 int
-	height                int
 	contentViewPortHeight int
 	ready                 bool
 	viewport              viewport.Model
-	keyZone               keyZone
+	viewState             viewState
 }
 
 func (m detailPanelModel) Init() tea.Cmd {
@@ -45,8 +43,7 @@ func (m detailPanelModel) Update(msg tea.Msg) (detailPanelModel, tea.Cmd) {
 	case Snapshot:
 		m.players = msg.Server.Players
 	case viewState:
-		m.width = msg.width
-		m.height = msg.height
+		m.viewState = msg
 		if !m.ready {
 			m.viewport = viewport.New(msg.width, msg.lowerSize)
 			m.ready = true
@@ -147,5 +144,5 @@ func (m detailPanelModel) Render(height int) string {
 
 	m.viewport.Height = height - 2
 
-	return model.Container("Player Overview", m.width, height, m.viewport.View(), m.keyZone == playerOverview)
+	return model.Container("Player Overview", m.viewState.width, height, m.viewport.View(), m.viewState.keyZone == playerOverview)
 }

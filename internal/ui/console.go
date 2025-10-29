@@ -69,15 +69,13 @@ type consoleModel struct {
 	rowsRendered   map[string]string
 	rowsCount      map[string]int
 	cvarList       map[string]tf.CVarList
-	width          int
 	viewPort       viewport.Model
 	focused        bool
 	filterNoisy    bool
 	selectedServer Snapshot
 	input          textinput.Model
-	inputActive    bool
 	inputZoneID    string
-	keyZone        keyZone
+	viewState      viewState
 }
 
 func newConsoleModel() *consoleModel {
@@ -107,7 +105,7 @@ func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
 
 	m.viewPort, cmds[0] = m.viewPort.Update(msg)
 
-	if m.inputActive {
+	if m.viewState.keyZone == consoleInput {
 		m.input, cmds[1] = m.input.Update(msg)
 		m.input.SetValue("")
 	}
@@ -123,27 +121,20 @@ func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
 			}
 			cmds = append(cmds, sendRCONCommand(m.selectedServer.HostPort, cmd))
 		}
-	case section:
-		if msg == tabConsole {
-			m.inputActive = true
-			if m.inputActive && !m.input.Focused() {
+	case viewState:
+		m.viewState = msg
+		m.viewPort.Width = msg.width
+		m.input.Width = msg.width - 8
+		if msg.section == tabConsole {
+			if m.viewState.keyZone == consoleInput && !m.input.Focused() {
 				cmds = append(cmds, m.input.Focus())
 			}
-		}
-	case keyZone:
-		m.keyZone = msg
-		if !m.input.Focused() {
-			cmds = append(cmds, m.input.Focus())
 		}
 	case selectServerSnapshotMsg:
 		m.selectedServer = msg.server
 		if cvars, ok := m.cvarList[msg.server.HostPort]; ok {
 			m.input.SetSuggestions(cvars.Filter("").Names())
 		}
-	case viewState:
-		m.width = msg.width
-		m.viewPort.Width = msg.width
-		m.input.Width = msg.width - 8
 	case events.Event:
 		return m.onLogs(msg), tea.Batch(cmds...)
 	case serverCVarList:
@@ -184,7 +175,7 @@ func (m *consoleModel) onLogs(event events.Event) *consoleModel {
 	// This does not use JoinVertical currently as it takes more and more CPU as time goes on
 	// and the console log fills becoming unusable.
 	prev := m.rowsRendered[event.HostPort]
-	m.rowsRendered[event.HostPort] = prev + "\n" + newRow.Render(m.width-10)
+	m.rowsRendered[event.HostPort] = prev + "\n" + newRow.Render(m.viewState.width-10)
 	if _, ok := m.rowsCount[event.HostPort]; !ok {
 		m.rowsCount[event.HostPort] = 0
 	}
@@ -222,8 +213,8 @@ func (m *consoleModel) Render(height int) string {
 
 	return model.Container(
 		title,
-		m.width,
+		m.viewState.width,
 		height,
 		lipgloss.JoinVertical(lipgloss.Left, m.viewPort.View(), input),
-		m.keyZone == configInput)
+		m.viewState.keyZone == configInput)
 }

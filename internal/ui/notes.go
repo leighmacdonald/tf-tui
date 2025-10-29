@@ -8,10 +8,10 @@ import (
 )
 
 type notesModel struct {
-	viewPort viewport.Model
-	textarea textarea.Model
-	player   Player
-	width    int
+	viewPort  viewport.Model
+	textarea  textarea.Model
+	player    Player
+	viewState viewState
 }
 
 func newNotesModel() notesModel {
@@ -30,7 +30,7 @@ func (m notesModel) Init() tea.Cmd {
 func (m notesModel) Update(msg tea.Msg) (notesModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case viewState:
-		m.width = msg.width
+		m.viewState = msg
 		m.viewPort.Width = msg.width
 		m.viewPort.Height = msg.lowerSize
 	case selectedPlayerMsg:

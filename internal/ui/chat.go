@@ -62,11 +62,11 @@ func newChatModel() chatModel {
 type chatModel struct {
 	players         Players
 	viewport        viewport.Model
+	viewState       viewState
 	ready           bool
 	rows            map[string][]ChatRow
 	rowsRendered    map[string]string
 	selectedsServer string
-	width           int
 	inputOpen       bool
 	chatType        ChatType
 	incoming        chan events.Event
@@ -95,7 +95,7 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 	case selectServerSnapshotMsg:
 		m.selectedsServer = msg.server.HostPort
 	case viewState:
-		m.width = msg.width
+		m.viewState = msg
 		if !m.ready {
 			m.viewport = viewport.New(msg.width, msg.lowerSize)
 			m.ready = true
@@ -151,5 +151,5 @@ func (m chatModel) View(height int) string {
 	m.viewport.Height = height - 2
 	m.viewport.SetContent(m.rowsRendered[m.selectedsServer])
 
-	return model.Container("Chat Logs", m.width, height, m.viewport.View(), false)
+	return model.Container("Chat Logs", m.viewState.width, height, m.viewport.View(), false)
 }

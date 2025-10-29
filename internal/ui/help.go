@@ -41,7 +41,7 @@ func (m helpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.viewState.page == pageHelp {
 				m.viewState.page = pageMain
 
-				return m, setViewStateStruct(m.viewState)
+				return m, setViewState(m.viewState)
 			}
 		}
 	case page:
