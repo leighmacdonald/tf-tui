@@ -29,7 +29,7 @@ func (m notesModel) Init() tea.Cmd {
 
 func (m notesModel) Update(msg tea.Msg) (notesModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case viewPortSizeMsg:
+	case viewState:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
 		m.viewPort.Height = msg.lowerSize

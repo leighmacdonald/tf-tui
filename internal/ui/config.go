@@ -143,9 +143,7 @@ type configModel struct {
 	fields      []*validatingTextInputModel
 	focusIndex  configIdx
 	config      config.Config
-	activeView  contentView
-	width       int
-	height      int
+	viewState   viewState
 	loader      ConfigWriter
 	inputActive bool
 }
@@ -168,7 +166,6 @@ func newConfigModal(config config.Config, loader ConfigWriter) tea.Model {
 			newValidatingTextInputModel("Path to console.log", config.ConsoleLogPath, logPath, pathValidator{}),
 			newValidatingTextInputModel("TF-API Base URL", config.APIBaseURL, "", urlValidator{}),
 		},
-		activeView: viewConfig,
 		focusIndex: fieldSteamID,
 		loader:     loader,
 	}
@@ -188,26 +185,18 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.fields[fieldTFAPIBaseURL], cmds[2] = m.fields[fieldTFAPIBaseURL].Update(msg)
 
 	switch msg := msg.(type) {
-	case keyZone:
-		m.inputActive = msg == configInput
-	case contentView:
-		m.activeView = msg
-		if m.activeView == viewConfig {
-			cmds = append(cmds, m.fields[fieldSteamID].focus()) //nolint:makezero
-		}
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
+	case viewState:
+		m.viewState = msg
 	case tea.KeyMsg:
-		if m.activeView != viewConfig {
+		if m.viewState.page != pageConfig {
 			break
 		}
 		switch {
 		case key.Matches(msg, defaultKeyMap.back):
 			// go back to main view
-			if m.activeView == viewConfig {
-				m.activeView = viewMain
-				cmds = append(cmds, setContentView(viewMain)) //nolint:makezero
+			if m.viewState.page == pageConfig {
+				m.viewState.page = pageMain
+				cmds = append(cmds, setViewStateStruct(m.viewState)) //nolint:makezero
 			}
 		case key.Matches(msg, defaultKeyMap.up):
 			if m.focusIndex > 0 && m.focusIndex <= fieldSave {
@@ -243,10 +232,12 @@ func (m *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				m.config = cfg
 
+				m.viewState.page = pageMain
+
 				return m, tea.Batch(
 					setConfig(cfg),
 					setStatusMessage("Saved config", false),
-					setContentView(viewMain))
+					setViewStateStruct(m.viewState))
 			}
 		}
 	}
@@ -289,6 +280,6 @@ func (m *configModel) View() string {
 		fields = append(fields, styles.BlurredSubmitButton)
 	}
 
-	return lipgloss.NewStyle().Width(m.width).Align(lipgloss.Left).
+	return lipgloss.NewStyle().Width(m.viewState.width).Align(lipgloss.Left).
 		Render(lipgloss.JoinVertical(lipgloss.Top, fields...))
 }

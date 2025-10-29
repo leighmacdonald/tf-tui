@@ -44,7 +44,7 @@ func (m detailPanelModel) Update(msg tea.Msg) (detailPanelModel, tea.Cmd) {
 		m.links = msg.Links
 	case Snapshot:
 		m.players = msg.Server.Players
-	case viewPortSizeMsg:
+	case viewState:
 		m.width = msg.width
 		m.height = msg.height
 		if !m.ready {

@@ -41,10 +41,9 @@ func newTableBDModel() tableBDModel {
 }
 
 type tableBDModel struct {
-	table   *table.Table
-	matched []MatchedBDPlayer
-	width   int
-	height  int
+	table     *table.Table
+	matched   []MatchedBDPlayer
+	viewState viewState
 }
 
 func (m tableBDModel) Init() tea.Cmd {
@@ -53,9 +52,8 @@ func (m tableBDModel) Init() tea.Cmd {
 
 func (m tableBDModel) Update(msg tea.Msg) (tableBDModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case viewPortSizeMsg:
-		m.width = msg.width
-		m.height = msg.lowerSize
+	case viewState:
+		m.viewState = msg
 	case selectedPlayerMsg:
 		var rows [][]string
 		// FIXME
@@ -92,7 +90,7 @@ func (m tableBDModel) Render(height int) string {
 			case colBDAttributes:
 				width = int(colBDAttributesSize)
 			case colBDProof:
-				width = m.width - int(colBDListNameSize) - int(colBDLastSeenSize) - int(colBDAttributesSize) - int(colBDLastNameSize) - 2
+				width = m.viewState.width - int(colBDListNameSize) - int(colBDLastSeenSize) - int(colBDAttributesSize) - int(colBDLastNameSize) - 2
 			}
 			switch {
 			case row == table.HeaderRow:
@@ -104,5 +102,5 @@ func (m tableBDModel) Render(height int) string {
 			}
 		}).Render()
 
-	return model.Container("Bot Detector", m.width, height, renderedTable, false)
+	return model.Container("Bot Detector", m.viewState.width, height, renderedTable, false)
 }

@@ -94,7 +94,7 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case selectServerSnapshotMsg:
 		m.selectedsServer = msg.server.HostPort
-	case viewPortSizeMsg:
+	case viewState:
 		m.width = msg.width
 		if !m.ready {
 			m.viewport = viewport.New(msg.width, msg.lowerSize)

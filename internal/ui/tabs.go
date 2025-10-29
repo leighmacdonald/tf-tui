@@ -8,10 +8,10 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 )
 
-type tabView int
+type section int
 
 const (
-	tabServers tabView = iota
+	tabServers section = iota
 	tabPlayers
 	tabBans
 	tabBD
@@ -22,7 +22,7 @@ const (
 
 type tabLabel struct {
 	label  string
-	tab    tabView
+	tab    section
 	zoneID string
 }
 
@@ -65,15 +65,14 @@ func newTabsModel() tea.Model {
 				zoneID: zone.NewPrefix(),
 			},
 		},
-		selectedTab: tabServers,
+		viewState: viewState{section: tabServers},
 	}
 }
 
 type tabsModel struct {
-	tabs        []tabLabel
-	selectedTab tabView
-	width       int
-	id          string
+	tabs      []tabLabel
+	viewState viewState
+	id        string
 }
 
 func (m tabsModel) Init() tea.Cmd {
@@ -90,66 +89,67 @@ func (m tabsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for _, item := range m.tabs {
 			// Check each item to see if it's in bounds.
 			if zone.Get(m.id + item.label).InBounds(msg) {
-				m.selectedTab = item.tab
+				vs := m.viewState
+				vs.section = item.tab
 
-				return m, setTab(m.selectedTab)
+				return m, setViewStateStruct(vs)
 			}
 		}
 
 		return m, nil
-	case viewPortSizeMsg:
-		m.width = msg.width
+	case viewState:
+		m.viewState = msg
 
 		return m, nil
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, defaultKeyMap.nextTab):
-			m.selectedTab++
-			if m.selectedTab > tabConsole {
-				m.selectedTab = tabServers
+			m.viewState.section++
+			if m.viewState.section > tabConsole {
+				m.viewState.section = tabServers
 			}
 			changed = true
 		case key.Matches(msg, defaultKeyMap.prevTab):
-			m.selectedTab--
-			if m.selectedTab < tabServers {
-				m.selectedTab = tabConsole
+			m.viewState.section--
+			if m.viewState.section < tabServers {
+				m.viewState.section = tabConsole
 			}
 			changed = true
 		case key.Matches(msg, defaultKeyMap.overview):
-			m.selectedTab = tabServers
+			m.viewState.section = tabServers
 			changed = true
 		case key.Matches(msg, defaultKeyMap.bans):
-			m.selectedTab = tabBans
+			m.viewState.section = tabBans
 			changed = true
 		case key.Matches(msg, defaultKeyMap.comp):
-			m.selectedTab = tabComp
+			m.viewState.section = tabComp
 			changed = true
 		case key.Matches(msg, defaultKeyMap.chat):
-			m.selectedTab = tabChat
+			m.viewState.section = tabChat
 			changed = true
 		}
 	}
 
 	if changed {
-		return m, setTab(m.selectedTab)
+		return m, setViewStateStruct(m.viewState)
 	}
 
 	return m, nil
 }
 
 func (m tabsModel) View() string {
-	if m.width == 0 {
+	if m.viewState.width == 0 {
 		return ""
 	}
 	var tabs []string
 
 	for _, tab := range m.tabs {
-		if tab.tab == m.selectedTab {
+		if tab.tab == m.viewState.section {
 			tabs = append(tabs, zone.Mark(m.id+tab.label, styles.TabsActive.Render(tab.label)))
 		} else {
 			tabs = append(tabs, zone.Mark(m.id+tab.label, styles.TabsInactive.Render(tab.label)))
 		}
 	}
 
-	return styles.WrapX(m.width, styles.TabContainer.Width(m.width).Render(lipgloss.JoinHorizontal(lipgloss.Top, tabs...)), "x")
+	return styles.WrapX(m.viewState.width, styles.TabContainer.Width(m.viewState.width).Render(lipgloss.JoinHorizontal(lipgloss.Top, tabs...)), "x")
 }

@@ -59,10 +59,9 @@ var defaultServerTableColumns = []serverTableCol{
 func newServerTableModel() *serverTableModel {
 	zoneID := zone.NewPrefix()
 	return &serverTableModel{
-		zoneID:  zoneID,
-		keyZone: serverTable,
-		table:   newUnstyledTable(),
-		data:    newTableServerData(zoneID, nil, defaultServerTableColumns...),
+		zoneID: zoneID,
+		table:  newUnstyledTable(),
+		data:   newTableServerData(zoneID, nil, defaultServerTableColumns...),
 	}
 }
 
@@ -71,9 +70,7 @@ type serverTableModel struct {
 	table          *table.Table
 	data           *serverTableData
 	selectedServer string
-	width          int
-	contentHeight  int
-	keyZone        keyZone
+	viewState      viewState
 }
 
 func (m *serverTableModel) Init() tea.Cmd {
@@ -82,11 +79,8 @@ func (m *serverTableModel) Init() tea.Cmd {
 
 func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case keyZone:
-		m.keyZone = msg
-	case viewPortSizeMsg:
-		m.width = msg.width
-		m.contentHeight = msg.upperSize
+	case viewState:
+		m.viewState = msg
 	case []Snapshot:
 		m.data = newTableServerData(m.zoneID, msg)
 		m.data.Sort(m.data.sortColumn, m.data.asc)
@@ -106,7 +100,7 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 	case selectServerSnapshotMsg:
 		m.selectedServer = msg.server.HostPort
 	case tea.KeyMsg:
-		if m.keyZone != serverTable {
+		if m.viewState.keyZone != serverTable {
 			break
 		}
 		switch {
@@ -187,8 +181,8 @@ func (m *serverTableModel) View() string {
 	currentIdx := m.currentRowIndex()
 
 	content := m.table.
-		Width(m.width - 4).
-		Height(m.contentHeight).
+		Width(m.viewState.width - 4).
+		Height(m.viewState.lowerSize).
 		Headers(m.data.Headers()...).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			mappedCol := m.data.enabledColumns[col]
@@ -231,7 +225,7 @@ func (m *serverTableModel) View() string {
 		}).
 		String()
 
-	return model.Container("Servers", m.width-4, m.contentHeight, content, m.keyZone == serverTable)
+	return model.Container("Servers", m.viewState.width-4, m.viewState.lowerSize, content, m.viewState.keyZone == serverTable)
 }
 
 func (m *serverTableModel) currentRowIndex() int {

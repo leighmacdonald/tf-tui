@@ -65,7 +65,7 @@ func (m serverDetailPanelModel) Update(msg tea.Msg) (serverDetailPanelModel, tea
 		m.listMeta.SetItems(mmPlugins)
 		m.listCvar.SetItems(cvars)
 		m.snapshot = msg.server
-	case viewPortSizeMsg:
+	case viewState:
 		m.width = msg.width
 		if !m.ready {
 			m.viewportDetail = viewport.New(msg.width/2, msg.lowerSize)

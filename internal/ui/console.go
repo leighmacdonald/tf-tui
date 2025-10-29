@@ -77,6 +77,7 @@ type consoleModel struct {
 	input          textinput.Model
 	inputActive    bool
 	inputZoneID    string
+	keyZone        keyZone
 }
 
 func newConsoleModel() *consoleModel {
@@ -122,7 +123,7 @@ func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
 			}
 			cmds = append(cmds, sendRCONCommand(m.selectedServer.HostPort, cmd))
 		}
-	case tabView:
+	case section:
 		if msg == tabConsole {
 			m.inputActive = true
 			if m.inputActive && !m.input.Focused() {
@@ -130,8 +131,8 @@ func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
 			}
 		}
 	case keyZone:
-		m.inputActive = msg == consoleInput
-		if m.inputActive && !m.input.Focused() {
+		m.keyZone = msg
+		if !m.input.Focused() {
 			cmds = append(cmds, m.input.Focus())
 		}
 	case selectServerSnapshotMsg:
@@ -139,7 +140,7 @@ func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
 		if cvars, ok := m.cvarList[msg.server.HostPort]; ok {
 			m.input.SetSuggestions(cvars.Filter("").Names())
 		}
-	case viewPortSizeMsg:
+	case viewState:
 		m.width = msg.width
 		m.viewPort.Width = msg.width
 		m.input.Width = msg.width - 8
@@ -219,5 +220,10 @@ func (m *consoleModel) Render(height int) string {
 
 	title := fmt.Sprintf("Console Log: %d Messages", m.rowsCount[m.selectedServer.HostPort])
 
-	return model.Container(title, m.width, height, lipgloss.JoinVertical(lipgloss.Left, m.viewPort.View(), input), false)
+	return model.Container(
+		title,
+		m.width,
+		height,
+		lipgloss.JoinVertical(lipgloss.Left, m.viewPort.View(), input),
+		m.keyZone == configInput)
 }

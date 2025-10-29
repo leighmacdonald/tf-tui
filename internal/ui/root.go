@@ -16,12 +16,8 @@ import (
 
 // rootModel is the top level model for the ui side of the app.
 type rootModel struct {
-	currentZone            keyZone
-	currentView            contentView
-	previousView           contentView
-	height                 int
-	width                  int
-	activeTab              tabView
+	viewState              viewState
+	viewStatePreviousView  viewState
 	consoleModel           *consoleModel
 	detailPanelModel       detailPanelModel
 	serverDetailPanelModel serverDetailPanelModel
@@ -44,11 +40,17 @@ type rootModel struct {
 }
 
 func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, buildDate string, buildCommit string, loader ConfigWriter, cachePath string, parentChan chan any) *rootModel {
+	var view viewState
+	if userConfig.ServerModeEnabled {
+		view = viewState{page: pageMain, section: tabServers, keyZone: serverTable}
+	} else {
+		view = viewState{page: pageMain, section: tabPlayers, keyZone: playerTableRED}
+	}
+
 	app := &rootModel{
 		parentContextChan:      parentChan,
-		currentView:            viewMain,
-		previousView:           viewMain,
-		activeTab:              tabServers,
+		viewState:              view,
+		viewStatePreviousView:  view,
 		helpModel:              newHelpModel(buildVersion, buildDate, buildCommit, loader.Path(), cachePath),
 		redTableModel:          newPlayerTableModel(tf.RED, userConfig.SteamID, userConfig.ServerModeEnabled),
 		bluTableModel:          newPlayerTableModel(tf.BLU, userConfig.SteamID, userConfig.ServerModeEnabled),
@@ -67,11 +69,10 @@ func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, b
 		serverMode:             userConfig.ServerModeEnabled,
 		headerHeight:           1,
 		footerHeight:           1,
-		currentZone:            serverTable,
 	}
 
 	if doSetup {
-		app.currentView = viewConfig
+		app.viewState.page = pageConfig
 	}
 
 	return app
@@ -107,62 +108,48 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := inMsg.(type) {
 	case tea.WindowSizeMsg:
-		m.height = msg.Height
-		m.width = msg.Width
-		upper := (m.height - m.headerHeight - m.footerHeight) / 2
+		vs := m.viewState
+		vs.height = msg.Height
+		vs.width = msg.Width
+		upper := (msg.Height - m.headerHeight - m.footerHeight) / 2
 		lower := upper
 		if upper%2 != 0 {
 			lower -= 1
 		}
 
-		return m, setViewPortSizeMsg(upper, lower, m.height, m.width)
-	case tabView:
-		m.activeTab = msg
+		return m, setViewStateStruct(vs)
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, defaultKeyMap.quit):
-			if m.currentView != viewMain {
+			if m.viewState.page != pageMain {
 				break
 			}
 
 			return m, tea.Quit
 		case key.Matches(msg, defaultKeyMap.help):
-			if m.currentView == viewHelp {
-				m.currentView = m.previousView
+			if m.viewState.page == pageHelp {
+				m.viewState.page = m.viewStatePreviousView.page
 			} else {
-				m.previousView = m.currentView
-				m.currentView = viewHelp
+				m.viewStatePreviousView.page = m.viewState.page
+				m.viewState.page = pageHelp
 			}
 		case key.Matches(msg, defaultKeyMap.config):
-			if m.currentView == viewConfig {
-				m.currentView = m.previousView
+			if m.viewState.page == pageConfig {
+				m.viewState.page = m.viewStatePreviousView.page
 			} else {
-				m.previousView = m.currentView
-				m.currentView = viewConfig
+				m.viewStatePreviousView.page = m.viewState.page
+				m.viewState.page = pageConfig
 			}
 		case key.Matches(msg, defaultKeyMap.nextTab):
-			return m, m.changeZone(right)
-
+			return m, setNextZone(m.viewState.section, m.viewState.keyZone, right)
 		case key.Matches(msg, defaultKeyMap.prevTab):
-			return m, m.changeZone(left)
+			return m, setNextZone(m.viewState.section, m.viewState.keyZone, left)
 		}
-	case contentView:
-		m.currentView = msg
-	case keyZone:
-		m.currentZone = msg
+	case viewState:
+		m.viewState = msg
 	}
 
 	return m.propagate(inMsg)
-}
-
-func (m rootModel) changeZone(dir direction) tea.Cmd {
-	switch m.activeTab {
-	case tabServers:
-		return setKeyZone(serverZones.next(m.currentZone, dir))
-	case tabPlayers:
-	}
-
-	return nil
 }
 
 func (m rootModel) View() string {
@@ -174,26 +161,26 @@ func (m rootModel) View() string {
 
 	// Early so we can use their size info
 	footer = styles.FooterContainerStyle.
-		Width(m.width).
+		Width(m.viewState.width).
 		Render(lipgloss.JoinVertical(lipgloss.Top, m.statusModel.View()))
 	header = m.tabsModel.View()
-	hdr := styles.HeaderContainerStyle.Width(m.width).Render(header)
+	hdr := styles.HeaderContainerStyle.Width(m.viewState.width).Render(header)
 	_, hdrHeight := lipgloss.Size(hdr)
 	// m.hdrHeight = hdrHeight
 
-	ftr := styles.FooterContainerStyle.Width(m.width).Render(footer)
+	ftr := styles.FooterContainerStyle.Width(m.viewState.width).Render(footer)
 	_, ftrHeight := lipgloss.Size(ftr)
 	// m.ftrHeight = ftrHeight
 
-	contentViewPortHeight := m.height - hdrHeight - ftrHeight
-	switch m.currentView {
-	case viewConfig:
+	contentViewPortHeight := m.viewState.height - hdrHeight - ftrHeight
+	switch m.viewState.page {
+	case pageConfig:
 		content = m.configModelModel.View()
-	case viewHelp:
+	case pageHelp:
 		content = m.helpModel.View()
-	case viewMain:
+	case pageMain:
 		var upper string
-		if m.serverMode && m.activeTab == tabServers {
+		if m.serverMode && m.viewState.section == tabServers {
 			upper = m.serversTableModel.View()
 		} else {
 			upper = lipgloss.JoinHorizontal(lipgloss.Top, m.redTableModel.View(), m.bluTableModel.View())
@@ -202,7 +189,7 @@ func (m rootModel) View() string {
 		// topContentHeight := min(m.height-lipgloss.Height(upper)-5, 20)
 		lowerPanelViewportHeight := contentViewPortHeight - lipgloss.Height(upper) - 2
 		var lower string
-		switch m.activeTab {
+		switch m.viewState.section {
 		case tabServers:
 			lower = m.serverDetailPanelModel.Render(lowerPanelViewportHeight)
 		case tabPlayers:
@@ -228,7 +215,7 @@ func (m rootModel) View() string {
 }
 
 func (m rootModel) isInitialized() bool {
-	return m.height != 0 && m.width != 0
+	return m.viewState.height != 0 && m.viewState.width != 0
 }
 
 func (m rootModel) propagate(msg tea.Msg, _ ...tea.Cmd) (tea.Model, tea.Cmd) {

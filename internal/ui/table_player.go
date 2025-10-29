@@ -67,10 +67,8 @@ type tablePlayerModel struct {
 	selectedSteamID steamid.SteamID
 	selectedServer  string
 	serverData      map[string]*tablePlayerData
-	height          int
-	width           int
 	selfSteamID     steamid.SteamID
-	keyZone         keyZone
+	viewState       viewState
 }
 
 func (m *tablePlayerModel) Init() tea.Cmd {
@@ -79,15 +77,12 @@ func (m *tablePlayerModel) Init() tea.Cmd {
 
 func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case keyZone:
-		m.keyZone = playerTableRED
 	case config.Config:
 		m.selfSteamID = msg.SteamID
 
 		return m, nil
-	case viewPortSizeMsg:
-		m.width = msg.width
-		m.height = msg.height
+	case viewState:
+		m.viewState = msg
 		// When the screen with is a odd number, increase the size of the right player table
 		// to ensure that it fills the screen fully.
 		half := msg.width / 2
@@ -100,7 +95,9 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case selectServerSnapshotMsg:
 		m.selectedServer = msg.server.HostPort
-
+		if _, ok := m.serverData[msg.server.HostPort]; !ok {
+			m.serverData[msg.server.HostPort] = newTablePlayerData(m.id, m.serverMode, nil, m.team)
+		}
 	case sortPlayersMsg:
 		if data, ok := m.serverData[m.selectedServer]; ok {
 			data.Sort(msg.sortColumn, msg.asc)
@@ -199,7 +196,7 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *tablePlayerModel) isActiveZone() bool {
-	return (m.team == tf.RED && m.keyZone == playerTableRED) || (m.team == tf.BLU && m.keyZone == playerTableBLU)
+	return (m.team == tf.RED && m.viewState.keyZone == playerTableRED) || (m.team == tf.BLU && m.viewState.keyZone == playerTableBLU)
 }
 
 func (m *tablePlayerModel) moveSelection(direction direction) tea.Cmd {
@@ -305,19 +302,9 @@ func (m *tablePlayerModel) selectClosestPlayer() tea.Cmd {
 }
 
 func (m *tablePlayerModel) updatePlayers(snapshot Snapshot) (tea.Model, tea.Cmd) {
-	var players Players
-	for _, player := range snapshot.Server.Players {
-		if m.team == tf.RED && int(player.SteamID.AccountID)%2 == 0 {
-			players = append(players, player)
-		} else if m.team == tf.BLU && int(player.SteamID.AccountID)%2 != 0 {
-			players = append(players, player)
-		}
-	}
-
 	data := newTablePlayerData(m.id, m.serverMode, snapshot.Server.Players, m.team)
 	data.Sort(data.sortColumn, data.asc)
 	m.table.Data(data)
-
 	m.serverData[snapshot.HostPort] = data
 
 	return m, m.selectClosestPlayer()
@@ -326,7 +313,7 @@ func (m *tablePlayerModel) updatePlayers(snapshot Snapshot) (tea.Model, tea.Cmd)
 func (m *tablePlayerModel) View() string {
 	data, ok := m.serverData[m.selectedServer]
 	if !ok {
-		return ""
+		data = newTablePlayerData(m.id, m.serverMode, nil, m.team)
 	}
 	selectedRowIdx := m.currentRowIndex()
 
@@ -335,7 +322,7 @@ func (m *tablePlayerModel) View() string {
 		title = "BLU"
 	}
 
-	return model.Container(title, calcPct(m.width, 50), m.height/2, m.table.
+	return model.Container(title, calcPct(m.viewState.width, 50), m.viewState.height/2, m.table.
 		Headers(data.Headers()...).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			if len(data.players) == 0 {
@@ -409,5 +396,5 @@ func (m *tablePlayerModel) View() string {
 				return styles.PlayerTableRowOdd.Width(int(width))
 			}
 		}).
-		String(), false)
+		String(), m.isActiveZone())
 }

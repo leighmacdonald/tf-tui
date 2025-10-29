@@ -20,7 +20,7 @@ func newHelpModel(buildVersion, buildDate, buildCommit string, configPath string
 
 type helpModel struct {
 	helpView     help.Model
-	view         contentView
+	viewState    viewState
 	configPath   string
 	cachePath    string
 	buildVersion string
@@ -38,14 +38,14 @@ func (m helpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch { //nolint:gocritic
 		case key.Matches(msg, defaultKeyMap.back):
 			// go back to main view
-			if m.view == viewHelp {
-				m.view = viewMain
+			if m.viewState.page == pageHelp {
+				m.viewState.page = pageMain
 
-				return m, setContentView(viewMain)
+				return m, setViewStateStruct(m.viewState)
 			}
 		}
-	case contentView:
-		m.view = msg
+	case page:
+		m.viewState.page = msg
 	}
 
 	return m, nil

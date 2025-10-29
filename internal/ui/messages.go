@@ -8,23 +8,23 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 )
 
-type viewPortSizeMsg struct {
-	upperSize int
-	lowerSize int
-	height    int
-	width     int
-}
+// type viewPortSizeMsg struct {
+// 	upperSize int
+// 	lowerSize int
+// 	height    int
+// 	width     int
+// }
 
-func setViewPortSizeMsg(upper int, lower int, height int, width int) func() tea.Msg {
-	return func() tea.Msg {
-		return viewPortSizeMsg{
-			upperSize: upper,
-			lowerSize: lower,
-			height:    height,
-			width:     width,
-		}
-	}
-}
+// func setViewPortSizeMsg(upper int, lower int, height int, width int) func() tea.Msg {
+// 	return func() tea.Msg {
+// 		return viewPortSizeMsg{
+// 			upperSize: upper,
+// 			lowerSize: lower,
+// 			height:    height,
+// 			width:     width,
+// 		}
+// 	}
+// }
 
 type sortPlayersMsg struct {
 	sortColumn playerTableCol
@@ -69,15 +69,21 @@ func setStatusMessage(msg string, err bool) tea.Cmd {
 
 // SetViewMsg will Switch the currently displayed center content view.
 
-func setContentView(view contentView) tea.Cmd {
-	return func() tea.Msg {
-		return view
-	}
-}
+// func setContentView(view page) tea.Cmd {
+// 	return func() tea.Msg {
+// 		return view
+// 	}
+// }
 
-func setTab(tab tabView) tea.Cmd {
-	return func() tea.Msg { return tab }
-}
+// func setTab(tab section) tea.Cmd {
+// 	var zone keyZone
+// 	if tab == tabServers {
+// 		zone = serverTable
+// 	} else {
+// 		zone = playerTableRED
+// 	}
+// 	return tea.Batch(func() tea.Msg { return tab }, func() tea.Msg { return zone })
+// }
 
 type chatMsg struct {
 	Message  string
@@ -113,4 +119,23 @@ type RCONCommand struct {
 
 func sendRCONCommand(hostPort string, command string) tea.Cmd {
 	return func() tea.Msg { return RCONCommand{HostPort: hostPort, Command: command} }
+}
+
+type viewState struct {
+	section section
+	page    page
+	keyZone keyZone
+
+	upperSize int
+	lowerSize int
+	height    int
+	width     int
+}
+
+func setViewState(section section, page page, keyZone keyZone) tea.Cmd {
+	return func() tea.Msg { return viewState{section: section, page: page, keyZone: keyZone} }
+}
+
+func setViewStateStruct(state viewState) tea.Cmd {
+	return func() tea.Msg { return state }
 }

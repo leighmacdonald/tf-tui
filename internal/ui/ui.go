@@ -17,12 +17,12 @@ const (
 
 var ErrUIExit = errors.New("ui error returned")
 
-type contentView int
+type page int
 
 const (
-	viewMain contentView = iota
-	viewConfig
-	viewHelp
+	pageMain page = iota
+	pageConfig
+	pageHelp
 )
 
 type Snapshot struct {

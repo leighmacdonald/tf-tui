@@ -49,7 +49,7 @@ func (m tableBansModel) Init() tea.Cmd {
 
 func (m tableBansModel) Update(msg tea.Msg) (tableBansModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case viewPortSizeMsg:
+	case viewState:
 		m.width = msg.width
 		m.height = msg.height
 		if !m.ready {

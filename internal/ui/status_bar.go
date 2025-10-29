@@ -11,7 +11,7 @@ import (
 )
 
 type statusBarModel struct {
-	width       int
+	viewState   viewState
 	hostname    string
 	mapName     string
 	statusMsg   string
@@ -19,7 +19,6 @@ type statusBarModel struct {
 	snapshot    Snapshot
 	version     string
 	serverMode  bool
-	zone        keyZone
 }
 
 func newStatusBarModel(version string, serverMode bool) *statusBarModel {
@@ -34,8 +33,6 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case selectServerSnapshotMsg:
 		m.snapshot = msg.server
-	case keyZone:
-		m.zone = msg
 	case statusMsg:
 		m.statusMsg = msg.Message
 		m.statusError = msg.Err
@@ -44,8 +41,8 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clearStatusMessageMsg:
 		m.statusError = false
 		m.statusMsg = ""
-	case viewPortSizeMsg:
-		m.width = msg.width
+	case viewState:
+		m.viewState = msg
 	case events.Event:
 		switch data := msg.Data.(type) {
 		case events.HostnameEvent:
@@ -79,7 +76,7 @@ func (m statusBarModel) View() string {
 			styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.snapshot.Server.Players.TeamCount(tf.BLU))))
 	}
 
-	return lipgloss.NewStyle().Width(m.width).Render(lipgloss.JoinHorizontal(lipgloss.Top, args...))
+	return lipgloss.NewStyle().Width(m.viewState.width).Render(lipgloss.JoinHorizontal(lipgloss.Top, args...))
 }
 
 func (m statusBarModel) status() string {

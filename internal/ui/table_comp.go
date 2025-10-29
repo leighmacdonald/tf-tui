@@ -38,12 +38,11 @@ const (
 )
 
 type tableCompModel struct {
-	player   Player
-	table    *table.Table
-	width    int
-	height   int
-	ready    bool
-	viewport viewport.Model
+	player    Player
+	table     *table.Table
+	viewState viewState
+	ready     bool
+	viewport  viewport.Model
 }
 
 func newTableCompModel() tableCompModel {
@@ -58,9 +57,8 @@ func (m tableCompModel) Init() tea.Cmd {
 
 func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case viewPortSizeMsg:
-		m.width = msg.width
-		m.height = msg.height
+	case viewState:
+		m.viewState = msg
 		m.table.Height(msg.lowerSize - 2)
 		if !m.ready {
 			m.viewport = viewport.New(msg.width, msg.lowerSize)
@@ -107,7 +105,7 @@ func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 		m.table.Rows(rows...)
 		var content string
 		if len(m.player.CompetitiveTeams) == 0 {
-			content = styles.InfoMessage.Width(m.width).Render("No league history found " + styles.IconNoComp)
+			content = styles.InfoMessage.Width(m.viewState.width).Render("No league history found " + styles.IconNoComp)
 		} else {
 			content = m.table.
 				StyleFunc(func(row int, col int) lipgloss.Style {
@@ -127,7 +125,7 @@ func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 						width = colDivisionSize
 					case colTeamName:
 						// consts are just an illusion of course :)
-						width = compTableSize(m.width - int(colLeagueSize) - int(colCompetitionSize) -
+						width = compTableSize(m.viewState.width - int(colLeagueSize) - int(colCompetitionSize) -
 							int(colJoinedSize) - int(colLeftSize) - int(colFormatSize) - int(colDivisionSize) - 4)
 					}
 					switch {
@@ -153,5 +151,5 @@ func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 func (m tableCompModel) Render(height int) string {
 	m.viewport.Height = height - 2
 
-	return model.Container("Competitive History", m.width, height, m.viewport.View(), false)
+	return model.Container("Competitive History", m.viewState.width, height, m.viewport.View(), false)
 }
