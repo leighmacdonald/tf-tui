@@ -15,6 +15,8 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
 	"github.com/leighmacdonald/tf-tui/internal/tf/rcon"
 	"github.com/leighmacdonald/tf-tui/internal/ui"
+	"github.com/leighmacdonald/tf-tui/internal/ui/command"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 )
 
 type UI interface {
@@ -84,7 +86,7 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 		select {
 		case req := <-app.parentCtx:
 			switch req := req.(type) {
-			case ui.RCONCommand:
+			case command.RCONCommand:
 				go app.onRCONCommand(ctx, req)
 			}
 		case conf := <-app.configUpdates:
@@ -97,7 +99,7 @@ func (app *App) Start(ctx context.Context, done <-chan any) {
 	}
 }
 
-func (app *App) onRCONCommand(ctx context.Context, cmd ui.RCONCommand) {
+func (app *App) onRCONCommand(ctx context.Context, cmd command.RCONCommand) {
 	for _, server := range app.config.Servers {
 		if cmd.HostPort != server.Address {
 			continue
@@ -161,22 +163,22 @@ func (app *App) updateUIState() {
 	}
 
 	snapshots := app.state.Snapshots()
-	uiSnaps := make([]ui.Snapshot, len(snapshots))
+	uiSnaps := make([]model.Snapshot, len(snapshots))
 	for idx, snap := range snapshots {
-		uiSnapsnot := ui.Snapshot{
+		uiSnapsnot := model.Snapshot{
 			PluginsSM:   snap.PluginsSM,
 			PluginsMeta: snap.PluginsMeta,
 			HostPort:    snap.HostPort,
 			Status:      snap.Status,
 			CVars:       snap.CVars,
-			Server: ui.Server{
+			Server: model.Server{
 				Hostname: snap.Status.ServerName,
 				Map:      snap.Status.Map,
 				Region:   snap.Region,
 				Tags:     snap.Status.Tags,
 			}}
 		for _, player := range snap.Players {
-			uiSnapsnot.Server.Players = append(uiSnapsnot.Server.Players, ui.Player{
+			uiSnapsnot.Server.Players = append(uiSnapsnot.Server.Players, model.Player{
 				SteamID:                  player.SteamID,
 				Name:                     player.Name,
 				Ping:                     player.Ping,
@@ -216,7 +218,7 @@ func (app *App) updateUIState() {
 	}
 }
 
-func (app *App) createUI(ctx context.Context, loader ui.ConfigWriter) UI {
+func (app *App) createUI(ctx context.Context, loader config.Writer) UI {
 	if app.ui == nil {
 		app.ui = ui.New(
 			ctx,

@@ -1,10 +1,12 @@
-package ui
+package component
 
 import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
+	"github.com/leighmacdonald/tf-tui/internal/ui/command"
+	"github.com/leighmacdonald/tf-tui/internal/ui/input"
 	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
@@ -56,32 +58,32 @@ var defaultServerTableColumns = []serverTableCol{
 	colServerConnects,
 }
 
-func newServerTableModel() *serverTableModel {
+func NewServerTableModel() *ServerTableModel {
 	zoneID := zone.NewPrefix()
-	return &serverTableModel{
+	return &ServerTableModel{
 		zoneID: zoneID,
-		table:  newUnstyledTable(),
+		table:  NewUnstyledTable(),
 		data:   newTableServerData(zoneID, nil, defaultServerTableColumns...),
 	}
 }
 
-type serverTableModel struct {
+type ServerTableModel struct {
 	zoneID         string
 	table          *table.Table
 	data           *serverTableData
 	selectedServer string
-	viewState      viewState
+	viewState      model.ViewState
 }
 
-func (m *serverTableModel) Init() tea.Cmd {
+func (m *ServerTableModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
+func (m *ServerTableModel) Update(msg tea.Msg) (*ServerTableModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case viewState:
+	case model.ViewState:
 		m.viewState = msg
-	case []Snapshot:
+	case []model.Snapshot:
 		m.data = newTableServerData(m.zoneID, msg)
 		m.data.Sort(m.data.sortColumn, m.data.asc)
 		m.table.Data(m.data)
@@ -92,22 +94,22 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 			}
 			for _, snaps := range m.data.servers {
 				if m.selectedServer == snaps.HostPort {
-					return m, setServer(snaps)
+					return m, command.SetServer(snaps)
 				}
 			}
 
 		}
-	case selectServerSnapshotMsg:
-		m.selectedServer = msg.server.HostPort
+	case command.SelectServerSnapshotMsg:
+		m.selectedServer = msg.Server.HostPort
 	case tea.KeyMsg:
-		if m.viewState.keyZone != serverTable {
+		if m.viewState.KeyZone != model.KZserverTable {
 			break
 		}
 		switch {
-		case key.Matches(msg, defaultKeyMap.up):
-			return m, m.selectRow(up)
-		case key.Matches(msg, defaultKeyMap.down):
-			return m, m.selectRow(down)
+		case key.Matches(msg, input.Default.Up):
+			return m, m.selectRow(input.Up)
+		case key.Matches(msg, input.Default.Down):
+			return m, m.selectRow(input.Down)
 		}
 	case tea.MouseMsg:
 		if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
@@ -116,7 +118,7 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 
 		for _, item := range m.data.servers {
 			if zone.Get(m.zoneID + item.HostPort).InBounds(msg) {
-				return m, tea.Batch(setServer(item), setKeyZone(serverTable))
+				return m, tea.Batch(command.SetServer(item), command.SetKeyZone(model.KZserverTable))
 			}
 		}
 
@@ -158,31 +160,31 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m *serverTableModel) selectRow(dir direction) tea.Cmd {
+func (m *ServerTableModel) selectRow(dir input.Direction) tea.Cmd {
 	currentIdx := m.currentRowIndex()
 
 	switch dir {
-	case up:
+	case input.Up:
 		if currentIdx > 0 {
 			currentIdx--
 		}
-		return setServer(m.data.servers[currentIdx])
-	case down:
+		return command.SetServer(m.data.servers[currentIdx])
+	case input.Down:
 		if currentIdx+1 <= len(m.data.servers) {
 			currentIdx++
 		}
-		return setServer(m.data.servers[currentIdx])
+		return command.SetServer(m.data.servers[currentIdx])
 	default:
 		return nil
 	}
 }
 
-func (m *serverTableModel) View() string {
+func (m *ServerTableModel) View() string {
 	currentIdx := m.currentRowIndex()
 
 	content := m.table.
-		Width(m.viewState.width - 4).
-		Height(m.viewState.lowerSize).
+		Width(m.viewState.Width - 4).
+		Height(m.viewState.Lower).
 		Headers(m.data.Headers()...).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			mappedCol := m.data.enabledColumns[col]
@@ -225,10 +227,10 @@ func (m *serverTableModel) View() string {
 		}).
 		String()
 
-	return model.Container("Servers", m.viewState.width-4, m.viewState.lowerSize, content, m.viewState.keyZone == serverTable)
+	return Container("Servers", m.viewState.Width-4, m.viewState.Lower, content, m.viewState.KeyZone == model.KZserverTable)
 }
 
-func (m *serverTableModel) currentRowIndex() int {
+func (m *ServerTableModel) currentRowIndex() int {
 	for rowIdx, server := range m.data.servers {
 		if server.HostPort == m.selectedServer {
 			return rowIdx

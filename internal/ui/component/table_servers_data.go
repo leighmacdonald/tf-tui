@@ -1,4 +1,4 @@
-package ui
+package component
 
 import (
 	"cmp"
@@ -7,12 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 	"golang.org/x/exp/slices"
 )
 
-func newTableServerData(parentZoneID string, data []Snapshot, cols ...serverTableCol) *serverTableData {
+func newTableServerData(parentZoneID string, data []model.Snapshot, cols ...serverTableCol) *serverTableData {
 	var enabledCols []serverTableCol
 	switch {
 	case len(cols) > 0:
@@ -32,7 +33,7 @@ func newTableServerData(parentZoneID string, data []Snapshot, cols ...serverTabl
 
 type serverTableData struct {
 	zoneID         string
-	servers        []Snapshot
+	servers        []model.Snapshot
 	enabledColumns []serverTableCol
 	sortColumn     serverTableCol
 	asc            bool
@@ -74,7 +75,7 @@ func (m *serverTableData) Sort(column serverTableCol, asc bool) {
 	m.sortColumn = column
 	m.asc = asc
 
-	slices.SortStableFunc(m.servers, func(a Snapshot, b Snapshot) int { //nolint:varnamelen
+	slices.SortStableFunc(m.servers, func(a model.Snapshot, b model.Snapshot) int { //nolint:varnamelen
 		switch m.sortColumn {
 		case colServerName:
 			return strings.Compare(strings.ToLower(a.Status.ServerName), strings.ToLower(b.Status.ServerName))

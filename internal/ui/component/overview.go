@@ -1,4 +1,4 @@
-package ui
+package component
 
 import (
 	"fmt"
@@ -10,49 +10,50 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dustin/go-humanize"
 	"github.com/leighmacdonald/tf-tui/internal/config"
+	"github.com/leighmacdonald/tf-tui/internal/ui/command"
 	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	"golang.org/x/exp/slices"
 )
 
-func newDetailPanelModel(links []config.UserLink) detailPanelModel {
-	return detailPanelModel{
+func NewDetailPanelModel(links []config.UserLink) DetailPanelModel {
+	return DetailPanelModel{
 		links:    links,
 		viewport: viewport.New(1, 1),
 	}
 }
 
-type detailPanelModel struct {
+type DetailPanelModel struct {
 	links                 []config.UserLink
-	players               Players
-	player                Player
+	players               model.Players
+	player                model.Player
 	contentViewPortHeight int
 	ready                 bool
 	viewport              viewport.Model
-	viewState             viewState
+	viewState             model.ViewState
 }
 
-func (m detailPanelModel) Init() tea.Cmd {
+func (m DetailPanelModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m detailPanelModel) Update(msg tea.Msg) (detailPanelModel, tea.Cmd) {
+func (m DetailPanelModel) Update(msg tea.Msg) (DetailPanelModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case config.Config:
 		m.links = msg.Links
-	case Snapshot:
+	case model.Snapshot:
 		m.players = msg.Server.Players
-	case viewState:
+	case model.ViewState:
 		m.viewState = msg
 		if !m.ready {
-			m.viewport = viewport.New(msg.width, msg.lowerSize)
+			m.viewport = viewport.New(msg.Width, msg.Lower)
 			m.ready = true
 		} else {
-			m.contentViewPortHeight = msg.lowerSize
-			m.viewport.Height = msg.lowerSize
+			m.contentViewPortHeight = msg.Lower
+			m.viewport.Height = msg.Lower
 		}
-	case selectedPlayerMsg:
-		m.player = msg.player
+	case command.SelectedPlayerMsg:
+		m.player = msg.Player
 	}
 
 	var cmd tea.Cmd
@@ -61,7 +62,7 @@ func (m detailPanelModel) Update(msg tea.Msg) (detailPanelModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m detailPanelModel) Render(height int) string {
+func (m DetailPanelModel) Render(height int) string {
 	if !m.player.SteamID.Valid() {
 		return ""
 	}
@@ -144,5 +145,5 @@ func (m detailPanelModel) Render(height int) string {
 
 	m.viewport.Height = height - 2
 
-	return model.Container("Player Overview", m.viewState.width, height, m.viewport.View(), m.viewState.keyZone == playerOverview)
+	return Container("Player Overview", m.viewState.Width, height, m.viewport.View(), m.viewState.KeyZone == model.KZplayerOverview)
 }

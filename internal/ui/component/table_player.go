@@ -1,4 +1,4 @@
-package ui
+package component
 
 import (
 	"github.com/charmbracelet/bubbles/key"
@@ -8,6 +8,8 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/config"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/ui/command"
+	"github.com/leighmacdonald/tf-tui/internal/ui/input"
 	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
@@ -43,21 +45,21 @@ const (
 	colTimeSize    playerTableColSize = 5
 )
 
-func newPlayerTableModel(team tf.Team, selfSID steamid.SteamID, serverMode bool) *tablePlayerModel {
+func NewPlayerTableModel(team tf.Team, selfSID steamid.SteamID, serverMode bool) *TablePlayerModel {
 	zoneID := zone.NewPrefix()
 
-	return &tablePlayerModel{
+	return &TablePlayerModel{
 		id:           zoneID,
 		team:         team,
 		selectedTeam: tf.RED,
-		table:        newUnstyledTable(),
+		table:        NewUnstyledTable(),
 		selfSteamID:  selfSID,
 		serverMode:   serverMode,
 		serverData:   map[string]*tablePlayerData{},
 	}
 }
 
-type tablePlayerModel struct {
+type TablePlayerModel struct {
 	id         string
 	serverMode bool
 	table      *table.Table
@@ -68,39 +70,39 @@ type tablePlayerModel struct {
 	selectedServer  string
 	serverData      map[string]*tablePlayerData
 	selfSteamID     steamid.SteamID
-	viewState       viewState
+	viewState       model.ViewState
 }
 
-func (m *tablePlayerModel) Init() tea.Cmd {
+func (m *TablePlayerModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *TablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case config.Config:
 		m.selfSteamID = msg.SteamID
 
 		return m, nil
-	case viewState:
+	case model.ViewState:
 		m.viewState = msg
 		// When the screen with is a odd number, increase the size of the right player table
 		// to ensure that it fills the screen fully.
-		half := msg.width / 2
-		if msg.width%2 != 0 && m.team == tf.BLU {
+		half := msg.Width / 2
+		if msg.Width%2 != 0 && m.team == tf.BLU {
 			m.table.Width(half + 1)
 		} else {
 			m.table.Width(half)
 		}
 
 		return m, nil
-	case selectServerSnapshotMsg:
-		m.selectedServer = msg.server.HostPort
-		if _, ok := m.serverData[msg.server.HostPort]; !ok {
-			m.serverData[msg.server.HostPort] = newTablePlayerData(m.id, m.serverMode, nil, m.team)
+	case command.SelectServerSnapshotMsg:
+		m.selectedServer = msg.Server.HostPort
+		if _, ok := m.serverData[msg.Server.HostPort]; !ok {
+			m.serverData[msg.Server.HostPort] = NewTablePlayerData(m.id, m.serverMode, nil, m.team)
 		}
-	case sortPlayersMsg:
+	case command.SortMsg[playerTableCol]:
 		if data, ok := m.serverData[m.selectedServer]; ok {
-			data.Sort(msg.sortColumn, msg.asc)
+			data.Sort(msg.SortColumn, msg.Asc)
 			m.table.Data(data)
 		}
 
@@ -128,8 +130,8 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.selectedTeam = m.team
 
 					return m, tea.Sequence(
-						selectTeam(m.team),
-						selectPlayer(item))
+						command.SelectTeam(m.team),
+						command.SelectPlayer(item))
 				}
 			}
 
@@ -170,44 +172,44 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		var cmd tea.Cmd
 		switch {
-		case key.Matches(msg, defaultKeyMap.up):
-			cmd = m.moveSelection(up)
+		case key.Matches(msg, input.Default.Up):
+			cmd = m.moveSelection(input.Up)
 
 			return m, cmd
-		case key.Matches(msg, defaultKeyMap.down):
-			cmd = m.moveSelection(down)
+		case key.Matches(msg, input.Default.Down):
+			cmd = m.moveSelection(input.Down)
 
 			return m, cmd
 		}
 
-	case selectedPlayerMsg:
-		m.selectedSteamID = msg.player.SteamID
+	case command.SelectedPlayerMsg:
+		m.selectedSteamID = msg.Player.SteamID
 
 		return m, nil
 	case tf.Team:
 		m.selectedTeam = msg
 
 		return m, m.selectClosestPlayer()
-	case Snapshot:
+	case model.Snapshot:
 		return m.updatePlayers(msg)
 	}
 
 	return m, nil
 }
 
-func (m *tablePlayerModel) isActiveZone() bool {
-	return (m.team == tf.RED && m.viewState.keyZone == playerTableRED) || (m.team == tf.BLU && m.viewState.keyZone == playerTableBLU)
+func (m *TablePlayerModel) isActiveZone() bool {
+	return (m.team == tf.RED && m.viewState.KeyZone == model.KZplayerTableRED) || (m.team == tf.BLU && m.viewState.KeyZone == model.KZplayerTableBLU)
 }
 
-func (m *tablePlayerModel) moveSelection(direction direction) tea.Cmd {
+func (m *TablePlayerModel) moveSelection(dir input.Direction) tea.Cmd {
 	data, ok := m.serverData[m.selectedServer]
 	if !ok {
 		return nil
 	}
 
 	currentRow := m.currentRowIndex()
-	switch direction { //nolint:exhaustive
-	case up:
+	switch dir { //nolint:exhaustive
+	case input.Up:
 		if currentRow < 0 && len(data.players) > 0 {
 			m.selectedSteamID = data.players[len(data.players)-1].SteamID
 
@@ -219,7 +221,7 @@ func (m *tablePlayerModel) moveSelection(direction direction) tea.Cmd {
 		if currentRow-1 >= 0 && max(0, len(data.players)-1) > currentRow-1 {
 			m.selectedSteamID = data.players[currentRow-1].SteamID
 		}
-	case down:
+	case input.Down:
 		if currentRow < 0 && len(data.players) > 0 {
 			m.selectedSteamID = data.players[0].SteamID
 
@@ -236,21 +238,21 @@ func (m *tablePlayerModel) moveSelection(direction direction) tea.Cmd {
 
 	if m.selectedTeam == m.team {
 		if player, ok := m.currentPlayer(); ok {
-			cmds = append(cmds, selectPlayer(player))
+			cmds = append(cmds, command.SelectPlayer(player))
 		}
 	}
 
 	return tea.Batch(cmds...)
 }
 
-func (m *tablePlayerModel) currentPlayer() (Player, bool) {
+func (m *TablePlayerModel) currentPlayer() (model.Player, bool) {
 	data, ok := m.serverData[m.selectedServer]
 	if !ok {
-		return Player{}, false
+		return model.Player{}, false
 	}
 
 	if m.selectedTeam != m.team {
-		return Player{}, false
+		return model.Player{}, false
 	}
 	for _, player := range data.players {
 		if player.SteamID == m.selectedSteamID {
@@ -258,10 +260,10 @@ func (m *tablePlayerModel) currentPlayer() (Player, bool) {
 		}
 	}
 
-	return Player{}, false
+	return model.Player{}, false
 }
 
-func (m *tablePlayerModel) currentRowIndex() int {
+func (m *TablePlayerModel) currentRowIndex() int {
 	data, ok := m.serverData[m.selectedServer]
 	if !ok {
 		return -1
@@ -276,13 +278,13 @@ func (m *tablePlayerModel) currentRowIndex() int {
 	return -1
 }
 
-func (m *tablePlayerModel) selectClosestPlayer() tea.Cmd {
+func (m *TablePlayerModel) selectClosestPlayer() tea.Cmd {
 	data, ok := m.serverData[m.selectedServer]
 	if !ok {
 		return nil
 	}
 
-	var selectedPlayer Player
+	var selectedPlayer model.Player
 	if m.selectedTeam == m.team {
 		oldID := m.selectedSteamID
 		if player, ok := m.currentPlayer(); !ok && len(data.players) > 0 {
@@ -294,15 +296,15 @@ func (m *tablePlayerModel) selectClosestPlayer() tea.Cmd {
 		}
 
 		if !oldID.Equal(m.selectedSteamID) {
-			return tea.Sequence(selectTeam(m.selectedTeam), selectPlayer(selectedPlayer))
+			return tea.Sequence(command.SelectTeam(m.selectedTeam), command.SelectPlayer(selectedPlayer))
 		}
 	}
 
 	return nil
 }
 
-func (m *tablePlayerModel) updatePlayers(snapshot Snapshot) (tea.Model, tea.Cmd) {
-	data := newTablePlayerData(m.id, m.serverMode, snapshot.Server.Players, m.team)
+func (m *TablePlayerModel) updatePlayers(snapshot model.Snapshot) (tea.Model, tea.Cmd) {
+	data := NewTablePlayerData(m.id, m.serverMode, snapshot.Server.Players, m.team)
 	data.Sort(data.sortColumn, data.asc)
 	m.table.Data(data)
 	m.serverData[snapshot.HostPort] = data
@@ -310,10 +312,10 @@ func (m *tablePlayerModel) updatePlayers(snapshot Snapshot) (tea.Model, tea.Cmd)
 	return m, m.selectClosestPlayer()
 }
 
-func (m *tablePlayerModel) View() string {
+func (m *TablePlayerModel) View() string {
 	data, ok := m.serverData[m.selectedServer]
 	if !ok {
-		data = newTablePlayerData(m.id, m.serverMode, nil, m.team)
+		data = NewTablePlayerData(m.id, m.serverMode, nil, m.team)
 	}
 	selectedRowIdx := m.currentRowIndex()
 
@@ -322,7 +324,7 @@ func (m *tablePlayerModel) View() string {
 		title = "BLU"
 	}
 
-	return model.Container(title, calcPct(m.viewState.width, 50), m.viewState.height/2, m.table.
+	return Container(title, calcPct(m.viewState.Width, 50), m.viewState.Height/2, m.table.
 		Headers(data.Headers()...).
 		StyleFunc(func(row, col int) lipgloss.Style {
 			if len(data.players) == 0 {

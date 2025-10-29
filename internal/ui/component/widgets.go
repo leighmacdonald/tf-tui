@@ -1,4 +1,4 @@
-package ui
+package component
 
 import (
 	"github.com/charmbracelet/bubbles/textinput"
@@ -7,7 +7,7 @@ import (
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
-func newTextInputModel(value string, placeholder string) textinput.Model {
+func NewTextInputModel(value string, placeholder string) textinput.Model {
 	input := textinput.New()
 	input.Cursor.Style = styles.CursorStyle
 	input.SetValue(value)
@@ -19,7 +19,7 @@ func newTextInputModel(value string, placeholder string) textinput.Model {
 	return input
 }
 
-func newUnstyledTable(headers ...string) *table.Table {
+func NewUnstyledTable(headers ...string) *table.Table {
 	return table.New().
 		Border(lipgloss.NormalBorder()).
 		BorderColumn(false).

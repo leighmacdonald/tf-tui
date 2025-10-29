@@ -1,10 +1,11 @@
-package ui
+package component
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
+	"github.com/leighmacdonald/tf-tui/internal/ui/command"
 	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
@@ -34,27 +35,27 @@ type MatchedBDPlayer struct {
 	ListName string
 }
 
-func newTableBDModel() tableBDModel {
-	return tableBDModel{
-		table: newUnstyledTable("List Name", "Last Name", "Last Seen", "Attributes", "Proof"),
+func NewTableBDModel() TableBDModel {
+	return TableBDModel{
+		table: NewUnstyledTable("List Name", "Last Name", "Last Seen", "Attributes", "Proof"),
 	}
 }
 
-type tableBDModel struct {
+type TableBDModel struct {
 	table     *table.Table
 	matched   []MatchedBDPlayer
-	viewState viewState
+	viewState model.ViewState
 }
 
-func (m tableBDModel) Init() tea.Cmd {
+func (m TableBDModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m tableBDModel) Update(msg tea.Msg) (tableBDModel, tea.Cmd) {
+func (m TableBDModel) Update(msg tea.Msg) (TableBDModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case viewState:
+	case model.ViewState:
 		m.viewState = msg
-	case selectedPlayerMsg:
+	case command.SelectedPlayerMsg:
 		var rows [][]string
 		// FIXME
 		// for _, match := range msg.player.BDMatches {
@@ -75,7 +76,7 @@ func (m tableBDModel) Update(msg tea.Msg) (tableBDModel, tea.Cmd) {
 	return m, nil
 }
 
-func (m tableBDModel) Render(height int) string {
+func (m TableBDModel) Render(height int) string {
 	renderedTable := m.table.
 		Height(height - 2).
 		StyleFunc(func(row, col int) lipgloss.Style {
@@ -90,7 +91,7 @@ func (m tableBDModel) Render(height int) string {
 			case colBDAttributes:
 				width = int(colBDAttributesSize)
 			case colBDProof:
-				width = m.viewState.width - int(colBDListNameSize) - int(colBDLastSeenSize) - int(colBDAttributesSize) - int(colBDLastNameSize) - 2
+				width = m.viewState.Width - int(colBDListNameSize) - int(colBDLastSeenSize) - int(colBDAttributesSize) - int(colBDLastNameSize) - 2
 			}
 			switch {
 			case row == table.HeaderRow:
@@ -102,5 +103,5 @@ func (m tableBDModel) Render(height int) string {
 			}
 		}).Render()
 
-	return model.Container("Bot Detector", m.viewState.width, height, renderedTable, false)
+	return Container("Bot Detector", m.viewState.Width, height, renderedTable, false)
 }

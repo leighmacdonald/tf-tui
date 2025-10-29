@@ -1,4 +1,4 @@
-package ui
+package component
 
 import (
 	"slices"
@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/leighmacdonald/tf-tui/internal/tfapi"
+	"github.com/leighmacdonald/tf-tui/internal/ui/command"
 	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
@@ -37,37 +38,37 @@ const (
 	colTeamNameSize    compTableSize = -1
 )
 
-type tableCompModel struct {
-	player    Player
+type TableCompModel struct {
+	player    model.Player
 	table     *table.Table
-	viewState viewState
+	viewState model.ViewState
 	ready     bool
 	viewport  viewport.Model
 }
 
-func newTableCompModel() tableCompModel {
-	return tableCompModel{
-		table: newUnstyledTable("League", "Competition", "Joined", "Left", "Format", "Division", "Team Name"),
+func NewTableCompModel() TableCompModel {
+	return TableCompModel{
+		table: NewUnstyledTable("League", "Competition", "Joined", "Left", "Format", "Division", "Team Name"),
 	}
 }
 
-func (m tableCompModel) Init() tea.Cmd {
+func (m TableCompModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
+func (m TableCompModel) Update(msg tea.Msg) (TableCompModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case viewState:
+	case model.ViewState:
 		m.viewState = msg
-		m.table.Height(msg.lowerSize - 2)
+		m.table.Height(msg.Lower - 2)
 		if !m.ready {
-			m.viewport = viewport.New(msg.width, msg.lowerSize)
+			m.viewport = viewport.New(msg.Width, msg.Lower)
 			m.ready = true
 		} else {
-			m.viewport.Height = msg.lowerSize - 1
+			m.viewport.Height = msg.Lower - 1
 		}
-	case selectedPlayerMsg:
-		m.player = msg.player
+	case command.SelectedPlayerMsg:
+		m.player = msg.Player
 		m.table.ClearRows()
 
 		var rows [][]string
@@ -105,7 +106,7 @@ func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 		m.table.Rows(rows...)
 		var content string
 		if len(m.player.CompetitiveTeams) == 0 {
-			content = styles.InfoMessage.Width(m.viewState.width).Render("No league history found " + styles.IconNoComp)
+			content = styles.InfoMessage.Width(m.viewState.Width).Render("No league history found " + styles.IconNoComp)
 		} else {
 			content = m.table.
 				StyleFunc(func(row int, col int) lipgloss.Style {
@@ -125,7 +126,7 @@ func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 						width = colDivisionSize
 					case colTeamName:
 						// consts are just an illusion of course :)
-						width = compTableSize(m.viewState.width - int(colLeagueSize) - int(colCompetitionSize) -
+						width = compTableSize(m.viewState.Width - int(colLeagueSize) - int(colCompetitionSize) -
 							int(colJoinedSize) - int(colLeftSize) - int(colFormatSize) - int(colDivisionSize) - 4)
 					}
 					switch {
@@ -148,8 +149,8 @@ func (m tableCompModel) Update(msg tea.Msg) (tableCompModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m tableCompModel) Render(height int) string {
+func (m TableCompModel) Render(height int) string {
 	m.viewport.Height = height - 2
 
-	return model.Container("Competitive History", m.viewState.width, height, m.viewport.View(), false)
+	return Container("Competitive History", m.viewState.Width, height, m.viewport.View(), false)
 }

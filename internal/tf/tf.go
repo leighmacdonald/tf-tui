@@ -45,6 +45,14 @@ const (
 	ChatDestParty ChatDest = "party"
 )
 
+type ChatType int
+
+const (
+	AllChat ChatType = iota
+	TeamChat
+	PartyChat
+)
+
 // DumpPlayer holds the data returned from the `g15_dumpplayer` rcon command.
 type DumpPlayer struct {
 	Names     [MaxPlayerCount]string

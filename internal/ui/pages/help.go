@@ -1,15 +1,18 @@
-package ui
+package pages
 
 import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/leighmacdonald/tf-tui/internal/ui/command"
+	"github.com/leighmacdonald/tf-tui/internal/ui/input"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
-func newHelpModel(buildVersion, buildDate, buildCommit string, configPath string, cachePath string) helpModel {
-	return helpModel{
+func NewHelp(buildVersion, buildDate, buildCommit string, configPath string, cachePath string) Help {
+	return Help{
 		configPath:   configPath,
 		cachePath:    cachePath,
 		buildVersion: buildVersion,
@@ -18,9 +21,9 @@ func newHelpModel(buildVersion, buildDate, buildCommit string, configPath string
 	}
 }
 
-type helpModel struct {
+type Help struct {
 	helpView     help.Model
-	viewState    viewState
+	viewState    model.ViewState
 	configPath   string
 	cachePath    string
 	buildVersion string
@@ -28,60 +31,60 @@ type helpModel struct {
 	buildCommit  string
 }
 
-func (m helpModel) Init() tea.Cmd {
+func (m Help) Init() tea.Cmd {
 	return nil
 }
 
-func (m helpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Help) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch { //nolint:gocritic
-		case key.Matches(msg, defaultKeyMap.back):
+		case key.Matches(msg, input.Default.Back):
 			// go back to main view
-			if m.viewState.page == pageHelp {
-				m.viewState.page = pageMain
+			if m.viewState.Page == model.PageHelp {
+				m.viewState.Page = model.PageMain
 
-				return m, setViewState(m.viewState)
+				return m, command.SetViewState(m.viewState)
 			}
 		}
-	case page:
-		m.viewState.page = msg
+	case model.Page:
+		m.viewState.Page = msg
 	}
 
 	return m, nil
 }
 
-func (m helpModel) View() string {
+func (m Help) View() string {
 	left := m.helpView.FullHelpView([][]key.Binding{
 		{
-			defaultKeyMap.config,
-			defaultKeyMap.start,
-			defaultKeyMap.stop,
-			defaultKeyMap.reset,
-			defaultKeyMap.quit,
-			defaultKeyMap.help,
-			defaultKeyMap.accept,
+			input.Default.Config,
+			input.Default.Start,
+			input.Default.Stop,
+			input.Default.Reset,
+			input.Default.Quit,
+			input.Default.Help,
+			input.Default.Accept,
 		},
 	})
 
 	middle := m.helpView.FullHelpView([][]key.Binding{
 		{
-			defaultKeyMap.overview,
-			defaultKeyMap.bans,
-			defaultKeyMap.bd,
-			defaultKeyMap.comp,
-			defaultKeyMap.chat,
-			defaultKeyMap.console,
+			input.Default.Overview,
+			input.Default.Bans,
+			input.Default.BD,
+			input.Default.Comp,
+			input.Default.Chat,
+			input.Default.Console,
 		},
 	})
 
 	right := m.helpView.FullHelpView([][]key.Binding{
 		{
-			defaultKeyMap.nextTab,
-			defaultKeyMap.up,
-			defaultKeyMap.down,
-			defaultKeyMap.left,
-			defaultKeyMap.right,
+			input.Default.NextTab,
+			input.Default.Up,
+			input.Default.Down,
+			input.Default.Left,
+			input.Default.Right,
 		},
 	})
 

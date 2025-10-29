@@ -1,4 +1,4 @@
-package ui
+package model
 
 import "github.com/leighmacdonald/tf-tui/internal/tf"
 

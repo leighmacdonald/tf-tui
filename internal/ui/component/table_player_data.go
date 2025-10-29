@@ -1,4 +1,4 @@
-package ui
+package component
 
 import (
 	"cmp"
@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/leighmacdonald/tf-tui/internal/tf"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
 	"golang.org/x/exp/slices"
@@ -17,7 +18,7 @@ var (
 	defaultServerColumns = []playerTableCol{colMeta, colName, colLoss, colPing, colAddress}
 )
 
-func newTablePlayerData(parentZoneID string, serverMode bool, playersUpdate Players, team tf.Team, cols ...playerTableCol) *tablePlayerData {
+func NewTablePlayerData(parentZoneID string, serverMode bool, playersUpdate model.Players, team tf.Team, cols ...playerTableCol) *tablePlayerData {
 	var enabledCols []playerTableCol
 	switch {
 	case len(cols) > 0:
@@ -33,7 +34,7 @@ func newTablePlayerData(parentZoneID string, serverMode bool, playersUpdate Play
 		sortColumn:     colScore,
 		asc:            true,
 		serverMode:     serverMode,
-		players:        Players{},
+		players:        model.Players{},
 		enabledColumns: enabledCols,
 	}
 
@@ -53,7 +54,7 @@ func newTablePlayerData(parentZoneID string, serverMode bool, playersUpdate Play
 
 // tablePlayerData implements the table.Data interface to provide table data.
 type tablePlayerData struct {
-	players Players
+	players model.Players
 	zoneID  string
 	// Defines both the columns shown and the order they are rendered.
 	enabledColumns []playerTableCol
@@ -94,7 +95,7 @@ func (m *tablePlayerData) Sort(column playerTableCol, asc bool) {
 	m.sortColumn = column
 	m.asc = asc
 
-	slices.SortStableFunc(m.players, func(a, b Player) int { //nolint:varnamelen
+	slices.SortStableFunc(m.players, func(a, b model.Player) int { //nolint:varnamelen
 		switch m.sortColumn {
 		case colUID:
 			return cmp.Compare(a.UserID, b.UserID)
@@ -182,7 +183,7 @@ func (m *tablePlayerData) Columns() int {
 	return len(m.enabledColumns)
 }
 
-func (m *tablePlayerData) metaColumn(player Player) string {
+func (m *tablePlayerData) metaColumn(player model.Player) string {
 	var afflictions []string
 	if len(player.Bans) > 0 {
 		afflictions = append(afflictions, styles.IconBans)

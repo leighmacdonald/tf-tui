@@ -1,4 +1,4 @@
-package ui
+package component
 
 import (
 	"fmt"
@@ -14,6 +14,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
+	"github.com/leighmacdonald/tf-tui/internal/ui/command"
+	"github.com/leighmacdonald/tf-tui/internal/ui/input"
 	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	zone "github.com/lrstanley/bubblezone"
@@ -62,7 +64,7 @@ func (r LogRow) Render(width int) string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, timeStamp, body)
 }
 
-type consoleModel struct {
+type ConsoleModel struct {
 	ready  bool
 	rowsMu *sync.RWMutex
 	// indexed by log secret
@@ -72,18 +74,18 @@ type consoleModel struct {
 	viewPort       viewport.Model
 	focused        bool
 	filterNoisy    bool
-	selectedServer Snapshot
+	selectedServer model.Snapshot
 	input          textinput.Model
 	inputZoneID    string
-	viewState      viewState
+	viewState      model.ViewState
 }
 
-func newConsoleModel() *consoleModel {
+func NewConsoleModel() *ConsoleModel {
 	input := textinput.New()
 	input.CharLimit = 120
 	input.Placeholder = "cmd..."
 	input.Prompt = styles.ConsolePrompt
-	model := consoleModel{
+	model := ConsoleModel{
 		rowsMu:       &sync.RWMutex{},
 		rowsRendered: map[string]string{},
 		rowsCount:    map[string]int{},
@@ -96,16 +98,16 @@ func newConsoleModel() *consoleModel {
 	return &model
 }
 
-func (m *consoleModel) Init() tea.Cmd {
+func (m *ConsoleModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
+func (m *ConsoleModel) Update(msg tea.Msg) (*ConsoleModel, tea.Cmd) {
 	cmds := make([]tea.Cmd, 2)
 
 	m.viewPort, cmds[0] = m.viewPort.Update(msg)
 
-	if m.viewState.keyZone == consoleInput {
+	if m.viewState.KeyZone == model.KZconsoleInput {
 		m.input, cmds[1] = m.input.Update(msg)
 		m.input.SetValue("")
 	}
@@ -114,37 +116,37 @@ func (m *consoleModel) Update(msg tea.Msg) (*consoleModel, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch { //nolint:gocritic
-		case key.Matches(msg, defaultKeyMap.accept):
+		case key.Matches(msg, input.Default.Accept):
 			cmd := m.input.Value()
 			if cmd == "" {
 				break
 			}
-			cmds = append(cmds, sendRCONCommand(m.selectedServer.HostPort, cmd))
+			cmds = append(cmds, command.SendRCONCommand(m.selectedServer.HostPort, cmd))
 		}
-	case viewState:
+	case model.ViewState:
 		m.viewState = msg
-		m.viewPort.Width = msg.width
-		m.input.Width = msg.width - 8
-		if msg.section == tabConsole {
-			if m.viewState.keyZone == consoleInput && !m.input.Focused() {
+		m.viewPort.Width = msg.Width
+		m.input.Width = msg.Width - 8
+		if msg.Section == model.SectionConsole {
+			if m.viewState.KeyZone == model.KZconsoleInput && !m.input.Focused() {
 				cmds = append(cmds, m.input.Focus())
 			}
 		}
-	case selectServerSnapshotMsg:
-		m.selectedServer = msg.server
-		if cvars, ok := m.cvarList[msg.server.HostPort]; ok {
+	case command.SelectServerSnapshotMsg:
+		m.selectedServer = msg.Server
+		if cvars, ok := m.cvarList[msg.Server.HostPort]; ok {
 			m.input.SetSuggestions(cvars.Filter("").Names())
 		}
 	case events.Event:
 		return m.onLogs(msg), tea.Batch(cmds...)
-	case serverCVarList:
+	case command.ServerCVarList:
 		m.cvarList[msg.HostPort] = msg.List
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m *consoleModel) onLogs(event events.Event) *consoleModel {
+func (m *ConsoleModel) onLogs(event events.Event) *ConsoleModel {
 	// if slices.Contains([]tf.EventType{tf.EvtStatusID, tf.EvtHostname, tf.EvtMsg, tf.EvtTags, tf.EvtAddress, tf.EvtLobby}, log.Type) {
 	// 	return m
 	// }
@@ -175,7 +177,7 @@ func (m *consoleModel) onLogs(event events.Event) *consoleModel {
 	// This does not use JoinVertical currently as it takes more and more CPU as time goes on
 	// and the console log fills becoming unusable.
 	prev := m.rowsRendered[event.HostPort]
-	m.rowsRendered[event.HostPort] = prev + "\n" + newRow.Render(m.viewState.width-10)
+	m.rowsRendered[event.HostPort] = prev + "\n" + newRow.Render(m.viewState.Width-10)
 	if _, ok := m.rowsCount[event.HostPort]; !ok {
 		m.rowsCount[event.HostPort] = 0
 	}
@@ -193,7 +195,7 @@ func safeString(s string) string {
 	return s
 }
 
-func (m *consoleModel) Render(height int) string {
+func (m *ConsoleModel) Render(height int) string {
 	content, found := m.rowsRendered[m.selectedServer.HostPort]
 	if !found || content == "" {
 		content = "<<< Start of logs >>>\n"
@@ -211,10 +213,10 @@ func (m *consoleModel) Render(height int) string {
 
 	title := fmt.Sprintf("Console Log: %d Messages", m.rowsCount[m.selectedServer.HostPort])
 
-	return model.Container(
+	return Container(
 		title,
-		m.viewState.width,
+		m.viewState.Width,
 		height,
 		lipgloss.JoinVertical(lipgloss.Left, m.viewPort.View(), input),
-		m.viewState.keyZone == configInput)
+		m.viewState.KeyZone == model.KZconfigInput)
 }

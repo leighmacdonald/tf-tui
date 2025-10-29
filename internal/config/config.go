@@ -91,6 +91,11 @@ func getPort(addr string) uint16 {
 	return uint16(port)
 }
 
+type Writer interface {
+	Write(Config) error
+	Path() string
+}
+
 type ServerConfig struct {
 	// Address is the RCON address of the server. Must be unique.
 	Address string `mapstructure:"address"`

@@ -1,4 +1,4 @@
-package ui
+package component
 
 import (
 	"fmt"
@@ -7,21 +7,24 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
+	"github.com/leighmacdonald/tf-tui/internal/ui/command"
+	"github.com/leighmacdonald/tf-tui/internal/ui/input"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
 
 type statusBarModel struct {
-	viewState   viewState
+	viewState   model.ViewState
 	hostname    string
 	mapName     string
 	statusMsg   string
 	statusError bool
-	snapshot    Snapshot
+	snapshot    model.Snapshot
 	version     string
 	serverMode  bool
 }
 
-func newStatusBarModel(version string, serverMode bool) *statusBarModel {
+func NewStatusBarModel(version string, serverMode bool) *statusBarModel {
 	return &statusBarModel{version: version, serverMode: serverMode}
 }
 
@@ -31,17 +34,17 @@ func (m statusBarModel) Init() tea.Cmd {
 
 func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case selectServerSnapshotMsg:
-		m.snapshot = msg.server
-	case statusMsg:
+	case command.SelectServerSnapshotMsg:
+		m.snapshot = msg.Server
+	case command.StatusMsg:
 		m.statusMsg = msg.Message
 		m.statusError = msg.Err
 
-		return m, clearErrorAfter(clearMessageTimeout)
-	case clearStatusMessageMsg:
+		return m, command.ClearErrorAfter(command.ClearMessageTimeout)
+	case command.ClearStatusMessageMsg:
 		m.statusError = false
 		m.statusMsg = ""
-	case viewState:
+	case model.ViewState:
 		m.viewState = msg
 	case events.Event:
 		switch data := msg.Data.(type) {
@@ -58,7 +61,7 @@ func (m statusBarModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m statusBarModel) View() string {
 	args := []string{
 		styles.StatusVersion.Render(m.version),
-		styles.StatusHelp.Render(fmt.Sprintf("%s %s", defaultKeyMap.help.Help().Key, defaultKeyMap.help.Help().Desc)),
+		styles.StatusHelp.Render(fmt.Sprintf("%s %s", input.Default.Help.Help().Key, input.Default.Help.Help().Desc)),
 		m.status(),
 		styles.StatusMap.Render(m.mapName),
 	}
@@ -76,7 +79,7 @@ func (m statusBarModel) View() string {
 			styles.StatusBluTeam.Render(fmt.Sprintf("%3d", m.snapshot.Server.Players.TeamCount(tf.BLU))))
 	}
 
-	return lipgloss.NewStyle().Width(m.viewState.width).Render(lipgloss.JoinHorizontal(lipgloss.Top, args...))
+	return lipgloss.NewStyle().Width(m.viewState.Width).Render(lipgloss.JoinHorizontal(lipgloss.Top, args...))
 }
 
 func (m statusBarModel) status() string {

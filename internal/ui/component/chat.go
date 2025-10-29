@@ -1,4 +1,4 @@
-package ui
+package component
 
 import (
 	"time"
@@ -9,6 +9,7 @@ import (
 	"github.com/leighmacdonald/steamid/v4/steamid"
 	"github.com/leighmacdonald/tf-tui/internal/tf"
 	"github.com/leighmacdonald/tf-tui/internal/tf/events"
+	"github.com/leighmacdonald/tf-tui/internal/ui/command"
 	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 )
@@ -47,62 +48,59 @@ func (m ChatRow) View() string {
 	)
 }
 
-type ChatType int
-
-const (
-	AllChat ChatType = iota
-	TeamChat
-	PartyChat
-)
-
-func newChatModel() chatModel {
-	return chatModel{}
+type ChatMsg struct {
+	Message  string
+	ChatType tf.ChatType
 }
 
-type chatModel struct {
-	players         Players
+func NewChatModel() ChatModel {
+	return ChatModel{}
+}
+
+type ChatModel struct {
+	players         model.Players
 	viewport        viewport.Model
-	viewState       viewState
+	viewState       model.ViewState
 	ready           bool
 	rows            map[string][]ChatRow
 	rowsRendered    map[string]string
 	selectedsServer string
 	inputOpen       bool
-	chatType        ChatType
+	chatType        tf.ChatType
 	incoming        chan events.Event
 }
 
-func (m chatModel) Placeholder() string {
+func (m ChatModel) Placeholder() string {
 	var label string
 	switch m.chatType {
-	case AllChat:
+	case tf.AllChat:
 		label = "All"
-	case TeamChat:
+	case tf.TeamChat:
 		label = "Team"
-	case PartyChat:
+	case tf.PartyChat:
 		label = "Party"
 	}
 
 	return label + " >"
 }
 
-func (m chatModel) Init() tea.Cmd {
+func (m ChatModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
+func (m ChatModel) Update(msg tea.Msg) (ChatModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case selectServerSnapshotMsg:
-		m.selectedsServer = msg.server.HostPort
-	case viewState:
+	case command.SelectServerSnapshotMsg:
+		m.selectedsServer = msg.Server.HostPort
+	case model.ViewState:
 		m.viewState = msg
 		if !m.ready {
-			m.viewport = viewport.New(msg.width, msg.lowerSize)
+			m.viewport = viewport.New(msg.Width, msg.Lower)
 			m.ready = true
 		} else {
-			m.viewport.Height = msg.lowerSize
+			m.viewport.Height = msg.Lower
 		}
-	case Snapshot:
+	case model.Snapshot:
 		m.players = msg.Server.Players
 	case events.Event:
 		if msg.Type != events.Msg {
@@ -147,9 +145,9 @@ func (m chatModel) Update(msg tea.Msg) (chatModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m chatModel) View(height int) string {
+func (m ChatModel) View(height int) string {
 	m.viewport.Height = height - 2
 	m.viewport.SetContent(m.rowsRendered[m.selectedsServer])
 
-	return model.Container("Chat Logs", m.viewState.width, height, m.viewport.View(), false)
+	return Container("Chat Logs", m.viewState.Width, height, m.viewport.View(), m.viewState.KeyZone == model.KZconsoleInput)
 }
