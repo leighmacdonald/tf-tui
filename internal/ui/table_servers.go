@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
@@ -58,9 +59,10 @@ var defaultServerTableColumns = []serverTableCol{
 func newServerTableModel() *serverTableModel {
 	zoneID := zone.NewPrefix()
 	return &serverTableModel{
-		zoneID: zoneID,
-		table:  newUnstyledTable(),
-		data:   newTableServerData(zoneID, nil, defaultServerTableColumns...),
+		zoneID:  zoneID,
+		keyZone: serverTable,
+		table:   newUnstyledTable(),
+		data:    newTableServerData(zoneID, nil, defaultServerTableColumns...),
 	}
 }
 
@@ -71,7 +73,7 @@ type serverTableModel struct {
 	selectedServer string
 	width          int
 	contentHeight  int
-	inputActive    bool
+	keyZone        keyZone
 }
 
 func (m *serverTableModel) Init() tea.Cmd {
@@ -81,7 +83,7 @@ func (m *serverTableModel) Init() tea.Cmd {
 func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case keyZone:
-		m.inputActive = msg == serverTable
+		m.keyZone = msg
 	case viewPortSizeMsg:
 		m.width = msg.width
 		m.contentHeight = msg.upperSize
@@ -103,6 +105,16 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 		}
 	case selectServerSnapshotMsg:
 		m.selectedServer = msg.server.HostPort
+	case tea.KeyMsg:
+		if m.keyZone != serverTable {
+			break
+		}
+		switch {
+		case key.Matches(msg, defaultKeyMap.up):
+			return m, m.selectRow(up)
+		case key.Matches(msg, defaultKeyMap.down):
+			return m, m.selectRow(down)
+		}
 	case tea.MouseMsg:
 		if msg.Action != tea.MouseActionRelease || msg.Button != tea.MouseButtonLeft {
 			return m, nil
@@ -150,6 +162,25 @@ func (m *serverTableModel) Update(msg tea.Msg) (*serverTableModel, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m *serverTableModel) selectRow(dir direction) tea.Cmd {
+	currentIdx := m.currentRowIndex()
+
+	switch dir {
+	case up:
+		if currentIdx > 0 {
+			currentIdx--
+		}
+		return setServer(m.data.servers[currentIdx])
+	case down:
+		if currentIdx+1 <= len(m.data.servers) {
+			currentIdx++
+		}
+		return setServer(m.data.servers[currentIdx])
+	default:
+		return nil
+	}
 }
 
 func (m *serverTableModel) View() string {
@@ -200,7 +231,7 @@ func (m *serverTableModel) View() string {
 		}).
 		String()
 
-	return model.Container("Servers", m.width-4, m.contentHeight, content, true)
+	return model.Container("Servers", m.width-4, m.contentHeight, content, m.keyZone == serverTable)
 }
 
 func (m *serverTableModel) currentRowIndex() int {

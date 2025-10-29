@@ -13,16 +13,6 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 )
 
-// direction defines the cardinal directions the users can use in the UI.
-type direction int
-
-const (
-	up direction = iota //nolint:varnamelen
-	down
-	left
-	right
-)
-
 // playerTableCol defines all available columns for the player table.
 type playerTableCol int
 
@@ -60,11 +50,10 @@ func newPlayerTableModel(team tf.Team, selfSID steamid.SteamID, serverMode bool)
 		id:           zoneID,
 		team:         team,
 		selectedTeam: tf.RED,
-		//	data:         newTablePlayerData(zoneID, serverMode, Players{}, team),
-		table:       newUnstyledTable(),
-		selfSteamID: selfSID,
-		serverMode:  serverMode,
-		serverData:  map[string]*tablePlayerData{},
+		table:        newUnstyledTable(),
+		selfSteamID:  selfSID,
+		serverMode:   serverMode,
+		serverData:   map[string]*tablePlayerData{},
 	}
 }
 
@@ -81,7 +70,7 @@ type tablePlayerModel struct {
 	height          int
 	width           int
 	selfSteamID     steamid.SteamID
-	inputActive     bool
+	keyZone         keyZone
 }
 
 func (m *tablePlayerModel) Init() tea.Cmd {
@@ -91,7 +80,7 @@ func (m *tablePlayerModel) Init() tea.Cmd {
 func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case keyZone:
-		m.inputActive = m.team == tf.RED && msg == playerTableRED
+		m.keyZone = playerTableRED
 	case config.Config:
 		m.selfSteamID = msg.SteamID
 
@@ -179,7 +168,7 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	case tea.KeyMsg:
-		if !m.inputActive {
+		if !m.isActiveZone() {
 			break
 		}
 		var cmd tea.Cmd
@@ -207,6 +196,10 @@ func (m *tablePlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m *tablePlayerModel) isActiveZone() bool {
+	return (m.team == tf.RED && m.keyZone == playerTableRED) || (m.team == tf.BLU && m.keyZone == playerTableBLU)
 }
 
 func (m *tablePlayerModel) moveSelection(direction direction) tea.Cmd {
@@ -312,6 +305,15 @@ func (m *tablePlayerModel) selectClosestPlayer() tea.Cmd {
 }
 
 func (m *tablePlayerModel) updatePlayers(snapshot Snapshot) (tea.Model, tea.Cmd) {
+	var players Players
+	for _, player := range snapshot.Server.Players {
+		if m.team == tf.RED && int(player.SteamID.AccountID)%2 == 0 {
+			players = append(players, player)
+		} else if m.team == tf.BLU && int(player.SteamID.AccountID)%2 != 0 {
+			players = append(players, player)
+		}
+	}
+
 	data := newTablePlayerData(m.id, m.serverMode, snapshot.Server.Players, m.team)
 	data.Sort(data.sortColumn, data.asc)
 	m.table.Data(data)

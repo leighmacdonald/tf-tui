@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dustin/go-humanize"
 	"github.com/leighmacdonald/tf-tui/internal/config"
+	"github.com/leighmacdonald/tf-tui/internal/ui/model"
 	"github.com/leighmacdonald/tf-tui/internal/ui/styles"
 	"golang.org/x/exp/slices"
 )
@@ -30,6 +31,7 @@ type detailPanelModel struct {
 	contentViewPortHeight int
 	ready                 bool
 	viewport              viewport.Model
+	keyZone               keyZone
 }
 
 func (m detailPanelModel) Init() tea.Cmd {
@@ -143,7 +145,7 @@ func (m detailPanelModel) Render(height int) string {
 
 	m.viewport.SetContent(lipgloss.JoinVertical(lipgloss.Top, rows...))
 
-	m.viewport.Height = height
+	m.viewport.Height = height - 2
 
-	return m.viewport.View()
+	return model.Container("Player Overview", m.width, height, m.viewport.View(), m.keyZone == playerOverview)
 }

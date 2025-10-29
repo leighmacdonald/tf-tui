@@ -30,37 +30,37 @@ func newTabsModel() tea.Model {
 	return &tabsModel{
 		tabs: []tabLabel{
 			{
-				label:  styles.IconServers + " Servers",
+				label:  "Servers",
 				tab:    tabServers,
 				zoneID: zone.NewPrefix(),
 			},
 			{
-				label:  styles.IconPlayers + " Players",
+				label:  "Players",
 				tab:    tabPlayers,
 				zoneID: zone.NewPrefix(),
 			},
 			{
-				label:  styles.IconBans + " Bans",
+				label:  "Bans",
 				tab:    tabBans,
 				zoneID: zone.NewPrefix(),
 			},
 			{
-				label:  styles.IconBD + " Bot Det.",
+				label:  "Bot Det.",
 				tab:    tabBD,
 				zoneID: zone.NewPrefix(),
 			},
 			{
-				label:  styles.IconComp + " Comp",
+				label:  "Comp",
 				tab:    tabComp,
 				zoneID: zone.NewPrefix(),
 			},
 			{
-				label:  styles.IconChat + " Chat",
+				label:  "Chat",
 				tab:    tabChat,
 				zoneID: zone.NewPrefix(),
 			},
 			{
-				label:  styles.IconConsole + " Console",
+				label:  "Console",
 				tab:    tabConsole,
 				zoneID: zone.NewPrefix(),
 			},

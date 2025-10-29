@@ -16,6 +16,7 @@ import (
 
 // rootModel is the top level model for the ui side of the app.
 type rootModel struct {
+	currentZone            keyZone
 	currentView            contentView
 	previousView           contentView
 	height                 int
@@ -66,6 +67,7 @@ func newRootModel(userConfig config.Config, doSetup bool, buildVersion string, b
 		serverMode:             userConfig.ServerModeEnabled,
 		headerHeight:           1,
 		footerHeight:           1,
+		currentZone:            serverTable,
 	}
 
 	if doSetup {
@@ -138,17 +140,29 @@ func (m rootModel) Update(inMsg tea.Msg) (tea.Model, tea.Cmd) {
 				m.previousView = m.currentView
 				m.currentView = viewConfig
 			}
-		case key.Matches(msg, defaultKeyMap.left):
-			return m, selectTeam(tf.RED)
+		case key.Matches(msg, defaultKeyMap.nextTab):
+			return m, m.changeZone(right)
 
-		case key.Matches(msg, defaultKeyMap.right):
-			return m, selectTeam(tf.BLU)
+		case key.Matches(msg, defaultKeyMap.prevTab):
+			return m, m.changeZone(left)
 		}
 	case contentView:
 		m.currentView = msg
+	case keyZone:
+		m.currentZone = msg
 	}
 
 	return m.propagate(inMsg)
+}
+
+func (m rootModel) changeZone(dir direction) tea.Cmd {
+	switch m.activeTab {
+	case tabServers:
+		return setKeyZone(serverZones.next(m.currentZone, dir))
+	case tabPlayers:
+	}
+
+	return nil
 }
 
 func (m rootModel) View() string {

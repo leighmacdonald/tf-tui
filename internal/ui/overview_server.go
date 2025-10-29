@@ -34,6 +34,7 @@ type serverDetailPanelModel struct {
 	listMeta       list.Model
 	listCvar       list.Model
 	ready          bool
+	keyZone        keyZone
 }
 
 func (m serverDetailPanelModel) Init() tea.Cmd {
@@ -42,6 +43,8 @@ func (m serverDetailPanelModel) Init() tea.Cmd {
 
 func (m serverDetailPanelModel) Update(msg tea.Msg) (serverDetailPanelModel, tea.Cmd) {
 	switch msg := msg.(type) {
+	case keyZone:
+		m.keyZone = msg
 	case selectServerSnapshotMsg:
 		var smPlugins []list.Item
 		for _, plugin := range m.snapshot.PluginsSM {
@@ -113,13 +116,14 @@ func (m serverDetailPanelModel) Render(height int) string {
 	// titleBar := renderTitleBar(m.width, "Server Overview: "+m.snapshot.Status.ServerName)
 	m.viewportDetail.Height = height - 2 // - lipgloss.Height(titleBar)
 
+	// TODO compute this
 	borderSize := 8 // 4 containers, 2 sides each
 	bottomViews := lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		model.Container("Overview", calcPct(m.width-borderSize, 30), height, m.viewportDetail.View(), false),
-		model.Container(fmt.Sprintf("Meta (%d)", len(m.listMeta.Items())), calcPct(m.width-borderSize, 20), height, m.listMeta.View(), false),
-		model.Container(fmt.Sprintf("Sourcemod (%d)", len(m.listSM.Items())), calcPct(m.width-borderSize, 20), height, m.listSM.View(), false),
-		model.Container(fmt.Sprintf("CVars (%d)", len(m.listCvar.Items())), calcPct(m.width-borderSize, 30), height, m.listCvar.View(), false),
+		model.Container("Overview", calcPct(m.width-borderSize, 30), height, m.viewportDetail.View(), m.keyZone == serverOverview),
+		model.Container(fmt.Sprintf("Meta (%d)", len(m.listMeta.Items())), calcPct(m.width-borderSize, 20), height, m.listMeta.View(), m.keyZone == listMetamod),
+		model.Container(fmt.Sprintf("Sourcemod (%d)", len(m.listSM.Items())), calcPct(m.width-borderSize, 20), height, m.listSM.View(), m.keyZone == listSourcemod),
+		model.Container(fmt.Sprintf("CVars (%d)", len(m.listCvar.Items())), calcPct(m.width-borderSize, 30), height, m.listCvar.View(), m.keyZone == listCvars),
 	)
 
 	return lipgloss.NewStyle().Width(m.width).Render(bottomViews)

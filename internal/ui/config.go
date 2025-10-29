@@ -92,7 +92,7 @@ var defaultKeyMap = keymap{
 		key.WithHelp("tab", "Next Tab"),
 	),
 	prevTab: key.NewBinding(
-		key.WithKeys("shift tab"),
+		key.WithKeys("shift+tab"),
 		key.WithHelp("shift tab", "Prev Tab"),
 	),
 	overview: key.NewBinding(
