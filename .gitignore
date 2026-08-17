@@ -42,3 +42,4 @@ tf-tui
 !internal/cmd/tf-tui
 .cache
 tf-tui.yaml
+.direnv
