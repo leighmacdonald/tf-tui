@@ -21,7 +21,7 @@ generate:
   go generate ./...
 
 race:
-  GORACE="race.txt" DEBUG=1 go run -race .
+  GORACE="race.txt" DEBUG=1 go run -race internal/cmd/tf-tui/*
 
 test:
   go test ./...
@@ -43,3 +43,6 @@ run: build
 
 live:
     gow -e=go run internal/cmd/tf-tui/*
+
+dev:
+    @zellij --layout .zellij.kdl attach --create tf-tui

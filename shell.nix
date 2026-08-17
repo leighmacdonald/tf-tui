@@ -27,5 +27,6 @@ in
       sqlc
       air
       gow
+      zellij
     ];
   }
