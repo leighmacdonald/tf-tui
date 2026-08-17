@@ -100,7 +100,7 @@ If you set `TFAPI_DEBUG=1` env var, a log file will be created for extra error l
 
 Linux: `~/.config/tf-tui/tf-tui.log`
 
-Tail shortcut: `make tail`
+Tail shortcut: `just tail`
 
 ## Building
 
@@ -119,7 +119,7 @@ go install github.com/sqlc-dev/sqlc/cmd/sqlc
 Full snapshot build using goreleaser. Binaries are output to the platform specific paths: `./dist/tf-tui_{linux,windows}/tf-tui`:
 
 ```sh
-$ make snapshot
+$ just snapshot
 ```
 
 The standard go build options will also work, but some values will not be automatically injected into the build such as version/commit info.

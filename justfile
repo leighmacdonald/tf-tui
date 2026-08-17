@@ -36,7 +36,10 @@ demo:
   vhs docs/demo.vhs
 
 build:
-  go build -o tf-tui internal/cmd/tf-tui/*
+  go build -o build/tf-tui internal/cmd/tf-tui/*
 
 run: build
-  ./tf-tui
+  ./build/tf-tui
+
+live:
+    gow -e=go run internal/cmd/tf-tui/*

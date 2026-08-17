@@ -23,5 +23,9 @@ in
       delve
       markdownlint-cli2
       sql-formatter
+      oapi-codegen
+      sqlc
+      air
+      gow
     ];
   }

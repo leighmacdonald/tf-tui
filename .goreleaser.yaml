@@ -3,7 +3,7 @@ project_name: tf-tui
 
 #before:
 #  hooks:
-#    - make frontend
+#    - just frontend
 #dockers:
 #  - dockerfile: "docker/Dockerfile"
 #    skip_push: false

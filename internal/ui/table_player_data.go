@@ -94,7 +94,7 @@ func (m *tablePlayerData) Sort(column playerTableCol, asc bool) {
 	m.sortColumn = column
 	m.asc = asc
 
-	slices.SortStableFunc(m.players, func(a, b Player) int { //nolint:varnamelen
+	slices.SortStableFunc(m.players, func(a Player, b Player) int {
 		switch m.sortColumn {
 		case colUID:
 			return cmp.Compare(a.UserID, b.UserID)

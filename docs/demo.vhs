@@ -5,7 +5,7 @@ Set Shell zsh
 Set BorderRadius 0
 Set Margin 0
 Sleep 1.5s
-Type "make run"
+Type "just run"
 Enter
 Sleep 6.5s
 Down 8

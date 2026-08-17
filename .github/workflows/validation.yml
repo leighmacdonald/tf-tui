@@ -37,4 +37,4 @@ jobs:
           cache: true
 
       - name: Test
-        run: make test
+        run: just test
