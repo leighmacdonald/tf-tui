@@ -1,48 +1,48 @@
 default:
-  just build
+    just build
 
 debug:
-  dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient
+    dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient
 
 fmt:
-  golangci-lint fmt
+    golangci-lint fmt
 
 check:
-  golangci-lint run --fix --disable unused --timeout 3m ./...
-  go vet ./...
+    golangci-lint run --fix --disable unused --timeout 3m ./...
+    go vet ./...
 
 update: bump_go_deps generate
 
 bump_go_deps:
-  go get -u ./...
-  go mod tidy
+    go get -u ./...
+    go mod tidy
 
 generate:
-  go generate ./...
+    go generate ./...
 
 race:
-  GORACE="race.txt" DEBUG=1 go run -race internal/cmd/tf-tui/*
+    GORACE="race.txt" DEBUG=1 go run -race internal/cmd/tf-tui/*
 
 test:
-  go test ./...
+    go test ./...
 
 tail:
-  tail -f ~/.config/tf-tui/tf-tui.log
+    @lnav ~/.config/tf-tui/tf-tui.log
 
 snapshot:
-  goreleaser release --snapshot --clean
+    @goreleaser release --snapshot --clean
 
 demo:
-  vhs docs/demo.vhs
+    @vhs docs/demo.vhs
 
 build:
-  go build -o build/tf-tui internal/cmd/tf-tui/*
+    @go build -o build/tf-tui internal/cmd/tf-tui/*
 
 run: build
-  ./build/tf-tui
+    @./build/tf-tui
 
 live:
-    gow -e=go run internal/cmd/tf-tui/*
+    @gow -e=go run internal/cmd/tf-tui/*
 
 dev:
     @zellij --layout .zellij.kdl attach --create tf-tui
